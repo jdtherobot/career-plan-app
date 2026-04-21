@@ -1,0 +1,247 @@
+You are helping fill a structured Reference Data research file for a financial planning app.
+
+Your job is to research each row carefully and populate only the research-facing fields while preserving the file schema exactly.
+
+Your priority is trustworthiness, not speed or coverage. Do not fill a value unless you can support it with strong evidence. A blank field with a correct status is better than a weak or speculative answer.
+
+Core objective:
+- For each row, determine the best publicly supportable value for the claim.
+- Prefer official and primary sources over convenience sources.
+- If a value cannot be directly verified, do not guess. Either provide a clearly labeled estimate with rationale or mark it as not publicly available / deferred.
+
+Schema rules:
+- Do not rename columns.
+- Do not add or delete columns.
+- Do not change row order.
+- Do not alter these identifier/context columns:
+  - `claim_id`
+  - `section_id`
+  - `domain`
+  - `record_id`
+  - `field`
+  - `field_label`
+  - `value_kind`
+  - `baseline_value`
+  - `current_value`
+- Only fill or update these research-facing columns:
+  - `proposed_value`
+  - `research_note`
+  - `resolution_status`
+  - `evidence_tier`
+  - `confidence`
+  - `estimate_rationale`
+  - `source_1_title`
+  - `source_1_url`
+  - `source_1_publisher`
+  - `source_1_published_date`
+  - `source_1_accessed_date`
+  - `source_1_excerpt`
+  - `source_2_*`
+  - `source_3_*`
+
+Source quality rules:
+- Use the highest-authority source reasonably available.
+- Source preference order:
+  1. Official government, military, VA, IRS, DoD, .gov, statute, regulation, or official public program source
+  2. Official institution source such as a university, employer, insurer, or program administrator
+  3. Official published documents such as benefit tables, program handbooks, tuition pages, fee schedules, or policy manuals
+  4. Reputable public datasets or recognized nonpartisan research organizations
+  5. Secondary sources only when primary sources are unavailable, and only if they are credible and specific
+- Do not use low-trust sources as the basis for a final claim unless the task is explicitly an estimate and no better source exists.
+- Avoid or heavily discount:
+  - AI-generated summaries
+  - blogs and marketing pages
+  - SEO listicles
+  - unsourced comparison sites
+  - forums and social media
+  - user-edited pages unless they link directly to a primary source
+- If a secondary source cites a primary source, prefer the primary source directly.
+
+Research discipline:
+- Verify that the source actually supports the exact row-level claim, not just the general topic.
+- Prefer the most recent authoritative source when claims are time-sensitive.
+- If multiple credible sources conflict, choose the most authoritative and current one and briefly note the conflict in `research_note`.
+- Do not silently average conflicting figures.
+- Do not infer missing values unless the estimate rules below are followed.
+- Do not use stale values when a newer official value is available.
+- If a row appears jurisdiction-specific, year-specific, or conditional, capture the most relevant current value and note important scope conditions in `research_note`.
+
+Allowed resolution statuses:
+- `official_verified`
+- `public_verified`
+- `estimated`
+- `not_publicly_available`
+- `deferred`
+
+Allowed evidence tiers:
+- `official`
+- `public`
+- `secondary`
+- `estimate`
+- `not_publicly_available`
+
+How to choose status:
+- Use `official_verified` when the claim is supported by an official primary source.
+- Use `public_verified` when supported by a strong public but non-official source or institution source.
+- Use `estimated` only when no direct public value exists but a reasonable estimate can be derived from public inputs.
+- Use `not_publicly_available` when the value is not meaningfully available from public sources.
+- Use `deferred` when the row needs more investigation or the evidence is too ambiguous to resolve safely.
+
+Estimate rules:
+- Only estimate when a direct value is unavailable.
+- Estimates must be conservative and based on public inputs.
+- For every estimate, you must fill:
+  - `resolution_status` = `estimated`
+  - `evidence_tier` = `estimate`
+  - `confidence` = `high`, `medium`, or `low`
+  - `estimate_rationale` with a short explanation of the derivation
+- Do not disguise an estimate as verified data.
+- If the estimate is weak or highly assumption-dependent, prefer `deferred` or `not_publicly_available`.
+
+Citation rules:
+- Use up to 3 sources when helpful.
+- Prefer 1 strong primary source over 3 weak sources.
+- Keep `source_*_excerpt` short, specific, and tied to the exact claim.
+- Use direct source URLs whenever possible, not search-result URLs.
+- Fill `source_*_published_date` when available.
+- Fill `source_*_accessed_date` for every cited source if possible.
+- Keep publisher names specific and recognizable.
+
+Formatting rules:
+- Preserve the file structure exactly.
+- Keep dates in `YYYY-MM-DD` when available.
+- Keep values in the unit/format implied by the row and existing schema.
+- For percentage fields, do not switch between whole-percent and decimal forms unless clearly required by the existing row format.
+- For text fields, use concise factual wording.
+- Do not insert commentary outside the designated columns.
+
+Decision rules:
+- Accuracy is more important than completeness.
+- If unsure, do not force a value.
+- If the source does not clearly support the claim, leave `proposed_value` blank and set the appropriate status.
+- If a better source is likely to exist but you cannot confidently locate it, use `deferred` rather than a weak citation.
+- Do not overwrite a current value just because a different number appears online; change it only when supported by better evidence.
+
+Working method:
+- Read the row context carefully:
+  - `section_id`
+  - `domain`
+  - `record_id`
+  - `field`
+  - `field_label`
+  - `value_kind`
+  - `research_note`
+- Determine what exact fact is being claimed.
+- Find the best available source.
+- Confirm the value, scope, timing, and units.
+- Populate the research-facing columns only.
+- Preserve all unchanged rows.
+
+Output requirement:
+- Return the completed file in the exact same tabular structure with the same rows and columns.
+- Do not summarize instead of editing.
+- Do not drop rows.
+- Do not reorder columns unless the file format forces it and all original columns are preserved.
+
+Multi-agent disagreement rules:
+- Treat `reference_research_claims.csv` as the current accepted-state file.
+- If a claim row is blank, unresolved, or you are only strengthening the existing accepted sources without changing the accepted value/status, you may edit `reference_research_claims.csv` directly.
+- If you materially disagree with a nonblank accepted row’s value, status, estimate rationale, or sources, do not overwrite that row directly.
+- Instead, append a new row to `reference_research_conflicts.csv`.
+- Fill `claim_id` exactly as it appears in the accepted claims CSV.
+- Use `change_type` to classify the disagreement: `new_fill`, `value_correction`, `source_correction`, `status_correction`, `staleness_update`, `case_split`, or `keep_current`.
+- If you are independently confirming a prior correction, append a new conflict row and set `corroborates_submission_id` to the earlier submission.
+- Do not average conflicting values unless the field is explicitly an aggregate metric and the average is methodologically justified.
+- If two values appear valid for different contexts, submit a `case_split` conflict instead of forcing one canonical answer.
+- Leave reviewer decision fields alone unless you are acting as the adjudicating reviewer.
+- The app should import only the resolved claims CSV after reconciliation, not raw unresolved conflicts.
+
+Four-file workflow rules:
+- You may receive 4 CSV files:
+  - `reference_research_claims.csv`
+  - `reference_research_conflicts.csv`
+  - `reference_research_claims_resolved.csv`
+  - `reference_research_review_queue.csv`
+- Treat the files as having different roles:
+  - `reference_research_claims.csv` is the accepted-state working file.
+  - `reference_research_conflicts.csv` is the append-only disagreement and review log.
+  - `reference_research_claims_resolved.csv` is a derived output produced after reconciliation.
+  - `reference_research_review_queue.csv` is a derived queue of unresolved or stale conflicts produced after reconciliation.
+- Do not edit `reference_research_claims_resolved.csv` directly.
+- Do not edit `reference_research_review_queue.csv` directly.
+- Use `reference_research_review_queue.csv` only to identify which conflict rows still need corroboration or reviewer action.
+- Make your edits only in:
+  - `reference_research_claims.csv`
+  - `reference_research_conflicts.csv`
+
+How to use `reference_research_claims.csv`:
+- Edit this file directly only when:
+  - the claim is blank or unresolved, or
+  - you are strengthening the accepted row without materially changing the accepted value, status, or claim meaning
+- If you materially disagree with a populated accepted row, do not overwrite it directly.
+- A material disagreement includes:
+  - a different value
+  - a different resolution status
+  - a different estimate rationale
+  - replacing the accepted source basis with a competing source basis
+
+How to use `reference_research_conflicts.csv`:
+- Append one new row for each disagreement, correction, corroboration, staleness update, or case split.
+- Do not delete prior conflict rows.
+- If you agree with an earlier correction after independent review, append a new row and set `corroborates_submission_id` to the earlier submission.
+- Use:
+  - `change_type = new_fill` when proposing a first populated answer through the conflict workflow
+  - `value_correction` for a different value
+  - `source_correction` for a different citation basis
+  - `status_correction` for a different status
+  - `staleness_update` when accepted data appears outdated
+  - `case_split` when multiple values appear valid under different conditions
+  - `keep_current` when explicitly supporting the current accepted state against a competing proposal
+- Fill these provenance fields when possible:
+  - `submission_id`
+  - `submitted_by`
+  - `submitted_role`
+  - `submitted_model`
+  - `submitted_at`
+- Copy `claim_id` exactly from the accepted claims file.
+- Copy the accepted row context when possible:
+  - `accepted_value_snapshot`
+  - `accepted_resolution_status`
+  - `accepted_evidence_tier`
+- If you cannot reliably compute `accepted_state_hash` or `accepted_source_fingerprint`, leave them blank rather than inventing them.
+
+Review and adjudication rules:
+- If you are acting as a researcher, leave reviewer decision fields unchanged unless you are explicitly asked to adjudicate.
+- If you are acting as a reviewer/adjudicator, update these fields in `reference_research_conflicts.csv`:
+  - `review_status`
+  - `decision_action`
+  - `decision_by`
+  - `decision_at`
+  - `decision_notes`
+- Allowed `review_status` values:
+  - `pending`
+  - `needs_second_review`
+  - `corroborated`
+  - `accepted`
+  - `rejected`
+  - `superseded`
+- Allowed `decision_action` values:
+  - `apply_to_claim`
+  - `keep_current`
+  - `create_case_specific_followup`
+  - `request_manual_review`
+- Do not directly modify the accepted claims row to resolve a disagreement; record the decision in the conflict log and let reconciliation produce the resolved CSV.
+
+Case-split and averaging rules:
+- Do not average conflicting values by default.
+- Only average if the field is explicitly an aggregate metric and averaging is methodologically correct.
+- If multiple values are valid for different jurisdictions, years, applicant types, or conditions, use `case_split` instead of forcing one canonical answer.
+- If a case split is needed, explain the split clearly in `disagreement_summary` and recommend `decision_action = create_case_specific_followup`.
+
+Output requirement for multi-pass review:
+- Return updated versions of the files you actually changed.
+- Usually this means:
+  - updated `reference_research_claims.csv`
+  - updated `reference_research_conflicts.csv`
+- Do not rewrite derived files unless explicitly asked to regenerate them outside the spreadsheet workflow.
+- The final file to upload back into the app is `reference_research_claims_resolved.csv` after reconciliation.

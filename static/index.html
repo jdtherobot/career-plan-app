@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Career Plan Codex</title>
+    <link rel="stylesheet" href="/styles.css?v=__BUILD_ID__" />
+  </head>
+  <body>
+    <header id="topShell" class="top-shell">
+      <div class="top-shell-inner">
+        <div class="top-brand">
+          <p class="eyebrow">Career Plan Codex</p>
+          <h1>Financial Planner</h1>
+        </div>
+        <nav class="top-nav">
+          <a class="nav-link is-active" data-screen="dashboard-v4" href="#dashboard-v4">Dashboard</a>
+          <a class="nav-link" data-screen="path-editor" href="#path-editor">Path Editor</a>
+          <a class="nav-link" data-screen="finance" href="#finance">Manual Finance</a>
+          <a class="nav-link" data-screen="explorer" href="#explorer">Projection Explorer</a>
+          <a class="nav-link" data-screen="reference" href="#reference">Reference Data</a>
+          <a class="nav-link" data-screen="sources" href="#sources">Sources</a>
+          <a class="nav-link" data-screen="gaps" href="#gaps">Gap Tracker</a>
+          <details class="nav-dropdown" id="developmentNav">
+            <summary class="nav-link nav-dropdown-toggle">Development</summary>
+            <div class="nav-dropdown-menu">
+              <a class="nav-link nav-dropdown-link" data-screen="dashboard" href="#dashboard">Dashboard v1</a>
+              <a class="nav-link nav-dropdown-link" data-screen="dashboard-v2" href="#dashboard-v2">Dashboard v2</a>
+              <a class="nav-link nav-dropdown-link" data-screen="dashboard-v3" href="#dashboard-v3">Dashboard v3</a>
+              <a class="nav-link nav-dropdown-link" data-screen="test-lab" href="#test-lab">Test Visuals</a>
+              <a class="nav-link nav-dropdown-link" data-screen="insights" href="#insights">Insights</a>
+            </div>
+          </details>
+        </nav>
+        <div class="top-actions">
+          <div id="runtimeBadge" class="runtime-badge" hidden></div>
+          <div id="themeSwitcher" class="theme-switch" aria-label="Theme mode">
+            <button type="button" class="theme-option is-active" data-theme-toggle="light">Light</button>
+            <button type="button" class="theme-option" data-theme-toggle="dark">Dark</button>
+          </div>
+          <button type="button" id="refreshBtn" class="primary">Refresh</button>
+        </div>
+      </div>
+      <div id="runtimeBanner" class="runtime-banner" hidden></div>
+    </header>
+
+    <main class="main-shell">
+      <section id="dashboard-v4" class="screen is-visible"></section>
+      <section id="dashboard" class="screen"></section>
+      <section id="dashboard-v2" class="screen"></section>
+      <section id="dashboard-v3" class="screen"></section>
+      <section id="path-editor" class="screen"></section>
+      <section id="finance" class="screen"></section>
+      <section id="explorer" class="screen"></section>
+      <section id="test-lab" class="screen"></section>
+      <section id="insights" class="screen"></section>
+      <section id="reference" class="screen"></section>
+      <section id="sources" class="screen"></section>
+      <section id="gaps" class="screen"></section>
+    </main>
+
+    <div id="modalRoot"></div>
+
+    <script>
+      window.__plannerShellRuntime = __SHELL_RUNTIME__;
+    </script>
+    <script src="/app.js?v=__BUILD_ID__" type="module"></script>
+  </body>
+</html>

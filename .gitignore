@@ -1,0 +1,18 @@
+# Private local database
+planner.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Secrets / local environments
+.env
+.venv/
+
+# Python / macOS cache
+__pycache__/
+*.pyc
+.DS_Store
+
+# Local-only backups and temp files
+backups/
+tmp/
