@@ -46,12 +46,32 @@ The public site ships the seeded demo profile; visitor edits stay in their own
 browser (IndexedDB) and can be backed up / restored as JSON from the Export
 screen.
 
+## Exports
+
+The Export screen produces three artifacts, all stamped with the same
+deterministic input hash as the dashboard:
+
+- **Interactive app (single file)** — `career_plan_app.html`: the entire app
+  (all seven screens, charts, your data, precomputed results, and the engine
+  zip) in one ~1.3 MB file. Every screen views offline anywhere; editing
+  inside it loads Pyodide from CDN (internet required once) and recomputes.
+  Built by injecting state into `web/dist/app-template.html`, which
+  `scripts/build_single_file.py` produces from a finished build (`npm run
+  build:full`, or automatically on deploy).
+- **Advisor workbook (Excel)** — Cover, Comparison (deltas, drivers,
+  milestones), Current Position (net worth + monthly cash flow), a full
+  ~36-column annual cash-flow sheet per path, native Excel charts, Assumptions
+  & overrides, and a hyperlinked Sources sheet.
+- **Dashboard report (HTML)** — the Dashboard and Explorer rendered to one
+  static page (real app components via `react-dom/server`, app stylesheet
+  inlined) — cards, ribbons, every chart, and each path's annual table.
+
 ## Engine (Python, `planner_app/`)
 
 - `schema_v2.py` — composable month-resolution timelines + validation
 - `engine_v2.py` — V2 projection: segments, proration, benefits, retirement ledger
 - `api.py` — the JSON compute interface every runtime calls (native + Pyodide)
-- `exporters_v2.py` — multi-path XLSX + standalone HTML exports (input-hashed)
+- `exporters_v2.py` — advisor-grade XLSX workbook export (input-hashed)
 - `reference_data.py` / `reference_v2.py` — locked reference catalogs w/ sources
 - `engine.py` — legacy engine, golden-locked (see below), kept until fully retired
 
@@ -67,7 +87,7 @@ Regenerate goldens only for deliberate changes: `python3 tests/capture_golden.py
 
 ## Repo map
 
-- `web/` — React + TypeScript + Vite SPA (7 screens; Pyodide worker in `web/public/`)
+- `web/` — React + TypeScript + Vite SPA (7 screens; Pyodide blob worker in `web/src/engine/`)
 - `planner_app/` — the Python engine (also shipped to the browser as a zip)
 - `tests/` — unit + golden + parity-contract suites
 - `docs/` — known defects (baseline), V2 delta report, DB schema

@@ -9,7 +9,7 @@ import { Ribbon, RibbonScale } from "../components/Ribbon";
 /* Long-horizon planning stats (standard retirement-readiness metrics):
    net worth at +20y and at retirement start, sustainable income (4% rule),
    spending-replacement ratio at retirement, and average savings rate. */
-function longTermStats(entry: any, realDollars: boolean) {
+export function longTermStats(entry: any, realDollars: boolean) {
   const rows: any[] = entry.projection;
   const value = (row: any, v: number) => (realDollars ? v * (row.realDollarFactor ?? 1) : v);
 

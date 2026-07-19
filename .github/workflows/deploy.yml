@@ -39,6 +39,9 @@ jobs:
         working-directory: web
         env:
           PAGES_BASE: /career-plan-app/
+      # Single-file app template for the in-app "export the whole app" option.
+      # Built purely from index.html + built assets — carries no user data.
+      - run: python3 scripts/build_single_file.py
       # Belt and braces: no personal file may reach the artifact.
       - run: rm -f web/dist/*.local.json
       - uses: actions/upload-pages-artifact@v3
