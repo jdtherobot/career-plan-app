@@ -1,4 +1,9 @@
-/* Promise bridge to the Pyodide engine worker. One worker, queued requests. */
+/* Promise bridge to the Pyodide engine worker. One worker, queued requests.
+   The worker is always built from a Blob (source bundled via ?raw) so the
+   same code path works from the live app and from the exported single-file
+   app on file:// — the engine package location travels in the init message. */
+
+import workerSource from "./engine-worker-source.js?raw";
 
 type Pending = { resolve: (v: string) => void; reject: (e: Error) => void };
 
@@ -23,7 +28,13 @@ export function onEngineStatus(fn: (s: EngineStatus) => void): () => void {
 
 function getWorker(): Worker {
   if (worker) return worker;
-  worker = new Worker(`${import.meta.env.BASE_URL}engine-worker.js?v=${__BUILD_ID__}`);
+  const blobUrl = URL.createObjectURL(new Blob([workerSource], { type: "text/javascript" }));
+  try {
+    worker = new Worker(blobUrl);
+  } catch (error) {
+    setStatus("error");
+    throw error;
+  }
   worker.onmessage = (event) => {
     const { id, ok, result, error } = event.data;
     const entry = pending.get(id);
@@ -37,6 +48,12 @@ function getWorker(): Worker {
     pending.forEach((entry) => entry.reject(new Error(event.message || "Engine worker failed")));
     pending.clear();
   };
+  // The blob worker cannot resolve page-relative URLs — hand it an absolute one.
+  const zipUrl = new URL(
+    `${import.meta.env.BASE_URL}planner_app.zip?v=${__BUILD_ID__}`,
+    window.location.href,
+  ).href;
+  worker.postMessage({ cmd: "init", zipUrl });
   // First ping resolves once Pyodide + planner_app are fully loaded.
   call("ping", "").then(
     () => setStatus("ready"),
