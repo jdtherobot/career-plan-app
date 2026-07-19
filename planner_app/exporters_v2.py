@@ -312,8 +312,7 @@ def _build_comparison_sheet(ws, result: dict[str, Any]):
 def _build_annual_sheet(wb, entry: dict[str, Any]):
     from openpyxl.utils import get_column_letter
 
-    title = (entry["scenarioName"] or entry["scenarioId"])[:31]
-    ws = wb.create_sheet(title=title)
+    ws = wb.create_sheet(title=_sheet_title(entry))
     _header_row(ws, 1, [header for header, _getter, _fmt in ANNUAL_DETAIL_SPEC])
     for row_idx, row in enumerate(entry["projection"], start=2):
         for col, (_header, getter, fmt) in enumerate(ANNUAL_DETAIL_SPEC, start=1):
@@ -499,13 +498,69 @@ def _build_sources_sheet(ws, payload: dict[str, Any]):
         ws.column_dimensions[letter].width = width
 
 
+def _sheet_title(entry: dict[str, Any]) -> str:
+    return (entry["scenarioName"] or entry["scenarioId"])[:31]
+
+
+def _build_charts_sheet(wb, result: dict[str, Any]):
+    """Native Excel charts (edit/inspect in Excel itself): portfolio over time
+    per path, and final real portfolios side by side."""
+    from openpyxl.chart import BarChart, LineChart, Reference, Series
+
+    ws = wb.create_sheet(title="Charts")
+    scenarios = result["scenarios"]
+    portfolio_col = next(
+        idx for idx, (header, _g, _f) in enumerate(ANNUAL_DETAIL_SPEC, start=1)
+        if header == "Total portfolio"
+    )
+
+    line = LineChart()
+    line.title = "Portfolio by year (nominal)"
+    line.height = 12
+    line.width = 30
+    line.y_axis.numFmt = MONEY_FMT
+    for entry in scenarios:
+        sheet = wb[_sheet_title(entry)]
+        rows = len(entry["projection"])
+        values = Reference(sheet, min_col=portfolio_col, min_row=1, max_row=1 + rows)
+        series = Series(values, title=entry["scenarioName"])
+        line.append(series)
+    first = wb[_sheet_title(scenarios[0])]
+    line.set_categories(Reference(first, min_col=1, min_row=2, max_row=1 + len(scenarios[0]["projection"])))
+    ws.add_chart(line, "A1")
+
+    # Small data block feeding the bar chart.
+    base_row = 28
+    ws.cell(row=base_row, column=1, value="Path")
+    ws.cell(row=base_row, column=2, value="Final portfolio (real 2026$)")
+    for offset, entry in enumerate(scenarios, start=1):
+        ws.cell(row=base_row + offset, column=1, value=entry["scenarioName"])
+        _set(
+            ws.cell(row=base_row + offset, column=2),
+            entry["metrics"].get("finalPortfolioReal"),
+            fmt=MONEY_FMT,
+        )
+    bar = BarChart()
+    bar.title = "Final portfolio (real 2026$)"
+    bar.height = 10
+    bar.width = 18
+    bar.y_axis.numFmt = MONEY_FMT
+    bar.add_data(
+        Reference(ws, min_col=2, min_row=base_row, max_row=base_row + len(scenarios)),
+        titles_from_data=True,
+    )
+    bar.set_categories(Reference(ws, min_col=1, min_row=base_row + 1, max_row=base_row + len(scenarios)))
+    bar.legend = None
+    ws.add_chart(bar, f"A{base_row + len(scenarios) + 3}")
+
+
 def build_advisor_workbook(
     result: dict[str, Any],
     payload: dict[str, Any] | None = None,
     meta: dict[str, Any] | None = None,
 ) -> bytes:
     """Advisor-grade workbook: Cover, Comparison, Current Position, full annual
-    detail per path, Assumptions & overrides, and Sources."""
+    detail per path, native charts, Assumptions & overrides, and Sources."""
     from openpyxl import Workbook
 
     payload = payload or {}
@@ -517,6 +572,8 @@ def build_advisor_workbook(
     _build_position_sheet(wb.create_sheet(), payload)
     for entry in result["scenarios"]:
         _build_annual_sheet(wb, entry)
+    if result["scenarios"]:
+        _build_charts_sheet(wb, result)
     _build_assumptions_sheet(wb.create_sheet(), result, payload)
     _build_sources_sheet(wb.create_sheet(), payload)
 

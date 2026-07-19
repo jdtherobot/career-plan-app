@@ -47,8 +47,16 @@ class AdvisorWorkbookTest(unittest.TestCase):
         names = [entry["scenarioName"] for entry in self.result["scenarios"]]
         self.assertEqual(
             self.wb.sheetnames,
-            ["Cover", "Comparison", "Current Position"] + names + ["Assumptions", "Sources"],
+            ["Cover", "Comparison", "Current Position"] + names + ["Charts", "Assumptions", "Sources"],
         )
+
+    def test_charts_sheet_has_native_charts(self) -> None:
+        # openpyxl may drop charts on re-read; assert on the saved archive itself.
+        import zipfile
+
+        with zipfile.ZipFile(io.BytesIO(self.data)) as zf:
+            charts = [name for name in zf.namelist() if name.startswith("xl/charts/chart")]
+        self.assertGreaterEqual(len(charts), 2)
 
     def test_cover_has_hash_date_and_assumptions(self) -> None:
         ws = self.wb["Cover"]

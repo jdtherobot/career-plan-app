@@ -12,9 +12,11 @@
   --cream: #ece2c6;
   --carbon: #17161a;
 
-  --font-display: "Rajdhani", system-ui, sans-serif;
-  --font-ui: "Space Grotesk", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* Fallback stacks matter: exported snapshots may open offline, where the
+     Google Fonts never arrive — degrade to similar-weight system faces. */
+  --font-display: "Rajdhani", "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-ui: "Space Grotesk", "Avenir Next", -apple-system, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --radius: 0;
   --radius-pill: 11px; /* the SOLE rounded element: the mode toggle */

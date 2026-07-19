@@ -82,7 +82,12 @@ export function ExportScreen() {
       };
       // <-escape every "<" so the JSON can never terminate the script tag.
       const json = JSON.stringify(bundle).replace(/</g, "\\u003c");
-      const html = template.replace(STATE_PLACEHOLDER, `window.__EMBEDDED__=${json};`);
+      const html = template
+        .replace(STATE_PLACEHOLDER, `window.__EMBEDDED__=${json};`)
+        .replace(
+          "<title>Career Plan Codex</title>",
+          `<title>Career Plan Codex — snapshot ${bundle.exportedAt.slice(0, 10)}</title>`,
+        );
       download("career_plan_app.html", new Blob([html], { type: "text/html" }));
       setMessage(
         "App exported — one file with every screen and your data, viewable anywhere offline. Editing inside it needs internet once to load the engine.",
