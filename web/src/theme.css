@@ -105,13 +105,20 @@ body {
   z-index: 90;
   height: var(--site-header-h);
   flex-shrink: 0;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+/* Center the header content in the same 1040px measure as britt.gg's nav so the
+   brand + links line up with the rest of the site (the bar itself stays full-width). */
+.site-header-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  height: 100%;
+  padding: 0 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 22px;
-  background: var(--paper);
-  border-bottom: 1px solid var(--line);
 }
 .site-brand {
   display: flex;
@@ -521,7 +528,7 @@ table.data tr:hover td { background: var(--paper); }
    "back to britt.gg" always survives (mirrors the portfolio nav collapse). */
 @media (max-width: 560px) {
   .site-links { display: none; }
-  .site-header { padding: 0 16px; }
+  .site-header-inner { padding: 0 20px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

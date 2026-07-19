@@ -68,25 +68,27 @@ const SITE_LINKS: { label: string; href: string }[] = [
 function SiteHeader() {
   return (
     <header className="site-header">
-      <a className="site-brand" href={SITE} aria-label="JD Britt — britt.gg home">
-        <svg className="site-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-          <polyline
-            points="2,16 10,16 13,5 17,27 20,16 30,16"
-            fill="none"
-            strokeWidth="2.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        <span className="site-wordmark">JD BRITT</span>
-      </a>
-      <nav className="site-links" aria-label="Site sections">
-        {SITE_LINKS.map((l) => (
-          <a key={l.href} href={l.href}>
-            {l.label}
-          </a>
-        ))}
-      </nav>
+      <div className="site-header-inner">
+        <a className="site-brand" href={SITE} aria-label="JD Britt — britt.gg home">
+          <svg className="site-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <polyline
+              points="2,16 10,16 13,5 17,27 20,16 30,16"
+              fill="none"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span className="site-wordmark">JD BRITT</span>
+        </a>
+        <nav className="site-links" aria-label="Site sections">
+          {SITE_LINKS.map((l) => (
+            <a key={l.href} href={l.href}>
+              {l.label}
+            </a>
+          ))}
+        </nav>
+      </div>
     </header>
   );
 }
