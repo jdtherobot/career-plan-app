@@ -52,6 +52,45 @@ function WaveTrace() {
   );
 }
 
+/* Site header — keeps the planner visibly part of britt.gg and links back to the
+   main site's sections. Same design system (gold #C9A45E, Rajdhani/JetBrains
+   Mono, square hairlines) so it auto-themes off data-theme. Links are absolute
+   and open in the same tab; planner state persists in-browser. The compact spike
+   mark (not the sidebar's long waveform) marks this as site-level chrome. */
+const SITE = "https://britt.gg/";
+const SITE_LINKS: { label: string; href: string }[] = [
+  { label: "Background", href: "https://britt.gg/#sec-background" },
+  { label: "Research Direction", href: "https://britt.gg/#sec-research" },
+  { label: "Work", href: "https://britt.gg/#sec-work" },
+  { label: "Projects", href: "https://britt.gg/#sec-projects" },
+];
+
+function SiteHeader() {
+  return (
+    <header className="site-header">
+      <a className="site-brand" href={SITE} aria-label="JD Britt — britt.gg home">
+        <svg className="site-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <polyline
+            points="2,16 10,16 13,5 17,27 20,16 30,16"
+            fill="none"
+            strokeWidth="2.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span className="site-wordmark">JD BRITT</span>
+      </a>
+      <nav className="site-links" aria-label="Site sections">
+        {SITE_LINKS.map((l) => (
+          <a key={l.href} href={l.href}>
+            {l.label}
+          </a>
+        ))}
+      </nav>
+    </header>
+  );
+}
+
 function useHashRoute(): string {
   const [route, setRoute] = useState(() => window.location.hash.replace("#", "") || "dashboard");
   useEffect(() => {
@@ -134,25 +173,28 @@ function Shell() {
     );
   return (
     <>
-      <nav className="rail" aria-label="Primary">
-        <div className="brand">
-          <WaveTrace />
-          <p className="eyebrow">Career Plan</p>
-          <h1>Financial Planner</h1>
-        </div>
-        {SCREENS.map((s) => (
-          <a key={s.id} href={`#${s.id}`} className={route === s.id ? "active" : ""}>
-            {s.label}
-          </a>
-        ))}
-        <div className="spacer" />
-        <ThemeSwitch />
-        <PanelBrightness />
-        <EnginePill />
-      </nav>
-      <main className="main">
-        <ErrorBoundary>{screen}</ErrorBoundary>
-      </main>
+      <SiteHeader />
+      <div className="shell-row">
+        <nav className="rail" aria-label="Primary">
+          <div className="brand">
+            <WaveTrace />
+            <p className="eyebrow">Career Plan</p>
+            <h1>Financial Planner</h1>
+          </div>
+          {SCREENS.map((s) => (
+            <a key={s.id} href={`#${s.id}`} className={route === s.id ? "active" : ""}>
+              {s.label}
+            </a>
+          ))}
+          <div className="spacer" />
+          <ThemeSwitch />
+          <PanelBrightness />
+          <EnginePill />
+        </nav>
+        <main className="main">
+          <ErrorBoundary>{screen}</ErrorBoundary>
+        </main>
+      </div>
     </>
   );
 }
