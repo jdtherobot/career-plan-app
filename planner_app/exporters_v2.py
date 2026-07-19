@@ -341,12 +341,178 @@ def _build_annual_sheet(wb, entry: dict[str, Any]):
     return ws
 
 
+def _amount(item: dict[str, Any]) -> float:
+    value = item.get("amountMonthly", item.get("amount"))
+    return float(value or 0)
+
+
+def _shown(item: dict[str, Any]) -> bool:
+    """Mirror the Finances screen: hide zero-amount show_only_if_used rows."""
+    return bool(_amount(item)) or item.get("displayMode") != "show_only_if_used"
+
+
+def _position_block(ws, row: int, sections: list[dict[str, Any]], total_label: str) -> tuple[int, float]:
+    """Write one statement block (items grouped by section) and return its total."""
+    from .manual_finance import flatten_manual_finance_group
+
+    flat = flatten_manual_finance_group(sections or [])
+    total = 0.0
+    current_section = None
+    for item in flat:
+        total += _amount(item)
+        if not _shown(item):
+            continue
+        if item.get("sectionLabel") != current_section:
+            current_section = item.get("sectionLabel")
+            _set(ws.cell(row=row, column=1), current_section, bold=True)
+            row += 1
+        ws.cell(row=row, column=1, value=f"  {item.get('label', item.get('id'))}")
+        _set(ws.cell(row=row, column=2), _amount(item), fmt=MONEY_FMT)
+        ws.cell(row=row, column=3, value=item.get("notes") or "")
+        row += 1
+    _set(ws.cell(row=row, column=1), total_label, bold=True)
+    _set(ws.cell(row=row, column=2), total, fmt=MONEY_RED_FMT, bold=True)
+    return row + 1, total
+
+
+def _build_position_sheet(ws, payload: dict[str, Any]):
+    """Net-worth and monthly cash-flow statements from the manual baseline."""
+    from .seed_data import MANUAL_CASHFLOW_SEED
+
+    ws.title = "Current Position"
+    manual = payload.get("manualInputs") or MANUAL_CASHFLOW_SEED
+
+    _set(ws.cell(row=1, column=1), "Current financial position", bold=True, size=14)
+    row = 3
+    _set(ws.cell(row=row, column=1), "Net worth statement", bold=True, size=13)
+    row += 1
+    _header_row(ws, row, ["Item", "Amount", "Notes"])
+    row, assets = _position_block(ws, row + 1, manual.get("assets") or [], "Total assets")
+    row += 1
+    row, debts = _position_block(ws, row, manual.get("debts") or [], "Total debts")
+    row += 1
+    _set(ws.cell(row=row, column=1), "Net worth", bold=True, size=13)
+    _set(ws.cell(row=row, column=2), assets - debts, fmt=MONEY_RED_FMT, bold=True)
+
+    row += 3
+    _set(ws.cell(row=row, column=1), "Monthly cash flow", bold=True, size=13)
+    row += 1
+    _header_row(ws, row, ["Item", "Monthly", "Notes"])
+    row, income = _position_block(ws, row + 1, manual.get("income") or [], "Total monthly income")
+    row += 1
+    row, expenses = _position_block(ws, row, manual.get("expenses") or [], "Total monthly expenses")
+    row += 1
+    _set(ws.cell(row=row, column=1), "Net monthly cash flow", bold=True, size=13)
+    _set(ws.cell(row=row, column=2), income - expenses, fmt=MONEY_RED_FMT, bold=True)
+
+    ws.column_dimensions["A"].width = 36
+    ws.column_dimensions["B"].width = 16
+    ws.column_dimensions["C"].width = 50
+
+
+def _build_assumptions_sheet(ws, result: dict[str, Any], payload: dict[str, Any]):
+    ws.title = "Assumptions"
+    _set(ws.cell(row=1, column=1), "Assumptions & overrides", bold=True, size=14)
+
+    row = 3
+    _set(ws.cell(row=row, column=1), "Model assumptions", bold=True, size=13)
+    for label, value, fmt in _policy_rows(payload):
+        row += 1
+        ws.cell(row=row, column=1, value=label)
+        _set(ws.cell(row=row, column=2), value, fmt=fmt)
+
+    scenarios = result.get("scenarios") or []
+    if scenarios:
+        row += 2
+        _set(ws.cell(row=row, column=1), "Per-path settings", bold=True, size=13)
+        row += 1
+        _header_row(ws, row, [""] + [entry["scenarioName"] for entry in scenarios])
+        settings: list[tuple[str, Callable[[dict[str, Any]], Any]]] = [
+            ("Service exit", lambda s: _route_summary({"serviceExit": s.get("serviceExit")}) or "—"),
+            ("VA disability used", lambda s: "Yes" if s.get("useVa") else "No"),
+            ("VA rating", lambda s: s.get("selectedVaRatingId") or "—"),
+            ("GI Bill used", lambda s: "Yes" if s.get("useGiBill") else "No"),
+            ("SS claim age", lambda s: (s.get("retirement") or {}).get("ssClaimAge")),
+            ("Withdrawal age", lambda s: (s.get("retirement") or {}).get("withdrawalAgeYears")),
+            ("Withdrawal policy", lambda s: (s.get("retirement") or {}).get("withdrawalPolicy")),
+        ]
+        for label, getter in settings:
+            row += 1
+            ws.cell(row=row, column=1, value=label)
+            for col, entry in enumerate(scenarios, start=2):
+                ws.cell(row=row, column=col, value=getter(entry.get("scenario") or {}))
+
+    from .api import apply_reference_overrides
+
+    overrides = payload.get("referenceOverrides") or []
+    row += 2
+    _set(ws.cell(row=row, column=1), "Your overrides", bold=True, size=13)
+    row += 1
+    if not overrides:
+        ws.cell(row=row, column=1, value="None — every reference value is at its sourced default.")
+    else:
+        pristine_domains, pristine_tables = apply_reference_overrides([])
+        _header_row(ws, row, ["Domain", "Record", "Field", "Original", "Current"])
+        for override in overrides:
+            row += 1
+            domain = override.get("domain", "")
+            record = _find(
+                pristine_domains.get(domain, []) or pristine_tables.get(domain, []),
+                override.get("id", ""),
+            )
+            ws.cell(row=row, column=1, value=domain)
+            ws.cell(row=row, column=2, value=record.get("label") or override.get("id"))
+            ws.cell(row=row, column=3, value=override.get("field"))
+            ws.cell(row=row, column=4, value=record.get(override.get("field", ""), "—"))
+            ws.cell(row=row, column=5, value=override.get("value"))
+
+    ws.column_dimensions["A"].width = 34
+    for letter in ("B", "C", "D", "E"):
+        ws.column_dimensions[letter].width = 22
+
+
+def _build_sources_sheet(ws, payload: dict[str, Any]):
+    """Every cited reference record — the same rows the Sources screen shows."""
+    from .api import bootstrap_data
+
+    ws.title = "Sources"
+    overridden = {
+        (o.get("domain"), o.get("id")) for o in payload.get("referenceOverrides") or []
+    }
+    _set(ws.cell(row=1, column=1), "Reference sources", bold=True, size=14)
+    _header_row(ws, 3, ["Domain", "Record", "Source", "URL", "Status"])
+    row = 3
+    domains = bootstrap_data()["referenceDomains"]
+    for domain in sorted(domains):
+        for record in domains[domain]:
+            if not (record.get("sourceLabel") or record.get("sourceUrl")):
+                continue
+            row += 1
+            ws.cell(row=row, column=1, value=domain)
+            ws.cell(row=row, column=2, value=record.get("label") or record.get("id"))
+            ws.cell(row=row, column=3, value=record.get("sourceLabel") or "")
+            url = record.get("sourceUrl") or ""
+            cell = ws.cell(row=row, column=4, value=url)
+            if url:
+                cell.hyperlink = url
+                cell.style = "Hyperlink"
+            status = record.get("verificationStatus") or ""
+            if (domain, record.get("id")) in overridden:
+                status = (status + " (overridden)").strip()
+            ws.cell(row=row, column=5, value=status)
+    ws.freeze_panes = "A4"
+    widths = {"A": 26, "B": 34, "C": 44, "D": 56, "E": 22}
+    for letter, width in widths.items():
+        ws.column_dimensions[letter].width = width
+
+
 def build_advisor_workbook(
     result: dict[str, Any],
     payload: dict[str, Any] | None = None,
     meta: dict[str, Any] | None = None,
 ) -> bytes:
-    """Advisor-grade workbook: Cover, Comparison, and full annual detail per path."""
+    """Advisor-grade workbook: Cover, Comparison, Current Position, full annual
+    detail per path, Assumptions & overrides, and Sources."""
     from openpyxl import Workbook
 
     payload = payload or {}
@@ -355,8 +521,11 @@ def build_advisor_workbook(
     wb = Workbook()
     _build_cover_sheet(wb.active, result, payload, meta)
     _build_comparison_sheet(wb.create_sheet(), result)
+    _build_position_sheet(wb.create_sheet(), payload)
     for entry in result["scenarios"]:
         _build_annual_sheet(wb, entry)
+    _build_assumptions_sheet(wb.create_sheet(), result, payload)
+    _build_sources_sheet(wb.create_sheet(), payload)
 
     buffer = io.BytesIO()
     wb.save(buffer)
@@ -372,50 +541,7 @@ def export_advisor_xlsx_b64(arg_json: str) -> str:
     ).decode("ascii")
 
 
-# ---------- legacy exports (replaced in later stages) ----------
-
-def build_comparison_workbook(result: dict[str, Any]) -> bytes:
-    """Legacy minimal workbook: one Comparison sheet + one annual sheet per path."""
-    from openpyxl import Workbook
-    from openpyxl.styles import Font
-    from openpyxl.utils import get_column_letter
-
-    wb = Workbook()
-    bold = Font(bold=True)
-
-    ws = wb.active
-    ws.title = "Comparison"
-    scenarios = result["scenarios"]
-    ws.cell(row=1, column=1, value="Metric").font = bold
-    for col, entry in enumerate(scenarios, start=2):
-        ws.cell(row=1, column=col, value=entry["scenarioName"]).font = bold
-    for row_idx, (key, label) in enumerate(METRIC_ROWS, start=2):
-        ws.cell(row=row_idx, column=1, value=label)
-        for col, entry in enumerate(scenarios, start=2):
-            ws.cell(row=row_idx, column=col, value=entry["metrics"].get(key))
-    note_row = len(METRIC_ROWS) + 3
-    ws.cell(row=note_row, column=1, value=f"Input hash: {result.get('inputHash', '')}")
-    for col in range(1, len(scenarios) + 2):
-        ws.column_dimensions[get_column_letter(col)].width = 30 if col == 1 else 18
-
-    for entry in scenarios:
-        sheet = wb.create_sheet(title=entry["scenarioName"][:31] or entry["scenarioId"][:31])
-        for col, (_, header) in enumerate(ANNUAL_COLUMNS, start=1):
-            sheet.cell(row=1, column=col, value=header).font = bold
-            sheet.column_dimensions[get_column_letter(col)].width = 15
-        for row_idx, row in enumerate(entry["projection"], start=2):
-            for col, (key, _) in enumerate(ANNUAL_COLUMNS, start=1):
-                sheet.cell(row=row_idx, column=col, value=row.get(key))
-
-    buffer = io.BytesIO()
-    wb.save(buffer)
-    return buffer.getvalue()
-
-
-def export_comparison_xlsx_b64(result_json: str) -> str:
-    """Pyodide-friendly wrapper: JSON string in, base64 XLSX out."""
-    return base64.b64encode(build_comparison_workbook(json.loads(result_json))).decode("ascii")
-
+# ---------- legacy HTML report (replaced by the client-rendered report) ----------
 
 def _fmt(value: Any) -> str:
     if value is None:

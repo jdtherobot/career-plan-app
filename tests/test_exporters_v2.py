@@ -46,7 +46,10 @@ class AdvisorWorkbookTest(unittest.TestCase):
 
     def test_sheet_order(self) -> None:
         names = [entry["scenarioName"] for entry in self.result["scenarios"]]
-        self.assertEqual(self.wb.sheetnames, ["Cover", "Comparison"] + names)
+        self.assertEqual(
+            self.wb.sheetnames,
+            ["Cover", "Comparison", "Current Position"] + names + ["Assumptions", "Sources"],
+        )
 
     def test_cover_has_hash_date_and_assumptions(self) -> None:
         ws = self.wb["Cover"]
@@ -130,6 +133,72 @@ class AdvisorWorkbookTest(unittest.TestCase):
         wb = load_workbook(io.BytesIO(base64.b64decode(b64)))
         self.assertIn("Cover", wb.sheetnames)
         self.assertIn("Comparison", wb.sheetnames)
+
+    def test_current_position_net_worth_matches_seed(self) -> None:
+        from planner_app.manual_finance import flatten_manual_finance_group
+
+        ws = self.wb["Current Position"]
+
+        def group_total(group: str) -> float:
+            flat = flatten_manual_finance_group(self.payload["manualInputs"][group])
+            return sum(
+                float(item.get("amountMonthly", item.get("amount")) or 0) for item in flat
+            )
+
+        row = _find_row(ws, "Total assets")
+        self.assertAlmostEqual(ws.cell(row=row, column=2).value, group_total("assets"))
+        row = _find_row(ws, "Net worth")
+        self.assertAlmostEqual(
+            ws.cell(row=row, column=2).value, group_total("assets") - group_total("debts")
+        )
+        row = _find_row(ws, "Net monthly cash flow")
+        self.assertAlmostEqual(
+            ws.cell(row=row, column=2).value, group_total("income") - group_total("expenses")
+        )
+
+    def test_assumptions_lists_overrides_with_original(self) -> None:
+        label = "Employer 401(k) match (effective rate of salary)"
+        payload = dict(self.payload)
+        payload["referenceOverrides"] = [
+            {
+                "domain": "v2_benefit_rules",
+                "id": "employer_match_effective_default",
+                "field": "valuePercent",
+                "value": 0.06,
+            }
+        ]
+        result = compute(payload)
+        wb = load_workbook(io.BytesIO(build_advisor_workbook(result, payload, self.meta)))
+        ws = wb["Assumptions"]
+        row = _find_row(ws, "v2_benefit_rules")
+        self.assertEqual(ws.cell(row=row, column=2).value, label)
+        self.assertAlmostEqual(ws.cell(row=row, column=4).value, 0.04)  # original
+        self.assertAlmostEqual(ws.cell(row=row, column=5).value, 0.06)  # current
+        # And the sources sheet marks the record as overridden.
+        sources = wb["Sources"]
+        for row_idx in range(4, sources.max_row + 1):
+            if sources.cell(row=row_idx, column=2).value == label:
+                self.assertIn("overridden", sources.cell(row=row_idx, column=5).value)
+                break
+        else:
+            self.fail(f"{label!r} not found in Sources sheet")
+
+    def test_no_overrides_shows_default_note(self) -> None:
+        ws = self.wb["Assumptions"]
+        row = _find_row(ws, "Your overrides")
+        self.assertIn("sourced default", ws.cell(row=row + 1, column=1).value)
+
+    def test_sources_sheet_has_cited_records_with_links(self) -> None:
+        ws = self.wb["Sources"]
+        self.assertGreater(ws.max_row, 10)
+        linked = 0
+        for row_idx in range(4, ws.max_row + 1):
+            cell = ws.cell(row=row_idx, column=4)
+            if cell.value:
+                linked += 1
+                self.assertTrue(str(cell.value).startswith("http"), cell.value)
+                self.assertIsNotNone(cell.hyperlink)
+        self.assertGreater(linked, 0)
 
 
 class ComparisonHtmlTest(unittest.TestCase):

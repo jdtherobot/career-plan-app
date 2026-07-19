@@ -108,18 +108,21 @@ body {
   background: var(--paper);
   border-bottom: 1px solid var(--line);
 }
-/* Center the header content in the same 1040px measure as britt.gg's nav so the
-   brand + links line up with the rest of the site (the bar itself stays full-width). */
+/* Center the header content in the same 1040px measure as britt.gg's nav. Use a
+   3-column grid (brand | links | empty) so the section links sit centered like
+   the main site's nav — where a third element (the mode toggle) does the same. */
 .site-header-inner {
   max-width: 1040px;
   margin: 0 auto;
   height: 100%;
   padding: 0 32px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
 }
+.site-brand { justify-self: start; }
+.site-links { justify-self: center; }
 .site-brand {
   display: flex;
   align-items: center;
