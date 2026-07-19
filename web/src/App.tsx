@@ -27,15 +27,30 @@ import { Assumptions } from "./screens/Assumptions";
 import { Sources } from "./screens/Sources";
 import { ExportScreen } from "./screens/ExportScreen";
 
-const SCREENS: { id: string; label: string; icon: string }[] = [
-  { id: "dashboard", label: "Dashboard", icon: "◆" },
-  { id: "paths", label: "Path Builder", icon: "⧉" },
-  { id: "finances", label: "Finances", icon: "¤" },
-  { id: "explorer", label: "Explorer", icon: "☰" },
-  { id: "assumptions", label: "Assumptions", icon: "⚙" },
-  { id: "sources", label: "Sources", icon: "¶" },
-  { id: "export", label: "Export", icon: "⇩" },
+const SCREENS: { id: string; label: string }[] = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "paths", label: "Path Builder" },
+  { id: "finances", label: "Finances" },
+  { id: "explorer", label: "Explorer" },
+  { id: "assumptions", label: "Assumptions" },
+  { id: "sources", label: "Sources" },
+  { id: "export", label: "Export" },
 ];
+
+/* The signature motif — JD Britt neural waveform trace (gold polyline). */
+function WaveTrace() {
+  return (
+    <svg className="wave" viewBox="0 0 280 40" aria-hidden="true" focusable="false">
+      <polyline
+        points="0,20 40,20 48,6 56,34 64,20 120,20 128,10 136,20 180,20 188,4 196,36 204,20 280,20"
+        fill="none"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 function useHashRoute(): string {
   const [route, setRoute] = useState(() => window.location.hash.replace("#", "") || "dashboard");
@@ -51,13 +66,32 @@ function ThemeSwitch() {
   const { theme } = useAppState();
   const dispatch = useDispatch();
   return (
-    <div className="toggle" role="group" aria-label="Theme" style={{ margin: "0 10px 8px" }}>
+    <div className="toggle mode-toggle" role="group" aria-label="Theme" style={{ margin: "0 10px 8px" }}>
       <button className={theme === "light" ? "on" : ""} onClick={() => dispatch({ type: "setTheme", value: "light" })}>
         Day
       </button>
       <button className={theme === "dark" ? "on" : ""} onClick={() => dispatch({ type: "setTheme", value: "dark" })}>
         Night
       </button>
+    </div>
+  );
+}
+
+function PanelBrightness() {
+  const { panelBrightness } = useAppState();
+  const dispatch = useDispatch();
+  return (
+    <div className="panel-bright" title="Panel brightness — warms the carbon panels toward bone">
+      <label htmlFor="panelBright">Panel brightness</label>
+      <input
+        id="panelBright"
+        type="range"
+        min={0}
+        max={100}
+        step={5}
+        value={panelBrightness}
+        onChange={(e) => dispatch({ type: "setPanelBrightness", value: Number(e.target.value) })}
+      />
     </div>
   );
 }
@@ -102,17 +136,18 @@ function Shell() {
     <>
       <nav className="rail" aria-label="Primary">
         <div className="brand">
-          <p className="eyebrow">Career Plan Codex</p>
+          <WaveTrace />
+          <p className="eyebrow">Career Plan</p>
           <h1>Financial Planner</h1>
         </div>
         {SCREENS.map((s) => (
           <a key={s.id} href={`#${s.id}`} className={route === s.id ? "active" : ""}>
-            <span aria-hidden="true">{s.icon}</span>
             {s.label}
           </a>
         ))}
         <div className="spacer" />
         <ThemeSwitch />
+        <PanelBrightness />
         <EnginePill />
       </nav>
       <main className="main">

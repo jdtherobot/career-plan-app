@@ -2,7 +2,7 @@
    toggleable. Comparison charts show every path; composition charts show the
    focus path (stacked areas don't overlay well across paths). */
 
-import { useAppState, useDispatch, pathColor, CAT_COLORS } from "../state/store";
+import { useAppState, useDispatch, pathColor, CAT_COLORS, NEGATIVE_COLORS } from "../state/store";
 import { Bars, LineChart, StackedArea, type Series } from "./Chart";
 
 interface ChartDef {
@@ -124,6 +124,7 @@ export function ChartsPanel() {
               { id: "surplus", name: "Surplus invested", color: cat[1], metric: (r) => r.positiveSurplusInvested },
             ])}
             yLabel={`Saved/yr, ${unit}`}
+            negativeColor={NEGATIVE_COLORS[theme]}
           />
         );
       case "net_cf":
@@ -131,6 +132,7 @@ export function ChartsPanel() {
           <Bars
             series={focusSeries([{ id: "ncf", name: "Net cash flow", color: cat[2], metric: (r) => r.netCashFlow }])}
             yLabel={`Net CF/yr, ${unit}`}
+            negativeColor={NEGATIVE_COLORS[theme]}
           />
         );
       case "retirement_income":

@@ -30,6 +30,7 @@ export interface AppState {
   theme: Theme;
   chartsEnabled: string[];
   focusPathId: string | null;
+  panelBrightness: number;
   hydrated: boolean;
 }
 
@@ -47,9 +48,12 @@ const initial: AppState = {
   engineStatus: "loading",
   computing: false,
   realDollars: true,
-  theme: (localStorage.getItem("cpc-theme") as Theme) || "light",
+  theme:
+    (localStorage.getItem("cpc-theme") as Theme) ||
+    (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
   chartsEnabled: JSON.parse(localStorage.getItem("cpc-charts") || "null") ?? DEFAULT_CHARTS,
   focusPathId: null,
+  panelBrightness: Number(localStorage.getItem("cpc-panel-bright") ?? 25),
   hydrated: false,
 };
 
@@ -68,6 +72,7 @@ type Action =
   | { type: "setTheme"; value: Theme }
   | { type: "setChartsEnabled"; charts: string[] }
   | { type: "setFocusPath"; id: string | null }
+  | { type: "setPanelBrightness"; value: number }
   | { type: "replaceAll"; payload: Partial<AppState> };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -103,6 +108,10 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, chartsEnabled: action.charts };
     case "setFocusPath":
       return { ...state, focusPathId: action.id };
+    case "setPanelBrightness":
+      localStorage.setItem("cpc-panel-bright", String(action.value));
+      applyPanelBrightness(action.value);
+      return { ...state, panelBrightness: action.value };
     case "replaceAll":
       return { ...state, ...action.payload };
     default:
@@ -202,6 +211,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Boot: bootstrap data + saved state + engine warm-up.
   useEffect(() => {
     document.documentElement.dataset.theme = initial.theme;
+    applyPanelBrightness(initial.panelBrightness);
     startEngine();
     const offStatus = onEngineStatus((status) => dispatch({ type: "engineStatus", status }));
     (async () => {
@@ -267,18 +277,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/* ---------- shared formatting & palettes (validator-passed per mode) ---------- */
+/* ---------- shared formatting & palettes ----------
+   Cybernetic Premium: panels are carbon material in BOTH modes (the cream-card
+   inversion was too bright for night data work), so one chart palette serves
+   both — validator-passed against carbon #17161A through the brightest
+   panel-slider position (#393735). */
 
-export const PATH_COLORS: Record<Theme, string[]> = {
-  light: ["#2E8B57", "#B07818", "#2F6D9E", "#7A4E8B"],
-  dark: ["#3FA36B", "#BD8322", "#4E8FC4", "#9A6BB5"],
-};
+const CARBON_PATHS = ["#3FA36B", "#BD8322", "#4E8FC4", "#9A6BB5"];
+const CARBON_CATS = ["#B5714B", "#4E8FC4", "#3FA36B", "#9A6BB5", "#BD8322", "#C56A8C"];
 
-/* Category palette for stacked charts (cash, azure, sage, plum, amber order). */
-export const CAT_COLORS: Record<Theme, string[]> = {
-  light: ["#A85C33", "#2F6D9E", "#2E8B57", "#7A4E8B", "#B07818", "#5F6B76"],
-  dark: ["#B5714B", "#4E8FC4", "#3FA36B", "#9A6BB5", "#BD8322", "#8B99A6"],
-};
+export const PATH_COLORS: Record<Theme, string[]> = { light: CARBON_PATHS, dark: CARBON_PATHS };
+export const CAT_COLORS: Record<Theme, string[]> = { light: CARBON_CATS, dark: CARBON_CATS };
+export const NEGATIVE_COLORS: Record<Theme, string> = { light: "#D06557", dark: "#D06557" };
+
+/* Panel brightness: slider 0–100 → cream-into-carbon mix 2%–14% on .card. */
+export function applyPanelBrightness(value: number): void {
+  const mix = 2 + (Math.min(Math.max(value, 0), 100) / 100) * 12;
+  document.documentElement.style.setProperty("--panel-mix", `${mix.toFixed(1)}%`);
+}
 
 export function pathColor(index: number, theme: Theme = "light"): string {
   const palette = PATH_COLORS[theme];

@@ -6,10 +6,11 @@ import { ChartsPanel } from "../components/ChartsPanel";
 import { Ribbon, RibbonScale } from "../components/Ribbon";
 
 function PathCard({ entry, index, baseline }: { entry: any; index: number; baseline: boolean }) {
-  const { realDollars, theme } = useAppState();
+  const { realDollars, theme, results } = useAppState();
   const dispatch = useDispatch();
   const m = entry.metrics;
   const headline = realDollars ? m.finalPortfolioReal : m.finalPortfolio;
+  const hash8 = results?.inputHash?.slice(0, 8) ?? "";
   return (
     <article className="card">
       <h3>
@@ -46,6 +47,7 @@ function PathCard({ entry, index, baseline }: { entry: any; index: number; basel
           Edit path →
         </a>
       </div>
+      <span className="stencil">{`PATH.${String(index + 1).padStart(2, "0")} · ${hash8}`}</span>
     </article>
   );
 }
