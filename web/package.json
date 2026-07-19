@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:single": "python3 ../scripts/build_single_file.py",
     "lint": "oxlint",
     "preview": "vite preview",
-    "build:full": "python3 ../scripts/export_web_data.py && tsc -b && vite build"
+    "build:full": "python3 ../scripts/export_web_data.py && tsc -b && vite build && python3 ../scripts/build_single_file.py"
   },
   "dependencies": {
     "react": "^19.2.7",
