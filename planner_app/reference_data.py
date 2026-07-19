@@ -2213,6 +2213,14 @@ def hydrate_military_reference_domains(
     reference_domains: dict[str, list[dict[str, Any]]],
     planner_profile: dict[str, Any],
 ) -> dict[str, list[dict[str, Any]]]:
+    # A custom service profile (public picker / personalized local profile)
+    # builds the projection view from the full 2026 DFAS tables instead of the
+    # seeded E-7 trajectory.
+    if (planner_profile or {}).get("serviceProfile"):
+        from .reference_v2 import build_service_projection_domains
+
+        return build_service_projection_domains(copy.deepcopy(reference_domains), planner_profile)
+
     hydrated = copy.deepcopy(reference_domains)
     profile = _military_service_profile(hydrated)
     base_year = int(planner_profile.get("baseYear", 2026))

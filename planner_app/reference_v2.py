@@ -153,6 +153,116 @@ def _apply_location_research(merged: dict[str, list[dict[str, Any]]]) -> None:
     merged["location_cost_profiles"] = profiles
 
 
+_MILITARY_PAY_PATH = Path(__file__).resolve().parent / "data_military_pay_2026.json"
+_military_pay_cache: dict[str, Any] | None = None
+
+
+def load_military_pay_2026() -> dict[str, Any]:
+    global _military_pay_cache
+    if _military_pay_cache is None:
+        _military_pay_cache = (
+            json.loads(_MILITARY_PAY_PATH.read_text(encoding="utf-8")) if _MILITARY_PAY_PATH.exists() else {}
+        )
+    return _military_pay_cache
+
+
+def _bracket_pay(brackets: dict[str, float], yos: float) -> float:
+    """Largest YOS bracket <= yos ('<2' counts as 0)."""
+    best_key, best_val = None, 0.0
+    for key, value in brackets.items():
+        floor = 0.0 if key == "<2" else float(key)
+        if floor <= yos and (best_key is None or floor >= best_key):
+            best_key, best_val = floor, float(value)
+    return best_val
+
+
+def _bah_for(bah_table: dict[str, Any], location_id: str, grade: str, dependents: bool) -> float:
+    entry = bah_table.get(location_id) or bah_table.get("us_metro_average") or {}
+    if not entry:
+        return 0.0
+    rates = entry.get("withDependents" if dependents else "withoutDependents", {})
+    key = grade if grade in rates else ("O-7" if grade.startswith("O") else grade)
+    return float(rates.get(key, 0.0) or 0.0)
+
+
+def build_service_projection_domains(
+    reference_domains: dict[str, list[dict[str, Any]]],
+    planner_profile: dict[str, Any],
+) -> dict[str, list[dict[str, Any]]]:
+    """Projection view for ANY service profile from the full 2026 pay tables.
+
+    Used when planner_profile carries a `serviceProfile` (the public picker /
+    a personalized local profile): pay grade held constant (no auto-promotions
+    in v1), YOS advances from the entry date, post-2026 years compound at the
+    default military raise, BAH follows the selected duty location, BAS by
+    enlisted/officer. The seeded E-7 trajectory (promotions, explicit raise
+    schedule) remains the default when `serviceProfile` is absent.
+    """
+    pay = load_military_pay_2026()
+    service = planner_profile.get("serviceProfile") or {}
+    if not pay or not service:
+        return reference_domains
+
+    grade = str(service.get("payGrade", "E-5"))
+    entry_year = int(service.get("serviceEntryYear", planner_profile.get("serviceEntryYear", 2020)))
+    entry_month = int(service.get("serviceEntryMonth", 1))
+    dependents = bool(service.get("dependents", True))
+    location_id = service.get("dutyLocationId", "sacramento_ca")
+
+    base_year = int(planner_profile.get("baseYear", 2026))
+    raise_rate = 0.025
+    for rule in V2_REFERENCE_DOMAINS.get("v2_benefit_rules", []):
+        if rule["id"] == "military_raise_default":
+            raise_rate = float(rule.get("valuePercent", 0.025))
+
+    brackets = pay.get("basicPayMonthly", {}).get(grade, {})
+    bas_monthly = float(
+        pay.get("basMonthly", {}).get("enlisted" if grade.startswith("E") else "officer", 0.0)
+    )
+    grade_numeric = int("".join(ch for ch in grade if ch.isdigit()) or 0)
+
+    rows: list[dict[str, Any]] = []
+    for offset in range(46):  # covers any active-duty span to 40+ YOS
+        calendar_year = base_year + offset
+        yos = calendar_year - entry_year + (1 if entry_month <= 6 else 0) - 1
+        yos = max(yos, 0)
+        raise_factor = (1 + raise_rate) ** max(calendar_year - 2026, 0)
+        base_monthly = _bracket_pay(brackets, yos) * raise_factor
+        bah_monthly = _bah_for(pay.get("bah", {}), location_id, grade, dependents) * raise_factor
+        rows.append(
+            {
+                "id": f"svc_proj_{calendar_year}",
+                "label": f"{grade} · {calendar_year} ({yos} YOS)",
+                "calendarYear": calendar_year,
+                "yearsOfService": yos,
+                "projectedPayGradeNumeric": grade_numeric,
+                "payGrade": grade,
+                "raisePercent": raise_rate if calendar_year > 2026 else 0.0,
+                "basePayAnnual": round(base_monthly * 12, 2),
+                "bahAnnual": round(bah_monthly * 12, 2),
+                "basAnnual": round(bas_monthly * raise_factor * 12, 2),
+                "totalMilitaryCompAnnual": round((base_monthly + bah_monthly + bas_monthly * raise_factor) * 12, 2),
+                "locationId": location_id,
+            }
+        )
+
+    hydrated = dict(reference_domains)
+    hydrated["military_compensation_projection_view"] = rows
+    hydrated["military_service_profile"] = [
+        {
+            "id": "active_duty_service_profile",
+            "label": f"Service profile · {grade}, entered {entry_year}",
+            "startingPayGradeNumeric": grade_numeric,
+            "payGrade": grade,
+            "startingYearsOfService": max(base_year - entry_year, 0),
+            "withDependentsFlag": 1 if dependents else 0,
+            "sourceLabel": "DFAS 2026 pay tables (researched)",
+            "sourceUrl": next((s.get("url", "") for s in pay.get("sources", [])), ""),
+        }
+    ]
+    return hydrated
+
+
 def merge_v2_reference_domains(reference_domains: dict[str, list[dict[str, Any]]]) -> dict[str, list[dict[str, Any]]]:
     """Return reference domains with the V2 records merged in (non-destructive)."""
     merged = dict(reference_domains)

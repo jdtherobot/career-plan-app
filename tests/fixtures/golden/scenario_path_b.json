@@ -3067,7 +3067,7 @@
       "savingsBreakdown": {
         "retirementSavings": 6000.0,
         "surplusInvested": 9650.03,
-        "savingsTotal": 18000.03
+        "savingsTotal": 15650.03
       },
       "investmentBreakdown": {
         "contributions": {
@@ -3078,7 +3078,7 @@
           "other": 0.0,
           "retirementContributions": 6000.0,
           "taxableContributions": 9650.03,
-          "totalContributions": 18000.03
+          "totalContributions": 15650.03
         },
         "growth": {
           "portfolioGrowth": 14267.09,
@@ -3225,7 +3225,7 @@
         },
         "totalContributions": {
           "title": "Total Contributions",
-          "value": 18000.03,
+          "value": 15650.03,
           "expression": "Total Contributions = Retirement Contributions + Taxable Contributions",
           "lines": [
             {
@@ -7673,7 +7673,7 @@
         "accounts": {
           "tsp401k": 265212.81,
           "rothIra": 102663.02,
-          "brokerage": 120000.42,
+          "brokerage": 205220.42,
           "cashReserve": 11000.0
         },
         "summary": {

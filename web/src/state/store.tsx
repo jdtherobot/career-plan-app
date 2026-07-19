@@ -82,6 +82,7 @@ type Action =
   | { type: "setChartsEnabled"; charts: string[] }
   | { type: "setFocusPath"; id: string | null }
   | { type: "setPanelBrightness"; value: number }
+  | { type: "setProfile"; profile: any }
   | { type: "replaceAll"; payload: Partial<AppState> };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -120,6 +121,8 @@ function reducer(state: AppState, action: Action): AppState {
     }
     case "setFocusPath":
       return { ...state, focusPathId: action.id };
+    case "setProfile":
+      return { ...state, profile: action.profile };
     case "setPanelBrightness":
       localStorage.setItem("cpc-panel-bright", String(action.value));
       applyPanelBrightness(action.value);

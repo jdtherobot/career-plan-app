@@ -13,6 +13,14 @@ const BLOCK_TYPES = [
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/* Standard DFAS 2026 pay grades (researched, all-grade table). */
+const PAY_GRADES = [
+  "E-1", "E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9",
+  "W-1", "W-2", "W-3", "W-4", "W-5",
+  "O-1", "O-2", "O-3", "O-1E", "O-2E", "O-3E",
+  "O-4", "O-5", "O-6", "O-7", "O-8", "O-9", "O-10",
+];
+
 function blockColor(type: string): string {
   return BLOCK_TYPES.find((b) => b.id === type)?.color ?? "var(--blk-gap)";
 }
@@ -200,7 +208,84 @@ export function Paths() {
 
       <div className="grid" style={{ gridTemplateColumns: "minmax(300px, 380px) 1fr", alignItems: "start" }}>
         <section className="card">
-          <h3>Path settings</h3>
+          <h3>Service profile</h3>
+          <p className="sub">Applies to every path — standard 2026 pay tables (DFAS) drive base pay, BAH, and BAS.</p>
+          {(() => {
+            const svc = state.profile?.serviceProfile ?? {
+              payGrade: "E-7",
+              serviceEntryYear: state.profile?.serviceEntryYear ?? 2014,
+              serviceEntryMonth: 2,
+              dependents: true,
+              dutyLocationId: "sacramento_ca",
+            };
+            const locations: any[] = bootstrap.referenceDomains?.locations ?? [];
+            const setSvc = (patch: any) => {
+              const next = { ...svc, ...patch };
+              dispatch({
+                type: "setProfile",
+                profile: {
+                  ...state.profile,
+                  serviceEntryYear: next.serviceEntryYear,
+                  serviceProfile: next,
+                },
+              });
+            };
+            return (
+              <>
+                <div className="row">
+                  <div style={{ flex: 1 }}>
+                    <label className="field">Pay grade</label>
+                    <select value={svc.payGrade} onChange={(e) => setSvc({ payGrade: e.target.value })}>
+                      {PAY_GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label className="field">Duty station</label>
+                    <select value={svc.dutyLocationId} onChange={(e) => setSvc({ dutyLocationId: e.target.value })}>
+                      {locations.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="row">
+                  <div style={{ flex: 1 }}>
+                    <label className="field">Service entry (TAFMS)</label>
+                    <select
+                      value={svc.serviceEntryMonth}
+                      onChange={(e) => setSvc({ serviceEntryMonth: Number(e.target.value) })}
+                    >
+                      {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label className="field">Year</label>
+                    <input
+                      type="number"
+                      min={1986}
+                      max={2026}
+                      value={svc.serviceEntryYear}
+                      onChange={(e) => setSvc({ serviceEntryYear: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+                <label className="field" style={{ marginTop: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={svc.dependents}
+                    onChange={(e) => setSvc({ dependents: e.target.checked })}
+                    style={{ marginRight: 6 }}
+                  />
+                  With dependents (BAH rate)
+                </label>
+                {!state.profile?.serviceProfile && (
+                  <p className="notice" style={{ marginTop: 6 }}>
+                    Using the seeded service trajectory — change any field to switch to the standard pay tables.
+                  </p>
+                )}
+              </>
+            );
+          })()}
+
+          <p className="section-h">Path settings</p>
           <label className="field">Display name</label>
           <input
             type="text"
