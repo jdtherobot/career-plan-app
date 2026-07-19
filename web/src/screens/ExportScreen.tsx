@@ -3,7 +3,7 @@
 
 import { useRef, useState } from "react";
 import { exportHtml, exportXlsxBase64 } from "../engine/client";
-import { clearLocalData, exportStateJson, useAppState, useDispatch } from "../state/store";
+import { buildPayload, clearLocalData, exportStateJson, useAppState, useDispatch } from "../state/store";
 
 function download(name: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
@@ -27,13 +27,14 @@ export function ExportScreen() {
     setBusy("xlsx");
     setMessage(null);
     try {
-      const b64 = await exportXlsxBase64(results);
+      const meta = { generatedAt: new Date().toISOString(), realDollars: state.realDollars };
+      const b64 = await exportXlsxBase64(results, buildPayload(state), meta);
       const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
       download(
-        "career_path_comparison.xlsx",
+        "career_plan_advisor_workbook.xlsx",
         new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
       );
-      setMessage("Excel workbook downloaded — one Comparison sheet plus a yearly sheet per path.");
+      setMessage("Advisor workbook downloaded — cover, comparison, and full annual detail per path.");
     } catch (error) {
       setMessage(`Export failed: ${error}`);
     } finally {
@@ -93,8 +94,8 @@ export function ExportScreen() {
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
         <section className="card">
-          <h3>Excel workbook</h3>
-          <p className="sub">Comparison sheet + one annual-detail sheet per path. Share with anyone.</p>
+          <h3>Advisor workbook (Excel)</h3>
+          <p className="sub">Cover, comparison with drivers &amp; milestones, and a full annual cash-flow sheet per path.</p>
           <button className="primary" onClick={doXlsx} disabled={!results || busy !== null}>
             {busy === "xlsx" ? "Building…" : "Download .xlsx"}
           </button>

@@ -1,9 +1,13 @@
-"""V2 exports: multi-path XLSX workbook and standalone HTML comparison.
+"""V2 exports: advisor-grade XLSX workbook and standalone HTML comparison.
 
 Both consume a `compute()` result (planner_app.api) so exports always match the
 dashboard, and both embed the deterministic input hash to detect drift. Used
 natively (tests, CLI) and in the browser via Pyodide (openpyxl installed via
 micropip on first use).
+
+The advisor workbook additionally consumes the compute *payload* (manual
+inputs, reference overrides, scenarios) so it can document the client's current
+position and every assumption behind the projection.
 """
 
 from __future__ import annotations
@@ -11,7 +15,12 @@ from __future__ import annotations
 import base64
 import io
 import json
-from typing import Any
+from typing import Any, Callable
+
+MONEY_FMT = '"$"#,##0'
+MONEY_RED_FMT = '"$"#,##0;[Red]-"$"#,##0'
+PCT_FMT = "0.0%"
+DISCLAIMER = "Planning estimate with simplified effective-rate taxes — not financial advice."
 
 ANNUAL_COLUMNS = [
     ("calendarYear", "Year"),
@@ -47,9 +56,326 @@ METRIC_ROWS = [
     ("depletionAge", "Portfolio depletion age"),
 ]
 
+# Metrics that are years/ages, not dollars.
+_YEAR_METRICS = {"pensionStartYear", "ssStartYear", "withdrawalEligibleYear", "depletionAge"}
+
+
+# ---------- advisor workbook ----------
+
+def _sub(outer: str, key: str) -> Callable[[dict[str, Any]], Any]:
+    return lambda row: (row.get(outer) or {}).get(key, 0)
+
+
+def _portfolio_withdrawals(row: dict[str, Any]) -> float:
+    w = row.get("withdrawals") or {}
+    return sum(v for k, v in w.items() if k != "taxesOnWithdrawals" and isinstance(v, (int, float)))
+
+
+def _real_portfolio(row: dict[str, Any]) -> float:
+    return (row.get("portfolio") or 0) * (row.get("realDollarFactor") or 1)
+
+
+# (header, getter, number format or None) — the full annual cash-flow statement.
+ANNUAL_DETAIL_SPEC: list[tuple[str, Callable[[dict[str, Any]], Any], str | None]] = [
+    ("Year", lambda r: r.get("calendarYear"), None),
+    ("Age", lambda r: r.get("age"), None),
+    ("Phase", lambda r: r.get("phaseLabel"), None),
+    ("Military base pay", _sub("incomeBreakdown", "militaryBasePay"), MONEY_FMT),
+    ("BAH (housing)", _sub("incomeBreakdown", "militaryBah"), MONEY_FMT),
+    ("BAS (subsistence)", _sub("incomeBreakdown", "militaryBas"), MONEY_FMT),
+    ("VA compensation", _sub("incomeBreakdown", "vaCompensation"), MONEY_FMT),
+    ("Military pension", _sub("incomeBreakdown", "pension"), MONEY_FMT),
+    ("Salary", _sub("incomeBreakdown", "salaryBase"), MONEY_FMT),
+    ("PhD stipend", _sub("incomeBreakdown", "phdStipend"), MONEY_FMT),
+    ("GI Bill housing", _sub("incomeBreakdown", "giBillHousing"), MONEY_FMT),
+    ("GI Bill books", _sub("incomeBreakdown", "giBillBooks"), MONEY_FMT),
+    ("Social Security", _sub("incomeBreakdown", "socialSecurity"), MONEY_FMT),
+    ("Gross income", lambda r: r.get("grossIncome"), MONEY_FMT),
+    ("Tax-free income", lambda r: r.get("taxFreeIncome"), MONEY_FMT),
+    ("Total income", lambda r: r.get("totalIncome"), MONEY_FMT),
+    ("Federal tax", _sub("taxBreakdown", "federalTax"), MONEY_FMT),
+    ("State tax", _sub("taxBreakdown", "stateTax"), MONEY_FMT),
+    ("Withdrawal tax", _sub("taxBreakdown", "withdrawalTax"), MONEY_FMT),
+    ("Total taxes", lambda r: r.get("taxes"), MONEY_FMT),
+    ("Healthcare", lambda r: r.get("healthcareCost"), MONEY_FMT),
+    ("Living expenses", lambda r: r.get("livingExpenses"), MONEY_FMT),
+    ("Retirement contributions", lambda r: r.get("retirementSavings"), MONEY_FMT),
+    ("Employer match", lambda r: r.get("employerMatch"), MONEY_FMT),
+    ("Surplus invested", lambda r: r.get("positiveSurplusInvested"), MONEY_FMT),
+    ("Net cash flow", lambda r: r.get("netCashFlow"), MONEY_RED_FMT),
+    ("Unfunded spending", lambda r: r.get("unfundedSpending"), MONEY_RED_FMT),
+    ("Portfolio withdrawals", _portfolio_withdrawals, MONEY_FMT),
+    ("RMD", lambda r: r.get("rmd"), MONEY_FMT),
+    ("Cash", _sub("accountBalances", "cash"), MONEY_FMT),
+    ("Brokerage", _sub("accountBalances", "brokerage"), MONEY_FMT),
+    ("Roth IRA", _sub("accountBalances", "rothIra"), MONEY_FMT),
+    ("TSP Roth", _sub("accountBalances", "tspRoth"), MONEY_FMT),
+    ("Traditional 401(k)", _sub("accountBalances", "trad401k"), MONEY_FMT),
+    ("Total portfolio", lambda r: r.get("portfolio"), MONEY_FMT),
+    ("Portfolio (real 2026$)", _real_portfolio, MONEY_FMT),
+]
+
+
+def _set(cell, value, *, fmt: str | None = None, bold: bool = False, size: int | None = None):
+    cell.value = value
+    if fmt:
+        cell.number_format = fmt
+    if bold or size:
+        from openpyxl.styles import Font
+
+        cell.font = Font(bold=bold, size=size or 11)
+    return cell
+
+
+def _header_row(ws, row: int, labels: list[str], start_col: int = 1):
+    from openpyxl.styles import Font, PatternFill
+
+    fill = PatternFill(start_color="FFEEF1F5", end_color="FFEEF1F5", fill_type="solid")
+    for offset, label in enumerate(labels):
+        cell = ws.cell(row=row, column=start_col + offset, value=label)
+        cell.font = Font(bold=True)
+        cell.fill = fill
+
+
+_BLOCK_TYPE_LABELS = {
+    "grad_school": "Grad school",
+    "research_career": "Research career",
+    "tech_career": "Tech career",
+    "gap_year": "Gap year",
+}
+
+
+def _route_summary(scenario: dict[str, Any]) -> str:
+    parts: list[str] = []
+    exit_info = scenario.get("serviceExit") or {}
+    if exit_info:
+        exit_label = str(exit_info.get("type", "separation")).replace("_", " ")
+        parts.append(f"Service to {exit_info.get('year', '?')} ({exit_label})")
+    for block in scenario.get("blocks") or []:
+        block_type = str(block.get("type", "block"))
+        label = _BLOCK_TYPE_LABELS.get(block_type, block_type.replace("_", " ").capitalize())
+        months = block.get("durationMonths")
+        if months:
+            label += f" ({months / 12:.0f}y)" if months % 12 == 0 else f" ({months} mo)"
+        parts.append(label)
+    return " → ".join(parts)
+
+
+def _find(records: list[dict[str, Any]], record_id: str) -> dict[str, Any]:
+    for record in records:
+        if record.get("id") == record_id:
+            return record
+    return {}
+
+
+def _policy_rows(payload: dict[str, Any]) -> list[tuple[str, Any, str | None]]:
+    """Key model assumptions, after applying the user's reference overrides."""
+    from .api import apply_reference_overrides
+
+    domains, _tables = apply_reference_overrides(payload.get("referenceOverrides") or [])
+    growth = _find(domains.get("investment_policies", []), "portfolio_growth_core")
+    rows: list[tuple[str, Any, str | None]] = [
+        ("Portfolio annual return", growth.get("annualReturnRate"), PCT_FMT),
+        ("Surplus investment rate", growth.get("surplusInvestmentRate"), PCT_FMT),
+        ("Retirement withdrawal rate", growth.get("withdrawalRate"), PCT_FMT),
+    ]
+    for rule_id, label in [
+        ("inflation_general_default", "General inflation"),
+        ("employer_match_effective_default", "Employer 401(k) match (effective)"),
+        ("capital_gains_rate_default", "Capital gains rate"),
+        ("ss_cola_default", "Social Security COLA"),
+        ("military_raise_default", "Military annual raise"),
+    ]:
+        record = _find(domains.get("v2_benefit_rules", []), rule_id)
+        if record:
+            rows.append((label, record.get("valuePercent"), PCT_FMT))
+    for rule_id, label in [
+        ("va_cola", "VA compensation COLA"),
+        ("living_expense_growth_default", "Living expense growth"),
+    ]:
+        record = _find(domains.get("benefit_rules", []), rule_id)
+        if record:
+            rows.append((label, record.get("valuePercent"), PCT_FMT))
+    return rows
+
+
+def _build_cover_sheet(ws, result: dict[str, Any], payload: dict[str, Any], meta: dict[str, Any]):
+    ws.title = "Cover"
+    _set(ws.cell(row=1, column=1), "Career Plan Codex", bold=True, size=18)
+    _set(ws.cell(row=2, column=1), "Financial plan workbook — career path comparison")
+
+    generated = (meta or {}).get("generatedAt") or ""
+    _set(ws.cell(row=4, column=1), "Prepared", bold=True)
+    ws.cell(row=4, column=2, value=str(generated)[:10])
+    _set(ws.cell(row=5, column=1), "Input hash", bold=True)
+    ws.cell(row=5, column=2, value=result.get("inputHash", ""))
+    _set(ws.cell(row=6, column=1), "Values", bold=True)
+    ws.cell(row=6, column=2, value="Nominal dollars unless labelled real (2026$)")
+
+    row = 8
+    _set(ws.cell(row=row, column=1), "Paths compared", bold=True, size=13)
+    row += 1
+    _header_row(ws, row, ["Path", "Route", "Notes"])
+    for entry in result["scenarios"]:
+        row += 1
+        ws.cell(row=row, column=1, value=entry["scenarioName"])
+        ws.cell(row=row, column=2, value=_route_summary(entry.get("scenario") or {}))
+        ws.cell(row=row, column=3, value=(entry.get("scenario") or {}).get("notes") or "")
+
+    row += 2
+    _set(ws.cell(row=row, column=1), "Key assumptions", bold=True, size=13)
+    for label, value, fmt in _policy_rows(payload):
+        row += 1
+        ws.cell(row=row, column=1, value=label)
+        _set(ws.cell(row=row, column=2), value, fmt=fmt)
+
+    row += 2
+    ws.cell(row=row, column=1, value=DISCLAIMER)
+
+    ws.column_dimensions["A"].width = 34
+    ws.column_dimensions["B"].width = 48
+    ws.column_dimensions["C"].width = 60
+
+
+def _build_comparison_sheet(ws, result: dict[str, Any]):
+    from openpyxl.utils import get_column_letter
+
+    ws.title = "Comparison"
+    scenarios = result["scenarios"]
+    names = [entry["scenarioName"] for entry in scenarios]
+    _header_row(ws, 1, ["Metric"] + names)
+    row = 1
+    for key, label in METRIC_ROWS:
+        row += 1
+        ws.cell(row=row, column=1, value=label)
+        for col, entry in enumerate(scenarios, start=2):
+            fmt = None if key in _YEAR_METRICS else MONEY_FMT
+            _set(ws.cell(row=row, column=col), entry["metrics"].get(key), fmt=fmt)
+
+    comparisons = (result.get("comparison") or {}).get("comparisons") or []
+    by_id = {entry["scenarioId"]: entry["scenarioName"] for entry in scenarios}
+    if comparisons:
+        baseline_name = by_id.get(comparisons[0].get("baselineScenarioId"), "baseline")
+        row += 2
+        _set(ws.cell(row=row, column=1), f"Versus baseline — {baseline_name}", bold=True, size=13)
+        row += 1
+        _header_row(ws, row, [""] + [by_id.get(c["scenarioId"], c["scenarioId"]) for c in comparisons])
+        delta_rows: list[tuple[str, Callable[[dict[str, Any]], Any], str | None]] = [
+            ("Final portfolio Δ (nominal)", lambda c: c.get("finalPortfolioDelta"), MONEY_RED_FMT),
+            ("Final portfolio Δ (real 2026$)", lambda c: c.get("finalPortfolioRealDelta"), MONEY_RED_FMT),
+            ("Lifetime taxes Δ", lambda c: c.get("totalTaxesDelta"), MONEY_RED_FMT),
+            ("Lifetime healthcare Δ", lambda c: c.get("healthcareCostDelta"), MONEY_RED_FMT),
+            ("Breakeven year", lambda c: c.get("breakevenYear") or "never", None),
+            (
+                "Biggest driver",
+                lambda c: (c.get("biggestDriver") or {}).get("label", "—"),
+                None,
+            ),
+        ]
+        for label, getter, fmt in delta_rows:
+            row += 1
+            ws.cell(row=row, column=1, value=label)
+            for col, comp in enumerate(comparisons, start=2):
+                _set(ws.cell(row=row, column=col), getter(comp), fmt=fmt)
+
+        driver_labels: list[str] = []
+        for comp in comparisons:
+            for label in (comp.get("drivers") or {}):
+                if label not in driver_labels:
+                    driver_labels.append(label)
+        if driver_labels:
+            row += 2
+            _set(ws.cell(row=row, column=1), "Cumulative drivers vs baseline", bold=True)
+            for label in driver_labels:
+                row += 1
+                ws.cell(row=row, column=1, value=f"  {label}")
+                for col, comp in enumerate(comparisons, start=2):
+                    _set(ws.cell(row=row, column=col), (comp.get("drivers") or {}).get(label), fmt=MONEY_RED_FMT)
+
+    milestone_labels: list[str] = []
+    for entry in scenarios:
+        for milestone in entry["metrics"].get("milestones") or []:
+            if milestone["label"] not in milestone_labels:
+                milestone_labels.append(milestone["label"])
+    if milestone_labels:
+        for title, field in [
+            ("Portfolio at milestones", "portfolio"),
+            ("Sustainable 4% withdrawal at milestones", "withdrawalAt4Pct"),
+        ]:
+            row += 2
+            _set(ws.cell(row=row, column=1), title, bold=True, size=13)
+            row += 1
+            _header_row(ws, row, [""] + names)
+            for label in milestone_labels:
+                row += 1
+                ws.cell(row=row, column=1, value=label)
+                for col, entry in enumerate(scenarios, start=2):
+                    match = next(
+                        (m for m in entry["metrics"].get("milestones") or [] if m["label"] == label),
+                        None,
+                    )
+                    _set(ws.cell(row=row, column=col), match.get(field) if match else None, fmt=MONEY_FMT)
+
+    row += 2
+    ws.cell(row=row, column=1, value=f"Input hash: {result.get('inputHash', '')}")
+
+    ws.freeze_panes = "B2"
+    ws.column_dimensions["A"].width = 34
+    for col in range(2, len(scenarios) + 2):
+        ws.column_dimensions[get_column_letter(col)].width = 18
+
+
+def _build_annual_sheet(wb, entry: dict[str, Any]):
+    from openpyxl.utils import get_column_letter
+
+    title = (entry["scenarioName"] or entry["scenarioId"])[:31]
+    ws = wb.create_sheet(title=title)
+    _header_row(ws, 1, [header for header, _getter, _fmt in ANNUAL_DETAIL_SPEC])
+    for row_idx, row in enumerate(entry["projection"], start=2):
+        for col, (_header, getter, fmt) in enumerate(ANNUAL_DETAIL_SPEC, start=1):
+            _set(ws.cell(row=row_idx, column=col), getter(row), fmt=fmt)
+    ws.freeze_panes = "D2"
+    widths = {1: 8, 2: 6, 3: 24}
+    for col in range(1, len(ANNUAL_DETAIL_SPEC) + 1):
+        ws.column_dimensions[get_column_letter(col)].width = widths.get(col, 15)
+    return ws
+
+
+def build_advisor_workbook(
+    result: dict[str, Any],
+    payload: dict[str, Any] | None = None,
+    meta: dict[str, Any] | None = None,
+) -> bytes:
+    """Advisor-grade workbook: Cover, Comparison, and full annual detail per path."""
+    from openpyxl import Workbook
+
+    payload = payload or {}
+    meta = meta or {}
+
+    wb = Workbook()
+    _build_cover_sheet(wb.active, result, payload, meta)
+    _build_comparison_sheet(wb.create_sheet(), result)
+    for entry in result["scenarios"]:
+        _build_annual_sheet(wb, entry)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue()
+
+
+def export_advisor_xlsx_b64(arg_json: str) -> str:
+    """Pyodide-friendly wrapper: JSON `{result, payload, meta}` in, base64 XLSX out."""
+    arg = json.loads(arg_json)
+    result = arg.get("result") or arg  # tolerate a bare compute() result
+    return base64.b64encode(
+        build_advisor_workbook(result, arg.get("payload"), arg.get("meta"))
+    ).decode("ascii")
+
+
+# ---------- legacy exports (replaced in later stages) ----------
 
 def build_comparison_workbook(result: dict[str, Any]) -> bytes:
-    """One Comparison sheet + one annual sheet per path + Sources."""
+    """Legacy minimal workbook: one Comparison sheet + one annual sheet per path."""
     from openpyxl import Workbook
     from openpyxl.styles import Font
     from openpyxl.utils import get_column_letter

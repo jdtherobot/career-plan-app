@@ -63,8 +63,12 @@ export async function computePayload(payload: unknown): Promise<any> {
   return JSON.parse(raw);
 }
 
-export async function exportXlsxBase64(result: unknown): Promise<string> {
-  return call("export_xlsx", JSON.stringify(result));
+export async function exportXlsxBase64(
+  result: unknown,
+  payload: unknown,
+  meta: unknown,
+): Promise<string> {
+  return call("export_xlsx", JSON.stringify({ result, payload, meta }));
 }
 
 export async function exportHtml(result: unknown): Promise<string> {
