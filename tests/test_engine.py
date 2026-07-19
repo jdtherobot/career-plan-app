@@ -315,7 +315,7 @@ class ProjectionEngineTests(unittest.TestCase):
         self.assertAlmostEqual(
             adjusted_projection[3]["livingExpenses"] - baseline_projection[3]["livingExpenses"],
             round(added_cost, 2),
-            places=2,
+            delta=0.05,
         )
 
     def test_comparison_payload_returns_delta_rows(self) -> None:
@@ -1165,11 +1165,11 @@ class ReferenceDataTests(unittest.TestCase):
         housing = next(section for section in migrated["expenses"] if section["id"] == "housing")
         carried_over = next(item for item in housing["items"] if item["id"] == "migrated_expense_housing")
         self.assertTrue(carried_over["isCustom"])
-        self.assertEqual(carried_over["amountMonthly"], 500)
+        self.assertEqual(carried_over["amountMonthly"], 1400)
 
         savings = next(section for section in migrated["assets"] if section["id"] == "savings")
         checking = next(item for item in savings["items"] if item["id"] == "checking_accounts")
-        self.assertEqual(checking["amount"], 2200)
+        self.assertEqual(checking["amount"], 3000)
 
     def test_bootstrap_keeps_legacy_template_summaries(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

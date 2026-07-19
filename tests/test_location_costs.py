@@ -51,9 +51,9 @@ class ExpenseModelTest(unittest.TestCase):
     def test_active_duty_uses_manual_baseline_only(self) -> None:
         rows, _ = project(MIGRATED["scenario_path_a"])
         row0 = rows[0]  # 2026, active duty in Sacramento
-        # Manual seed totals ~$2,394/mo; researched Sacramento market is ~$3,520/mo.
-        self.assertLess(row0["livingExpenses"], 2394 * 12 * 1.05)
-        self.assertAlmostEqual(row0["expenseBreakdown"]["housing"], 500 * 12, delta=60)
+        # Demo seed totals ~$3,100/mo; researched Sacramento market is ~$3,520/mo.
+        self.assertLess(row0["livingExpenses"], 3100 * 12 * 1.05)
+        self.assertAlmostEqual(row0["expenseBreakdown"]["housing"], 1400 * 12, delta=60)
 
     def test_grad_school_uses_program_location_costs(self) -> None:
         rows, _ = project(MIGRATED["scenario_path_a"])  # Stanford PhD from 2035
@@ -79,7 +79,7 @@ class ExpenseModelTest(unittest.TestCase):
         sc_2030 = find_year(rows_sc, 2030)["livingExpenses"]
         self.assertGreater(mv_2030, sc_2030)  # Mountain View > Santa Clara
         # And both far above the on-base manual baseline.
-        self.assertGreater(sc_2030, 2394 * 12)
+        self.assertGreater(sc_2030, 3100 * 12)
 
     def test_no_double_counting_of_overlapping_categories(self) -> None:
         rows, _ = project(MIGRATED["scenario_path_b"])  # GENERIC_IC → us_metro_average
@@ -93,7 +93,7 @@ class ExpenseModelTest(unittest.TestCase):
         rows, _ = project(MIGRATED["scenario_path_b"])
         row = find_year(rows, 2028)
         growth = RESEARCH["us_metro_average"]["annualGrowthRate"]
-        self.assertAlmostEqual(row["expenseBreakdown"]["gifts"], 300 * 12 * (1 + growth) ** 2, delta=40)
+        self.assertAlmostEqual(row["expenseBreakdown"]["gifts"], 100 * 12 * (1 + growth) ** 2, delta=20)
 
 
 if __name__ == "__main__":

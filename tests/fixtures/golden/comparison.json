@@ -12,11 +12,11 @@
     {
       "baselineScenarioId": "scenario_path_a",
       "scenarioId": "scenario_path_c",
-      "finalPortfolioDelta": 1685971.25,
+      "finalPortfolioDelta": 1639721.26,
       "totalIncomeDelta": -2033358.64,
       "healthcareCostDelta": -977186.2,
       "breakevenYear": 2026,
-      "cumulativeAdvantage": 1685971.25
+      "cumulativeAdvantage": 1639721.26
     }
   ]
 }

@@ -34,6 +34,8 @@ with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
     for py in sorted((ROOT / "planner_app").glob("*.py")):
         zf.write(py, f"planner_app/{py.name}")
     for data in sorted((ROOT / "planner_app").glob("*.json")):
+        if ".local." in data.name:
+            continue  # personal files never ship
         zf.write(data, f"planner_app/{data.name}")
     # The reference loader reads the grad tracker workbook for program data.
     workbook = ROOT / "grad_program_tracker_v2_7.xlsx"

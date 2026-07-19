@@ -385,27 +385,31 @@ LEGACY_ASSET_TARGET_MAP = {
 }
 
 
+# Sanitized demo baseline — round, clearly-generic figures for a mid-career
+# service member. Personal data never lives in source: the app loads a
+# gitignored personal_baseline.local.json when present (owner's machine) and
+# falls back to these defaults everywhere else (public demo, CI, fresh clones).
 LEGACY_MANUAL_BASELINE: dict[str, list[dict[str, Any]]] = {
     "income": [],
     "expenses": [
-        {"id": "expense_housing", "label": "Housing", "category": "housing", "amountMonthly": 500, "notes": "Current on-base/shared housing cost."},
-        {"id": "expense_utilities", "label": "Utilities", "category": "utilities", "amountMonthly": 104, "notes": "Phone and internet."},
-        {"id": "expense_transport", "label": "Transportation", "category": "transportation", "amountMonthly": 490, "notes": "Gas, registration, maintenance."},
-        {"id": "expense_food", "label": "Food", "category": "food", "amountMonthly": 540, "notes": "Groceries, dining out, lunches."},
-        {"id": "expense_insurance", "label": "Insurance", "category": "insurance", "amountMonthly": 182, "notes": "Auto insurance."},
-        {"id": "expense_healthcare", "label": "Healthcare OOP", "category": "healthcare", "amountMonthly": 10, "notes": "Prescriptions and small out-of-pocket costs."},
-        {"id": "expense_personal", "label": "Personal", "category": "personal", "amountMonthly": 150, "notes": "Barber and personal spending."},
-        {"id": "expense_entertainment", "label": "Leisure / Entertainment", "category": "entertainment", "amountMonthly": 98, "notes": "Streaming, AI tools, Audible."},
-        {"id": "expense_gifts", "label": "Gifts", "category": "gifts", "amountMonthly": 300, "notes": "Holiday, birthday, anniversary spending."},
-        {"id": "expense_misc", "label": "Miscellaneous", "category": "miscellaneous", "amountMonthly": 20, "notes": "Small recurring buffer."},
+        {"id": "expense_housing", "label": "Housing", "category": "housing", "amountMonthly": 1400, "notes": "Demo baseline — rent."},
+        {"id": "expense_utilities", "label": "Utilities", "category": "utilities", "amountMonthly": 200, "notes": "Demo baseline."},
+        {"id": "expense_transport", "label": "Transportation", "category": "transportation", "amountMonthly": 400, "notes": "Demo baseline."},
+        {"id": "expense_food", "label": "Food", "category": "food", "amountMonthly": 500, "notes": "Demo baseline."},
+        {"id": "expense_insurance", "label": "Insurance", "category": "insurance", "amountMonthly": 150, "notes": "Demo baseline."},
+        {"id": "expense_healthcare", "label": "Healthcare OOP", "category": "healthcare", "amountMonthly": 25, "notes": "Demo baseline."},
+        {"id": "expense_personal", "label": "Personal", "category": "personal", "amountMonthly": 150, "notes": "Demo baseline."},
+        {"id": "expense_entertainment", "label": "Leisure / Entertainment", "category": "entertainment", "amountMonthly": 100, "notes": "Demo baseline."},
+        {"id": "expense_gifts", "label": "Gifts", "category": "gifts", "amountMonthly": 100, "notes": "Demo baseline."},
+        {"id": "expense_misc", "label": "Miscellaneous", "category": "miscellaneous", "amountMonthly": 75, "notes": "Demo baseline."},
     ],
     "assets": [
-        {"id": "asset_checking", "label": "Checking", "category": "cash", "amount": 2200, "notes": "Combined checking."},
-        {"id": "asset_savings", "label": "Savings", "category": "cash", "amount": 8000, "notes": "Savings account."},
+        {"id": "asset_checking", "label": "Checking", "category": "cash", "amount": 3000, "notes": "Demo baseline."},
+        {"id": "asset_savings", "label": "Savings", "category": "cash", "amount": 8000, "notes": "Demo baseline."},
         {"id": "asset_tsp", "label": "TSP (Roth)", "category": "retirement", "amount": 25000, "notes": "Demo baseline."},
         {"id": "asset_roth_ira", "label": "Roth IRA", "category": "retirement", "amount": 12000, "notes": "Demo baseline."},
-        {"id": "asset_brokerage", "label": "Brokerage", "category": "taxable_investment", "amount": 35000, "notes": "Demo baseline."},
-        {"id": "asset_vehicle", "label": "Vehicle", "category": "vehicle", "amount": 28000, "notes": "Estimated vehicle value."},
+        {"id": "asset_brokerage", "label": "Brokerage", "category": "taxable_investment", "amount": 10000, "notes": "Demo baseline."},
+        {"id": "asset_vehicle", "label": "Vehicle", "category": "vehicle", "amount": 15000, "notes": "Demo baseline."},
     ],
     "debts": [],
 }

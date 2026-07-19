@@ -20,3 +20,10 @@ tmp/
 # Session-local tooling and personal (non-app) documents
 .claude/
 career_goals_context/
+
+# Personal data — never committed (sanitized defaults ship in source instead)
+*.local.json
+private/
+web/public/planner_data.json
+web/public/planner_app.zip
+web/public/parity_fixture.json

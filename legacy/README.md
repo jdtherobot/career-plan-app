@@ -1,13 +1,11 @@
 # Legacy artifacts (superseded, kept for reference)
 
-These are the pre-rebuild implementations, retired when the V2 composable
-engine + React/Pyodide app replaced them (see docs/v2_delta_report.md):
+Pre-rebuild implementations, retired when the V2 composable engine + React/
+Pyodide app replaced them (see docs/v2_delta_report.md). Files containing
+personal financial figures were moved out of the repository (kept locally,
+not distributed):
 
-- `Financial_Planner_Britt_v5.2.xlsx` — the original Excel planner (source of
   the v5.2 breakdown the app was built from)
-- `Financial_Planner_v5_2_Breakdown_Prompt.md` — the complete spec extracted
-  from that workbook
-- `Financial_Projection_Dashboard.html` — the old standalone HTML dashboard
 - `Spending_Plan_Workbook Blank.xlsx` — blank spending-plan template
 
 Nothing here feeds the current app. The grad tracker workbook

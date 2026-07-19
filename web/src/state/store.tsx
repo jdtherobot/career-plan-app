@@ -236,15 +236,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } catch {
         /* private-mode etc. — run without persistence */
       }
+      // Durable personal baseline (gitignored, owner's machine only): when the
+      // browser has no saved state, restore from it instead of demo defaults.
+      // The public site 404s here and falls back to the sanitized bundle.
+      let personal: any = null;
+      if (!saved) {
+        try {
+          const p = await fetch(`${import.meta.env.BASE_URL}personal_baseline.local.json`);
+          if (p.ok) personal = await p.json();
+        } catch {
+          /* offline or absent — demo defaults */
+        }
+      }
       const defaults = bootstrap.defaults;
+      const seed = saved ?? personal ?? {};
       dispatch({
         type: "hydrate",
         payload: {
-          profile: saved?.plannerProfile ?? defaults.plannerProfile,
-          scenarios: saved?.scenarios ?? defaults.scenarios,
-          manualInputs: saved?.manualInputs ?? defaults.manualInputs,
-          baselineId: saved?.baselineId ?? defaults.baselineId,
-          referenceOverrides: saved?.referenceOverrides ?? [],
+          profile: seed.plannerProfile ?? defaults.plannerProfile,
+          scenarios: seed.scenarios ?? defaults.scenarios,
+          manualInputs: seed.manualInputs ?? defaults.manualInputs,
+          baselineId: seed.baselineId ?? defaults.baselineId,
+          referenceOverrides: seed.referenceOverrides ?? [],
         },
       });
     })();
