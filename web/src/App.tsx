@@ -1,4 +1,5 @@
 import { Component, useEffect, useState, type ReactNode } from "react";
+import { EMBEDDED } from "./embedded";
 import { StoreProvider, useAppState, useDispatch } from "./state/store";
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -140,17 +141,32 @@ function PanelBrightness() {
 function EnginePill() {
   const { engineStatus, computing } = useAppState();
   const label =
-    engineStatus === "loading"
-      ? "engine loading…"
-      : engineStatus === "error"
-        ? "engine error"
-        : computing
-          ? "computing…"
-          : "engine ready";
+    engineStatus === "idle"
+      ? "snapshot · edit to compute"
+      : engineStatus === "loading"
+        ? "engine loading…"
+        : engineStatus === "error"
+          ? "engine error"
+          : computing
+            ? "computing…"
+            : "engine ready";
   return (
-    <div className={`engine-pill ${engineStatus}`}>
+    <div className={`engine-pill ${engineStatus === "idle" ? "ready" : engineStatus}`}>
       <span className="dot" />
       {label}
+    </div>
+  );
+}
+
+/* Exported-snapshot banner: says when this file was cut and that edits are
+   ephemeral. Only rendered inside an exported single-file app. */
+function SnapshotBanner() {
+  if (!EMBEDDED) return null;
+  return (
+    <div className="callout" style={{ margin: "12px 16px 0", fontSize: 12.5 }}>
+      <strong>Snapshot</strong> exported {EMBEDDED.exportedAt.slice(0, 10)} · input hash{" "}
+      <span style={{ fontFamily: "var(--font-mono)" }}>{EMBEDDED.inputHash.slice(0, 8)}</span> — every screen works
+      offline; editing recomputes locally (needs internet once to load the engine) and is not saved to this file.
     </div>
   );
 }
@@ -176,6 +192,7 @@ function Shell() {
   return (
     <>
       <SiteHeader />
+      <SnapshotBanner />
       <div className="shell-row">
         <nav className="rail" aria-label="Primary">
           <div className="brand">

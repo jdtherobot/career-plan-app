@@ -11,9 +11,27 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { EMBEDDED } from "../embedded";
 import { computePayload, onEngineStatus, startEngine, type EngineStatus } from "../engine/client";
 
 export type Theme = "light" | "dark";
+
+/* localStorage can throw in odd contexts (file:// snapshots, sandboxed
+   frames) — never let a pref read/write take the app down. */
+function lsGet(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function lsSet(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* prefs simply don't persist */
+  }
+}
 
 export interface AppState {
   profile: any;
@@ -49,12 +67,13 @@ const initial: AppState = {
   errors: null,
   engineStatus: "loading",
   computing: false,
-  realDollars: true,
+  realDollars: EMBEDDED?.uiPrefs.realDollars ?? true,
   theme:
-    (localStorage.getItem("cpc-theme") as Theme) ||
-    (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+    EMBEDDED?.uiPrefs.theme ??
+    ((lsGet("cpc-theme") as Theme) ||
+      (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light")),
   chartsEnabled: (() => {
-    const stored = JSON.parse(localStorage.getItem("cpc-charts") || "null");
+    const stored = EMBEDDED?.uiPrefs.chartsEnabled ?? JSON.parse(lsGet("cpc-charts") || "null");
     const migrate: Record<string, string> = { income_vs_expenses: "net_cf", income_comp: "income", expense_comp: "spending" };
     const valid = Array.isArray(stored)
       ? [...new Set(stored.map((id: string) => migrate[id] ?? id))].filter((id) => VALID_CHARTS.has(id))
@@ -62,7 +81,7 @@ const initial: AppState = {
     return valid.length ? valid : DEFAULT_CHARTS;
   })(),
   focusPathId: null,
-  panelBrightness: Number(localStorage.getItem("cpc-panel-bright") ?? 25),
+  panelBrightness: EMBEDDED?.uiPrefs.panelBrightness ?? Number(lsGet("cpc-panel-bright") ?? 25),
   hydrated: false,
 };
 
@@ -110,13 +129,13 @@ function reducer(state: AppState, action: Action): AppState {
     case "setRealDollars":
       return { ...state, realDollars: action.value };
     case "setTheme":
-      localStorage.setItem("cpc-theme", action.value);
+      lsSet("cpc-theme", action.value);
       document.documentElement.dataset.theme = action.value;
       return { ...state, theme: action.value };
     case "setChartsEnabled": {
       // Never allow an empty chart set — income vs expenses is the floor.
       const charts = action.charts.length ? action.charts : [FALLBACK_CHART];
-      localStorage.setItem("cpc-charts", JSON.stringify(charts));
+      lsSet("cpc-charts", JSON.stringify(charts));
       return { ...state, chartsEnabled: charts };
     }
     case "setFocusPath":
@@ -124,7 +143,7 @@ function reducer(state: AppState, action: Action): AppState {
     case "setProfile":
       return { ...state, profile: action.profile };
     case "setPanelBrightness":
-      localStorage.setItem("cpc-panel-bright", String(action.value));
+      lsSet("cpc-panel-bright", String(action.value));
       applyPanelBrightness(action.value);
       return { ...state, panelBrightness: action.value };
     case "replaceAll":
@@ -214,7 +233,7 @@ export function exportStateJson(state: AppState): string {
 }
 
 export async function clearLocalData(): Promise<void> {
-  await idbClear();
+  await idbClear().catch(() => {});
   window.location.reload();
 }
 
@@ -227,8 +246,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.dataset.theme = initial.theme;
     applyPanelBrightness(initial.panelBrightness);
-    startEngine();
     const offStatus = onEngineStatus((status) => dispatch({ type: "engineStatus", status }));
+    if (EMBEDDED) {
+      // Snapshot boot: everything is in the bundle — zero network, no
+      // persistence, engine stays idle until the first edit.
+      dispatch({ type: "bootstrap", bootstrap: EMBEDDED.bootstrap });
+      dispatch({
+        type: "hydrate",
+        payload: {
+          profile: EMBEDDED.payload.plannerProfile,
+          scenarios: EMBEDDED.payload.scenarios,
+          manualInputs: EMBEDDED.payload.manualInputs,
+          baselineId: EMBEDDED.payload.baselineId,
+          referenceOverrides: EMBEDDED.payload.referenceOverrides ?? [],
+        },
+      });
+      dispatch({ type: "results", results: EMBEDDED.results });
+      return offStatus;
+    }
+    startEngine();
     (async () => {
       const resp = await fetch(`${import.meta.env.BASE_URL}planner_data.json`);
       const bootstrap = await resp.json();
@@ -269,9 +305,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Persist + recompute on payload change (debounced).
   useEffect(() => {
-    if (!state.hydrated || state.engineStatus !== "ready") return;
+    if (!state.hydrated) return;
     const payload = buildPayload(state);
-    idbSet("payload", payload).catch(() => {});
+    if (EMBEDDED) {
+      // The snapshot already holds results for exactly this payload — only a
+      // real edit should wake the engine (robust to StrictMode re-runs).
+      if (JSON.stringify(payload) === JSON.stringify(EMBEDDED.payload)) return;
+      if (state.engineStatus === "idle") {
+        startEngine(); // status flips → this effect re-runs and computes
+        return;
+      }
+    } else {
+      idbSet("payload", payload).catch(() => {});
+    }
+    if (state.engineStatus !== "ready") return;
     window.clearTimeout(debounceTimer.current);
     debounceTimer.current = window.setTimeout(async () => {
       const seq = ++computeSeq.current;
