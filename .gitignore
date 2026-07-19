@@ -16,3 +16,7 @@ __pycache__/
 # Local-only backups and temp files
 backups/
 tmp/
+
+# Session-local tooling and personal (non-app) documents
+.claude/
+career_goals_context/

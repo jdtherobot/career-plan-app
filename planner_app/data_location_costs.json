@@ -1,0 +1,308 @@
+{
+  "collectedAt": "2026-07-19",
+  "methodology": "All figures are monthly costs in 2026 US dollars for a single person with a modest-but-comfortable lifestyle (mid-market 1-bedroom rental, moderate dining out, no car payment in transportation). Rent for every location was cross-checked against at least two independent sources (RentCafe, Zumper, Zillow, Rent.com, Apartments.com, Numbeo, HUD FMR, Home.co.uk); where sources disagreed by more than 20% the median of the reported figures was used and noted. Non-rent categories are anchored on Numbeo city pages (utilities, transit passes, meal prices, retrieved July 2026) and MIT Living Wage Calculator county data (food, transportation, medical baselines, Feb 2026 update). Tokyo converted at 162.4 JPY/USD and Cambridge UK at 1.34 USD/GBP (mid-July 2026 rates); annualGrowthRate uses the latest BLS metro CPI-U 12-month change (or national statistics for Tokyo/UK), defaulting to 0.03 where no metro series exists.",
+  "locations": {
+    "sacramento_ca": {
+      "housingMonthly": 1600,
+      "utilitiesMonthly": 330,
+      "transportationMonthly": 450,
+      "foodMonthly": 550,
+      "insuranceMonthly": 40,
+      "healthcareOutOfPocketMonthly": 50,
+      "personalMonthly": 150,
+      "entertainmentMonthly": 180,
+      "miscellaneousMonthly": 170,
+      "annualGrowthRate": 0.035,
+      "confidence": "high",
+      "notes": "Rent sources clustered $1,475-1,689 (RentCafe $1,689, Rent.com $1,612, Zumper $1,480, Numbeo $1,541-2,087); car-dependent city so transportation reflects CA gas (~$5.60/gal), insurance, and maintenance; growth uses US/West CPI proxy since BLS publishes no Sacramento metro series.",
+      "sources": [
+        {"title": "Average Rent in Sacramento, CA: 2026 Rent Prices", "url": "https://www.rentcafe.com/average-rent-market-trends/us/ca/sacramento/", "publisher": "RentCafe"},
+        {"title": "Average Rent in Sacramento, CA and Rent Price Trends", "url": "https://www.zumper.com/rent-research/sacramento-ca", "publisher": "Zumper"},
+        {"title": "Cost of Living in Sacramento, CA (June 2026)", "url": "https://www.numbeo.com/cost-of-living/in/Sacramento", "publisher": "Numbeo"},
+        {"title": "Living Wage Calculation for Sacramento County, California", "url": "https://livingwage.mit.edu/counties/06067", "publisher": "MIT Living Wage Calculator"}
+      ]
+    },
+    "langley_hampton_roads_va": {
+      "housingMonthly": 1280,
+      "utilitiesMonthly": 300,
+      "transportationMonthly": 380,
+      "foodMonthly": 500,
+      "insuranceMonthly": 35,
+      "healthcareOutOfPocketMonthly": 50,
+      "personalMonthly": 140,
+      "entertainmentMonthly": 150,
+      "miscellaneousMonthly": 140,
+      "annualGrowthRate": 0.03,
+      "confidence": "medium",
+      "notes": "Rent sources spread ~26% ($1,158 Zumper to $1,512 HUD FY2026 FMR) so the median (~$1,280, matching RentCafe $1,288 and Numbeo $1,287) was used; heavily car-dependent metro with low Numbeo contributor count (21), and no metro CPI series so growth defaults to 0.03.",
+      "sources": [
+        {"title": "Average Rent in Newport News, VA: 2026 Rent Prices", "url": "https://www.rentcafe.com/average-rent-market-trends/us/va/newport-news/", "publisher": "RentCafe"},
+        {"title": "Newport News city Rent: $1,512 1BR (FY 2026)", "url": "https://plainrent.com/counties/newport-news-city-va", "publisher": "PlainRent (HUD FMR)"},
+        {"title": "Cost of Living in Newport News, VA (June 2026)", "url": "https://www.numbeo.com/cost-of-living/in/Newport-News", "publisher": "Numbeo"},
+        {"title": "Living Wage Calculation for Newport News city, Virginia", "url": "https://livingwage.mit.edu/counties/51700", "publisher": "MIT Living Wage Calculator"}
+      ]
+    },
+    "stanford_ca": {
+      "housingMonthly": 3000,
+      "utilitiesMonthly": 320,
+      "transportationMonthly": 400,
+      "foodMonthly": 650,
+      "insuranceMonthly": 45,
+      "healthcareOutOfPocketMonthly": 55,
+      "personalMonthly": 170,
+      "entertainmentMonthly": 200,
+      "miscellaneousMonthly": 240,
+      "annualGrowthRate": 0.038,
+      "confidence": "medium",
+      "notes": "Palo Alto rent well-corroborated at $2,847-3,150 (RentCafe, RentHop, Zillow, Rent.com; Numbeo $3,149-3,600) but non-rent Numbeo data has only 31 contributors; excludes Stanford-subsidized housing, which would cut this substantially; growth uses SF metro CPI (3.8%, June 2026).",
+      "sources": [
+        {"title": "Average Rent in Palo Alto, CA: 2026 Rent Prices", "url": "https://www.rentcafe.com/average-rent-market-trends/us/ca/santa-clara-county/palo-alto/", "publisher": "RentCafe"},
+        {"title": "Average Rental Price in Palo Alto, CA", "url": "https://www.zillow.com/rental-manager/market-trends/palo-alto-ca/", "publisher": "Zillow"},
+        {"title": "Cost of Living in Palo Alto, CA (June 2026)", "url": "https://www.numbeo.com/cost-of-living/in/Palo-Alto", "publisher": "Numbeo"},
+        {"title": "Living Wage Calculation for Santa Clara County, California", "url": "https://livingwage.mit.edu/counties/06085", "publisher": "MIT Living Wage Calculator"}
+      ]
+    },
+    "berkeley_ca": {
+      "housingMonthly": 2350,
+      "utilitiesMonthly": 290,
+      "transportationMonthly": 300,
+      "foodMonthly": 630,
+      "insuranceMonthly": 45,
+      "healthcareOutOfPocketMonthly": 55,
+      "personalMonthly": 165,
+      "entertainmentMonthly": 200,
+      "miscellaneousMonthly": 200,
+      "annualGrowthRate": 0.038,
+      "confidence": "medium",
+      "notes": "Rent sources disagreed >20% ($2,240 Zumper to $2,873 RentCafe) so a median-of-sources figure (~$2,350; Zillow $2,295, Rent.com $2,502, Numbeo $2,215-2,548) was used; transportation is a BART/AC-Transit-plus-occasional-car blend; growth uses SF metro CPI.",
+      "sources": [
+        {"title": "Average Rent in Berkeley, CA: 2026 Rent Prices", "url": "https://www.rentcafe.com/average-rent-market-trends/us/ca/berkeley/", "publisher": "RentCafe"},
+        {"title": "Average Rental Price in Berkeley, CA", "url": "https://www.zillow.com/rental-manager/market-trends/berkeley-ca/", "publisher": "Zillow"},
+        {"title": "Average Rent in Berkeley, CA and Rent Price Trends", "url": "https://www.zumper.com/rent-research/berkeley-ca", "publisher": "Zumper"},
+        {"title": "Cost of Living in Berkeley, CA (June 2026)", "url": "https://www.numbeo.com/cost-of-living/in/Berkeley", "publisher": "Numbeo"}
+      ]
+    },
+    "cambridge_ma": {
+      "housingMonthly": 3050,
+      "utilitiesMonthly": 360,
+      "transportationMonthly": 200,
+      "foodMonthly": 650,
+      "insuranceMonthly": 40,
+      "healthcareOutOfPocketMonthly": 55,
+      "personalMonthly": 165,
+      "entertainmentMonthly": 200,
+      "miscellaneousMonthly": 235,
+      "annualGrowthRate": 0.032,
+      "confidence": "high",
+      "notes": "Rent clustered tightly at $3,000-3,363 (Zumper $3,078, RentHop $3,106, RentCafe $3,363); transit-dominant (MBTA pass $90) so no car assumed; utilities include winter heating; non-rent categories anchored on Numbeo Boston and MIT Middlesex County; growth uses Boston metro CPI (3.2%, May 2026).",
+      "sources": [
+        {"title": "Average Rent in Cambridge, MA: 2026 Rent Prices", "url": "https://www.rentcafe.com/average-rent-market-trends/us/ma/cambridge/", "publisher": "RentCafe"},
+        {"title": "Average Rent in Cambridge, MA and Rent Price Trends", "url": "https://www.zumper.com/rent-research/cambridge-ma", "publisher": "Zumper"},
+        {"title": "Cost of Living in Boston (July 2026)", "url": "https://www.numbeo.com/cost-of-living/in/Boston", "publisher": "Numbeo"},
+        {"title": "Living Wage Calculation for Middlesex County, Massachusetts", "url": "https://livingwage.mit.edu/counties/25017", "publisher": "MIT Living Wage Calculator"},
+        {"title": "Consumer Price Index, Boston-Cambridge-Newton — May 2026", "url": "https://www.bls.gov/regions/northeast/news-release/consumerpriceindex_boston.htm", "publisher": "US Bureau of Labor Statistics"}
+      ]
+    },
+    "pittsburgh_pa": {
+      "housingMonthly": 1250,
+      "utilitiesMonthly": 330,
+      "transportationMonthly": 350,
+      "foodMonthly": 550,
+      "insuranceMonthly": 35,
+      "healthcareOutOfPocketMonthly": 50,
+      "personalMonthly": 145,
+      "entertainmentMonthly": 170,
+      "miscellaneousMonthly": 145,
+      "annualGrowthRate": 0.03,
+      "confidence": "high",
+      "notes": "Rent sources ranged $1,077-1,359 (Zillow $1,150, Zumper/RentHop $1,350, Numbeo $1,126-1,570) so a mid-cluster $1,250 was used; cheap gas (~$3.80/gal) keeps car costs low; BLS publishes no monthly Pittsburgh CPI so growth defaults to 0.03.",
+      "sources": [
+        {"title": "Average Rent in Pittsburgh, PA and Rent Price Trends", "url": "https://www.zumper.com/rent-research/pittsburgh-pa", "publisher": "Zumper"},
+        {"title": "Average Rental Price in Pittsburgh, PA", "url": "https://www.zillow.com/rental-manager/market-trends/pittsburgh-pa/", "publisher": "Zillow"},
+        {"title": "Cost of Living in Pittsburgh, PA (July 2026)", "url": "https://www.numbeo.com/cost-of-living/in/Pittsburgh", "publisher": "Numbeo"},
+        {"title": "Living Wage Calculation for Allegheny County, Pennsylvania", "url": "https://livingwage.mit.edu/counties/42003", "publisher": "MIT Living Wage Calculator"}
+      ]
+    },
+    "seattle_wa": {
+      "housingMonthly": 2100,
+      "utilitiesMonthly": 370,
+      "transportationMonthly": 350,
+      "foodMonthly": 640,
+      "insuranceMonthly": 40,
+      "healthcareOutOfPocketMonthly": 50,
+      "personalMonthly": 160,
+      "entertainmentMonthly": 195,
+      "miscellaneousMonthly": 195,
+      "annualGrowthRate": 0.049,
+      "confidence": "high",
+      "notes": "Rent sources $1,921-2,365 (Apartment List $1,939 median, RentCafe $2,197, Rent.com $2,365, Numbeo $1,924-2,444) center near $2,100; transportation blends ORCA transit pass ($108) with partial car ownership; growth is the actual Seattle metro CPI (4.9%, 12 months ending April 2026), notably above the 3.5% US average.",
+      "sources": [
+        {"title": "Average Rent in Seattle, WA: 2026 Rent Prices", "url": "https://www.rentcafe.com/average-rent-market-trends/us/wa/seattle/", "publisher": "RentCafe"},
+        {"title": "Seattle, WA Rent Report", "url": "https://www.apartmentlist.com/rent-report/wa/seattle", "publisher": "Apartment List"},
+        {"title": "Cost of Living in Seattle (July 2026)", "url": "https://www.numbeo.com/cost-of-living/in/Seattle", "publisher": "Numbeo"},
+        {"title": "Living Wage Calculation for King County, Washington", "url": "https://livingwage.mit.edu/counties/53033", "publisher": "MIT Living Wage Calculator"},
+        {"title": "Consumer Price Index, Seattle area — April 2026", "url": "https://www.bls.gov/regions/west/news-release/consumerpriceindex_seattle.htm", "publisher": "US Bureau of Labor Statistics"}
+      ]
+    },
+    "davis_ca": {
+      "housingMonthly": 1900,
+      "utilitiesMonthly": 320,
+      "transportationMonthly": 300,
+      "foodMonthly": 530,
+      "insuranceMonthly": 35,
+      "healthcareOutOfPocketMonthly": 50,
+      "personalMonthly": 145,
+      "entertainmentMonthly": 160,
+      "miscellaneousMonthly": 170,
+      "annualGrowthRate": 0.035,
+      "confidence": "medium",
+      "notes": "Rent sources agree closely ($1,850 Rentable, $1,901 Rent.com, $1,935 Apartments.com, $1,965 RentCafe) — note student demand keeps Davis rents above Sacramento; bike/Unitrans-friendly town so transportation assumes light car use; no Numbeo page or metro CPI, so non-rent categories borrow Sacramento-area data and growth uses the regional proxy.",
+      "sources": [
+        {"title": "Average Rent in Davis, CA: 2026 Rent Prices", "url": "https://www.rentcafe.com/average-rent-market-trends/us/ca/davis/", "publisher": "RentCafe"},
+        {"title": "Average Rent in Davis, CA - Latest Rent Prices by Neighborhood", "url": "https://www.apartments.com/rent-market-trends/davis-ca/", "publisher": "Apartments.com"},
+        {"title": "Rental Market Trends & Average Rent in Davis, CA", "url": "https://www.rent.com/california/davis-apartments/rent-trends", "publisher": "Rent.com"}
+      ]
+    },
+    "tokyo_jp": {
+      "housingMonthly": 860,
+      "utilitiesMonthly": 205,
+      "transportationMonthly": 100,
+      "foodMonthly": 450,
+      "insuranceMonthly": 25,
+      "healthcareOutOfPocketMonthly": 40,
+      "personalMonthly": 130,
+      "entertainmentMonthly": 180,
+      "miscellaneousMonthly": 100,
+      "annualGrowthRate": 0.017,
+      "confidence": "medium",
+      "notes": "1LDK rent estimates in the 23 wards spread widely (Numbeo ¥111,013 outside-centre to ¥204,250 centre; A-Realty ¥138,700 avg) so the median ~¥140,000 was used and converted at 162.4 JPY/USD (July 17, 2026) — yen weakness (down ~9% YoY) makes these USD figures volatile; growth uses Tokyo headline CPI (1.7%, June 2026).",
+      "sources": [
+        {"title": "Average Rent for an Apartment in Tokyo (2026 Data Analysis)", "url": "https://arealty.jp/blog/average-apartment-rent-in-tokyo/", "publisher": "A-Realty"},
+        {"title": "Cost of Living in Tokyo (July 2026)", "url": "https://www.numbeo.com/cost-of-living/in/Tokyo", "publisher": "Numbeo"},
+        {"title": "Tokyo inflation picks up, keeping BOJ on track for further hike", "url": "https://www.japantimes.co.jp/business/2026/06/26/economy/tokyo-inflation-picks-up-june/", "publisher": "The Japan Times"},
+        {"title": "Japanese Yen - Quote - Chart - Historical Data", "url": "https://tradingeconomics.com/japan/currency", "publisher": "Trading Economics"}
+      ]
+    },
+    "cambridge_uk": {
+      "housingMonthly": 1810,
+      "utilitiesMonthly": 420,
+      "transportationMonthly": 90,
+      "foodMonthly": 500,
+      "insuranceMonthly": 25,
+      "healthcareOutOfPocketMonthly": 20,
+      "personalMonthly": 135,
+      "entertainmentMonthly": 160,
+      "miscellaneousMonthly": 160,
+      "annualGrowthRate": 0.028,
+      "confidence": "medium",
+      "notes": "1-bed rents span £1,249 (Home.co.uk) to ~£1,700 (Investropa) with Numbeo at £1,264-1,483, so a mid-market £1,350 was converted at 1.34 USD/GBP (mid-July 2026); utilities include ~£120/mo council tax which US renters do not pay; healthcare is low because NHS covers care (prescriptions £9.90/item); cycling city so transport is minimal; growth uses UK CPI (2.8%, May 2026).",
+      "sources": [
+        {"title": "Rental Prices in Cambridge 2026: Average £1,689 pcm", "url": "https://home.co.uk/rental-prices/location/cambridge/current/", "publisher": "Home.co.uk"},
+        {"title": "Cost of Living in Cambridge, UK (June 2026)", "url": "https://www.numbeo.com/cost-of-living/in/Cambridge", "publisher": "Numbeo"},
+        {"title": "Cost of living in Cambridge in 2026", "url": "https://wise.com/gb/cost-of-living/united-kingdom/cambridge", "publisher": "Wise"},
+        {"title": "Inflation and price indices", "url": "https://www.ons.gov.uk/economy/inflationandpriceindices", "publisher": "UK Office for National Statistics"}
+      ]
+    },
+    "redmond_wa": {
+      "housingMonthly": 2450,
+      "utilitiesMonthly": 310,
+      "transportationMonthly": 380,
+      "foodMonthly": 640,
+      "insuranceMonthly": 40,
+      "healthcareOutOfPocketMonthly": 50,
+      "personalMonthly": 160,
+      "entertainmentMonthly": 190,
+      "miscellaneousMonthly": 210,
+      "annualGrowthRate": 0.049,
+      "confidence": "high",
+      "notes": "Blends Redmond ($2,274 RentCafe, $2,382 Zumper, $2,629 Rent.com) and pricier Bellevue ($2,497-2,889; Numbeo $2,055-2,734) into a $2,450 Eastside mid-market figure; car-dependent suburb despite the 2 Line light rail; growth uses Seattle metro CPI (4.9%, April 2026).",
+      "sources": [
+        {"title": "Average Rent in Redmond, WA: 2026 Rent Prices", "url": "https://www.rentcafe.com/average-rent-market-trends/us/wa/redmond/", "publisher": "RentCafe"},
+        {"title": "Average Rent in Redmond, WA and Rent Price Trends", "url": "https://www.zumper.com/rent-research/redmond-wa", "publisher": "Zumper"},
+        {"title": "Average Rent in Bellevue, WA: 2026 Rent Prices", "url": "https://www.rentcafe.com/average-rent-market-trends/us/wa/bellevue/", "publisher": "RentCafe"},
+        {"title": "Cost of Living in Bellevue, WA (June 2026)", "url": "https://www.numbeo.com/cost-of-living/in/Bellevue", "publisher": "Numbeo"}
+      ]
+    },
+    "mountain_view_ca": {
+      "housingMonthly": 3450,
+      "utilitiesMonthly": 340,
+      "transportationMonthly": 420,
+      "foodMonthly": 660,
+      "insuranceMonthly": 45,
+      "healthcareOutOfPocketMonthly": 55,
+      "personalMonthly": 170,
+      "entertainmentMonthly": 210,
+      "miscellaneousMonthly": 265,
+      "annualGrowthRate": 0.038,
+      "confidence": "high",
+      "notes": "Rent tightly corroborated at $3,300-3,590 (RentCafe $3,488, Rent.com $3,540, Zumper $3,590, Apartment List ~$3,300) with rents up ~6% YoY; Numbeo categories used despite low contributor count (28) because MIT Santa Clara County data corroborates them; car city with Caltrain option; growth uses SF metro CPI.",
+      "sources": [
+        {"title": "Average Rent in Mountain View, CA: 2026 Rent Prices", "url": "https://www.rentcafe.com/average-rent-market-trends/us/ca/santa-clara-county/mountain-view/", "publisher": "RentCafe"},
+        {"title": "Average Rent in Mountain View, CA and Rent Price Trends", "url": "https://www.zumper.com/rent-research/mountain-view-ca", "publisher": "Zumper"},
+        {"title": "Cost of Living in Mountain View, CA (June 2026)", "url": "https://www.numbeo.com/cost-of-living/in/Mountain-View", "publisher": "Numbeo"},
+        {"title": "Living Wage Calculation for Santa Clara County, California", "url": "https://livingwage.mit.edu/counties/06085", "publisher": "MIT Living Wage Calculator"}
+      ]
+    },
+    "santa_clara_ca": {
+      "housingMonthly": 3200,
+      "utilitiesMonthly": 330,
+      "transportationMonthly": 420,
+      "foodMonthly": 650,
+      "insuranceMonthly": 45,
+      "healthcareOutOfPocketMonthly": 55,
+      "personalMonthly": 170,
+      "entertainmentMonthly": 200,
+      "miscellaneousMonthly": 255,
+      "annualGrowthRate": 0.038,
+      "confidence": "medium",
+      "notes": "Rent sources disagreed >20% ($2,575 Rent.com to $3,940 RentHop) so the median $3,217 (Zumper) was used, consistent with RentCafe $3,276; non-rent categories anchored on Numbeo San Jose (Santa Clara lacks its own Numbeo page) and MIT county data; growth uses SF metro CPI.",
+      "sources": [
+        {"title": "Average Rent in Santa Clara, CA: 2026 Rent Prices", "url": "https://www.rentcafe.com/average-rent-market-trends/us/ca/santa-clara-county/santa-clara/", "publisher": "RentCafe"},
+        {"title": "Average Rent in Santa Clara, CA and Rent Price Trends", "url": "https://www.zumper.com/rent-research/santa-clara-ca", "publisher": "Zumper"},
+        {"title": "Cost of Living in San Jose, CA (June 2026)", "url": "https://www.numbeo.com/cost-of-living/in/San-Jose", "publisher": "Numbeo"},
+        {"title": "Living Wage Calculation for Santa Clara County, California", "url": "https://livingwage.mit.edu/counties/06085", "publisher": "MIT Living Wage Calculator"}
+      ]
+    },
+    "san_francisco_ca": {
+      "housingMonthly": 3800,
+      "utilitiesMonthly": 330,
+      "transportationMonthly": 180,
+      "foodMonthly": 750,
+      "insuranceMonthly": 50,
+      "healthcareOutOfPocketMonthly": 55,
+      "personalMonthly": 175,
+      "entertainmentMonthly": 230,
+      "miscellaneousMonthly": 280,
+      "annualGrowthRate": 0.038,
+      "confidence": "high",
+      "notes": "Rent sources spread >20% (HUD FMR $2,974 across all stock, RentCafe $3,764, Zumper median $4,060 amid a 24% YoY listing-rent surge, Zillow $4,295) so the median ~$3,800 was used, reflecting mid-market including older buildings; transit-dominant (Muni $90 pass, no car); growth uses SF metro CPI (3.8%, June 2026).",
+      "sources": [
+        {"title": "Average Rent in San Francisco, CA and Rent Price Trends", "url": "https://www.zumper.com/rent-research/san-francisco-ca", "publisher": "Zumper"},
+        {"title": "Average Rental Price in San Francisco, CA", "url": "https://www.zillow.com/rental-manager/market-trends/san-francisco-ca/", "publisher": "Zillow"},
+        {"title": "Cost of Living in San Francisco (July 2026)", "url": "https://www.numbeo.com/cost-of-living/in/San-Francisco", "publisher": "Numbeo"},
+        {"title": "Living Wage Calculation for San Francisco County, California", "url": "https://livingwage.mit.edu/counties/06075", "publisher": "MIT Living Wage Calculator"},
+        {"title": "Consumer Price Index, San Francisco Area — June 2026", "url": "https://www.bls.gov/regions/west/news-release/consumerpriceindex_sanfrancisco.htm", "publisher": "US Bureau of Labor Statistics"}
+      ]
+    },
+    "us_metro_average": {
+      "housingMonthly": 1650,
+      "utilitiesMonthly": 330,
+      "transportationMonthly": 400,
+      "foodMonthly": 570,
+      "insuranceMonthly": 40,
+      "healthcareOutOfPocketMonthly": 50,
+      "personalMonthly": 150,
+      "entertainmentMonthly": 180,
+      "miscellaneousMonthly": 170,
+      "annualGrowthRate": 0.035,
+      "confidence": "medium",
+      "notes": "Composite fallback: national 1BR average $1,645 (ApartmentAdvisor, June 2026) vs median $1,550 (Apartment List) across the 56 metros over 1M population, with non-rent categories set near the midpoint of the US cities researched here; growth uses the national CPI-U (3.5%, June 2026).",
+      "sources": [
+        {"title": "National Rent Report", "url": "https://www.apartmentadvisor.com/national-rent-report", "publisher": "ApartmentAdvisor"},
+        {"title": "Apartment List National Rent Report", "url": "https://www.apartmentlist.com/research/national-rent-data", "publisher": "Apartment List"},
+        {"title": "Average Rental Price in US", "url": "https://www.zillow.com/rental-manager/market-trends/united-states/", "publisher": "Zillow"},
+        {"title": "Consumer Price Index Summary - 2026 M06", "url": "https://www.bls.gov/news.release/cpi.nr0.htm", "publisher": "US Bureau of Labor Statistics"}
+      ]
+    }
+  }
+}

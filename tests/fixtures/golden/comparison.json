@@ -1,0 +1,22 @@
+{
+  "comparisons": [
+    {
+      "baselineScenarioId": "scenario_path_a",
+      "scenarioId": "scenario_path_b",
+      "finalPortfolioDelta": 5169697.61,
+      "totalIncomeDelta": 5481488.5,
+      "healthcareCostDelta": -1576465.39,
+      "breakevenYear": 2026,
+      "cumulativeAdvantage": 5169697.61
+    },
+    {
+      "baselineScenarioId": "scenario_path_a",
+      "scenarioId": "scenario_path_c",
+      "finalPortfolioDelta": 1685971.25,
+      "totalIncomeDelta": -2033358.64,
+      "healthcareCostDelta": -977186.2,
+      "breakevenYear": 2026,
+      "cumulativeAdvantage": 1685971.25
+    }
+  ]
+}

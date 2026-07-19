@@ -70,6 +70,17 @@ class YearProjection:
     portfolio_breakdown: dict[str, Any] = field(default_factory=dict)
     formula_meta: dict[str, Any] = field(default_factory=dict)
     source_refs: dict[str, Any] = field(default_factory=dict)
+    # V2 lifecycle fields — populated only by the V2 engine. They are excluded
+    # from as_dict() when empty so legacy-engine output (and its golden
+    # fixtures) is byte-for-byte unchanged.
+    account_balances: dict[str, Any] = field(default_factory=dict)
+    retirement_income: dict[str, Any] = field(default_factory=dict)
+    withdrawals: dict[str, Any] = field(default_factory=dict)
+    employer_match: float = 0.0
+    rmd_amount: float = 0.0
+    unfunded_spending: float = 0.0
+    real_dollar_factor: float = 0.0
+    segments_meta: list[dict[str, Any]] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         total_income = self.gross_income + self.tax_free_income
@@ -100,6 +111,22 @@ class YearProjection:
             "portfolioBreakdown": round_nested(self.portfolio_breakdown),
             "formulaMeta": round_nested(self.formula_meta),
             "sourceRefs": self.source_refs,
+            **self._v2_fields(),
+        }
+
+    def _v2_fields(self) -> dict[str, Any]:
+        """V2-only keys, present only when the V2 engine populated them."""
+        if not self.account_balances:
+            return {}
+        return {
+            "accountBalances": round_nested(self.account_balances),
+            "retirementIncome": round_nested(self.retirement_income),
+            "withdrawals": round_nested(self.withdrawals),
+            "employerMatch": round(self.employer_match, 2),
+            "rmd": round(self.rmd_amount, 2),
+            "unfundedSpending": round(self.unfunded_spending, 2),
+            "realDollarFactor": round(self.real_dollar_factor, 6),
+            "segments": self.segments_meta,
         }
 
 

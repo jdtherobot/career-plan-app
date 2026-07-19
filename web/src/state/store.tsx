@@ -1,0 +1,296 @@
+/* App state: planner payload + engine results, persisted to IndexedDB with
+   JSON export/import for backup. Any payload edit triggers a debounced
+   recompute in the Pyodide worker. */
+
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  type ReactNode,
+} from "react";
+import { computePayload, onEngineStatus, startEngine, type EngineStatus } from "../engine/client";
+
+export type Theme = "light" | "dark";
+
+export interface AppState {
+  profile: any;
+  scenarios: any[];
+  manualInputs: any;
+  baselineId: string | null;
+  referenceOverrides: any[];
+  bootstrap: any | null;
+  results: any | null;
+  errors: Record<string, string[]> | null;
+  engineStatus: EngineStatus;
+  computing: boolean;
+  realDollars: boolean;
+  theme: Theme;
+  chartsEnabled: string[];
+  focusPathId: string | null;
+  hydrated: boolean;
+}
+
+export const DEFAULT_CHARTS = ["portfolio", "accounts", "savings", "income_vs_expenses"];
+
+const initial: AppState = {
+  profile: null,
+  scenarios: [],
+  manualInputs: null,
+  baselineId: null,
+  referenceOverrides: [],
+  bootstrap: null,
+  results: null,
+  errors: null,
+  engineStatus: "loading",
+  computing: false,
+  realDollars: true,
+  theme: (localStorage.getItem("cpc-theme") as Theme) || "light",
+  chartsEnabled: JSON.parse(localStorage.getItem("cpc-charts") || "null") ?? DEFAULT_CHARTS,
+  focusPathId: null,
+  hydrated: false,
+};
+
+type Action =
+  | { type: "hydrate"; payload: Partial<AppState> }
+  | { type: "bootstrap"; bootstrap: any }
+  | { type: "engineStatus"; status: EngineStatus }
+  | { type: "computing"; value: boolean }
+  | { type: "results"; results: any }
+  | { type: "errors"; errors: Record<string, string[]> }
+  | { type: "setScenarios"; scenarios: any[] }
+  | { type: "setManualInputs"; manualInputs: any }
+  | { type: "setBaseline"; id: string }
+  | { type: "setOverrides"; overrides: any[] }
+  | { type: "setRealDollars"; value: boolean }
+  | { type: "setTheme"; value: Theme }
+  | { type: "setChartsEnabled"; charts: string[] }
+  | { type: "setFocusPath"; id: string | null }
+  | { type: "replaceAll"; payload: Partial<AppState> };
+
+function reducer(state: AppState, action: Action): AppState {
+  switch (action.type) {
+    case "hydrate":
+      return { ...state, ...action.payload, hydrated: true };
+    case "bootstrap":
+      return { ...state, bootstrap: action.bootstrap };
+    case "engineStatus":
+      return { ...state, engineStatus: action.status };
+    case "computing":
+      return { ...state, computing: action.value };
+    case "results":
+      return { ...state, results: action.results, errors: null, computing: false };
+    case "errors":
+      return { ...state, errors: action.errors, computing: false };
+    case "setScenarios":
+      return { ...state, scenarios: action.scenarios };
+    case "setManualInputs":
+      return { ...state, manualInputs: action.manualInputs };
+    case "setBaseline":
+      return { ...state, baselineId: action.id };
+    case "setOverrides":
+      return { ...state, referenceOverrides: action.overrides };
+    case "setRealDollars":
+      return { ...state, realDollars: action.value };
+    case "setTheme":
+      localStorage.setItem("cpc-theme", action.value);
+      document.documentElement.dataset.theme = action.value;
+      return { ...state, theme: action.value };
+    case "setChartsEnabled":
+      localStorage.setItem("cpc-charts", JSON.stringify(action.charts));
+      return { ...state, chartsEnabled: action.charts };
+    case "setFocusPath":
+      return { ...state, focusPathId: action.id };
+    case "replaceAll":
+      return { ...state, ...action.payload };
+    default:
+      return state;
+  }
+}
+
+/* ---------- IndexedDB (tiny, no deps) ---------- */
+
+const DB_NAME = "career-plan-codex";
+const STORE = "state";
+
+function idbOpen(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbGet(key: string): Promise<any> {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readonly").objectStore(STORE).get(key);
+    tx.onsuccess = () => resolve(tx.result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbSet(key: string, value: any): Promise<void> {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite").objectStore(STORE).put(value, key);
+    tx.onsuccess = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbClear(): Promise<void> {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite").objectStore(STORE).clear();
+    tx.onsuccess = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* ---------- context ---------- */
+
+const StateCtx = createContext<AppState>(initial);
+const DispatchCtx = createContext<(a: Action) => void>(() => {});
+
+export function useAppState() {
+  return useContext(StateCtx);
+}
+export function useDispatch() {
+  return useContext(DispatchCtx);
+}
+
+export function buildPayload(state: AppState) {
+  return {
+    plannerProfile: state.profile,
+    scenarios: state.scenarios,
+    manualInputs: state.manualInputs,
+    baselineId: state.baselineId,
+    referenceOverrides: state.referenceOverrides,
+  };
+}
+
+export function exportStateJson(state: AppState): string {
+  return JSON.stringify(
+    {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      plannerProfile: state.profile,
+      scenarios: state.scenarios,
+      manualInputs: state.manualInputs,
+      baselineId: state.baselineId,
+      referenceOverrides: state.referenceOverrides,
+    },
+    null,
+    2,
+  );
+}
+
+export async function clearLocalData(): Promise<void> {
+  await idbClear();
+  window.location.reload();
+}
+
+export function StoreProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, initial);
+  const computeSeq = useRef(0);
+  const debounceTimer = useRef<number | undefined>(undefined);
+
+  // Boot: bootstrap data + saved state + engine warm-up.
+  useEffect(() => {
+    document.documentElement.dataset.theme = initial.theme;
+    startEngine();
+    const offStatus = onEngineStatus((status) => dispatch({ type: "engineStatus", status }));
+    (async () => {
+      const resp = await fetch(`${import.meta.env.BASE_URL}planner_data.json`);
+      const bootstrap = await resp.json();
+      dispatch({ type: "bootstrap", bootstrap });
+      let saved: any = null;
+      try {
+        saved = await idbGet("payload");
+      } catch {
+        /* private-mode etc. — run without persistence */
+      }
+      const defaults = bootstrap.defaults;
+      dispatch({
+        type: "hydrate",
+        payload: {
+          profile: saved?.plannerProfile ?? defaults.plannerProfile,
+          scenarios: saved?.scenarios ?? defaults.scenarios,
+          manualInputs: saved?.manualInputs ?? defaults.manualInputs,
+          baselineId: saved?.baselineId ?? defaults.baselineId,
+          referenceOverrides: saved?.referenceOverrides ?? [],
+        },
+      });
+    })();
+    return offStatus;
+  }, []);
+
+  // Persist + recompute on payload change (debounced).
+  useEffect(() => {
+    if (!state.hydrated || state.engineStatus !== "ready") return;
+    const payload = buildPayload(state);
+    idbSet("payload", payload).catch(() => {});
+    window.clearTimeout(debounceTimer.current);
+    debounceTimer.current = window.setTimeout(async () => {
+      const seq = ++computeSeq.current;
+      dispatch({ type: "computing", value: true });
+      try {
+        const result = await computePayload(payload);
+        if (seq !== computeSeq.current) return; // stale
+        if (result.ok) dispatch({ type: "results", results: result });
+        else dispatch({ type: "errors", errors: result.errors });
+      } catch (error) {
+        if (seq === computeSeq.current)
+          dispatch({ type: "errors", errors: { engine: [String(error)] } });
+      }
+    }, 250);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    state.hydrated,
+    state.engineStatus,
+    state.scenarios,
+    state.manualInputs,
+    state.baselineId,
+    state.referenceOverrides,
+    state.profile,
+  ]);
+
+  const dispatchStable = useMemo(() => dispatch, []);
+  return (
+    <StateCtx.Provider value={state}>
+      <DispatchCtx.Provider value={dispatchStable}>{children}</DispatchCtx.Provider>
+    </StateCtx.Provider>
+  );
+}
+
+/* ---------- shared formatting & palettes (validator-passed per mode) ---------- */
+
+export const PATH_COLORS: Record<Theme, string[]> = {
+  light: ["#2E8B57", "#B07818", "#2F6D9E", "#7A4E8B"],
+  dark: ["#3FA36B", "#BD8322", "#4E8FC4", "#9A6BB5"],
+};
+
+/* Category palette for stacked charts (cash, azure, sage, plum, amber order). */
+export const CAT_COLORS: Record<Theme, string[]> = {
+  light: ["#A85C33", "#2F6D9E", "#2E8B57", "#7A4E8B", "#B07818", "#5F6B76"],
+  dark: ["#B5714B", "#4E8FC4", "#3FA36B", "#9A6BB5", "#BD8322", "#8B99A6"],
+};
+
+export function pathColor(index: number, theme: Theme = "light"): string {
+  const palette = PATH_COLORS[theme];
+  return palette[index % palette.length];
+}
+
+export function fmtMoney(value: number | null | undefined, compact = false): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  if (compact) {
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+    if (abs >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
+  }
+  return `$${Math.round(value).toLocaleString()}`;
+}
