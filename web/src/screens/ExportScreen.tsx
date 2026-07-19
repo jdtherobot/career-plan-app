@@ -2,7 +2,8 @@
    backup of your local data (and clear-local-data). */
 
 import { useRef, useState } from "react";
-import { exportHtml, exportXlsxBase64 } from "../engine/client";
+import { exportXlsxBase64 } from "../engine/client";
+import { buildReportHtml } from "../report/buildReport";
 import { buildPayload, clearLocalData, exportStateJson, useAppState, useDispatch } from "../state/store";
 
 function download(name: string, blob: Blob) {
@@ -42,14 +43,14 @@ export function ExportScreen() {
     }
   }
 
-  async function doHtml() {
+  function doHtml() {
     if (!results) return;
     setBusy("html");
     setMessage(null);
     try {
-      const html = await exportHtml(results);
-      download("career_path_comparison.html", new Blob([html], { type: "text/html" }));
-      setMessage("Standalone HTML downloaded — open it anywhere, no app needed.");
+      const html = buildReportHtml(state);
+      download("career_plan_report.html", new Blob([html], { type: "text/html" }));
+      setMessage("Report downloaded — the dashboard and explorer as one self-contained page.");
     } catch (error) {
       setMessage(`Export failed: ${error}`);
     } finally {
@@ -103,8 +104,11 @@ export function ExportScreen() {
         </section>
 
         <section className="card">
-          <h3>Standalone HTML</h3>
-          <p className="sub">A single self-contained page with cards, callouts, and annual tables.</p>
+          <h3>Dashboard report (HTML)</h3>
+          <p className="sub">
+            The dashboard and projection explorer as one page — cards, every chart, ribbons, and each path's annual
+            table, styled exactly like the app.
+          </p>
           <button className="primary" onClick={doHtml} disabled={!results || busy !== null}>
             {busy === "html" ? "Building…" : "Download .html"}
           </button>

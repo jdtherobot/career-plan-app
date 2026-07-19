@@ -305,6 +305,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/* Read-only provider for static rendering (report export): fixed state, inert
+   dispatch, so any component tree renders exactly as it does live. */
+export function StaticStateProvider({ state, children }: { state: AppState; children: ReactNode }) {
+  return (
+    <StateCtx.Provider value={state}>
+      <DispatchCtx.Provider value={() => {}}>{children}</DispatchCtx.Provider>
+    </StateCtx.Provider>
+  );
+}
+
 /* ---------- shared formatting & palettes ----------
    Cybernetic Premium: panels are carbon material in BOTH modes (the cream-card
    inversion was too bright for night data work), so one chart palette serves

@@ -70,7 +70,3 @@ export async function exportXlsxBase64(
 ): Promise<string> {
   return call("export_xlsx", JSON.stringify({ result, payload, meta }));
 }
-
-export async function exportHtml(result: unknown): Promise<string> {
-  return call("export_html", JSON.stringify(result));
-}

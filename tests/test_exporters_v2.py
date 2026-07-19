@@ -15,7 +15,6 @@ from planner_app.exporters_v2 import (
     MONEY_FMT,
     MONEY_RED_FMT,
     build_advisor_workbook,
-    build_comparison_html,
     export_advisor_xlsx_b64,
 )
 
@@ -199,20 +198,6 @@ class AdvisorWorkbookTest(unittest.TestCase):
                 self.assertTrue(str(cell.value).startswith("http"), cell.value)
                 self.assertIsNotNone(cell.hyperlink)
         self.assertGreater(linked, 0)
-
-
-class ComparisonHtmlTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.result = compute(default_payload())
-
-    def test_html_contains_paths_hash_and_tables(self) -> None:
-        html = build_comparison_html(self.result)
-        for entry in self.result["scenarios"]:
-            self.assertIn(entry["scenarioName"], html)
-        self.assertIn(self.result["inputHash"], html)
-        self.assertIn("annual detail", html)
-        self.assertIn("not financial advice", html)
 
 
 if __name__ == "__main__":

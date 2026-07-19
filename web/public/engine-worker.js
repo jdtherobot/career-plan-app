@@ -31,10 +31,9 @@ async function ensureOpenpyxl() {
     "import micropip\nawait micropip.install('openpyxl')"
   );
   await self.pyodide.runPythonAsync(
-    "from planner_app.exporters_v2 import export_advisor_xlsx_b64, export_comparison_html"
+    "from planner_app.exporters_v2 import export_advisor_xlsx_b64"
   );
   self.exportXlsxB64 = self.pyodide.globals.get("export_advisor_xlsx_b64");
-  self.exportHtml = self.pyodide.globals.get("export_comparison_html");
   openpyxlLoaded = true;
 }
 
@@ -50,9 +49,6 @@ self.onmessage = async (event) => {
     } else if (cmd === "export_xlsx") {
       await ensureOpenpyxl();
       result = self.exportXlsxB64(arg);
-    } else if (cmd === "export_html") {
-      await ensureOpenpyxl();
-      result = self.exportHtml(arg);
     } else {
       throw new Error("Unknown command: " + cmd);
     }
