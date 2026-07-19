@@ -16,30 +16,36 @@ export function LineChart({
   series,
   height = 300,
   yLabel,
+  onHoverIndex,
 }: {
   series: Series[];
   height?: number;
   yLabel: string;
+  /* Reports the snapped x-index on crosshair move (null on leave) so outside
+     panels can stay in lock-step with the tooltip. */
+  onHoverIndex?: (index: number | null) => void;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<{ xIndex: number; px: number; py: number } | null>(null);
   const width = 900; // viewBox width; scales responsively
   const pad = { left: 62, right: 84, top: 14, bottom: 26 };
 
-  const { xs, scaleX, scaleY, ticks } = useMemo(() => {
+  const { xs, scaleX, scaleY, ticks, yMin } = useMemo(() => {
     const xs = series[0]?.points.map((p) => p.x) ?? [];
     const allY = series.flatMap((s) => s.points.map((p) => p.y));
     const rawMax = Math.max(...allY, 1);
-    const magnitude = 10 ** Math.floor(Math.log10(rawMax));
+    const rawMin = Math.min(...allY, 0);
+    const magnitude = 10 ** Math.floor(Math.log10(Math.max(rawMax, -rawMin, 1)));
     const yMax = Math.ceil(rawMax / magnitude) * magnitude;
+    const yMin = rawMin < 0 ? -Math.ceil(-rawMin / magnitude) * magnitude : 0;
     const xMin = xs[0] ?? 0;
     const xMax = xs[xs.length - 1] ?? 1;
     const scaleX = (x: number) =>
       pad.left + ((x - xMin) / Math.max(xMax - xMin, 1)) * (width - pad.left - pad.right);
     const scaleY = (y: number) =>
-      height - pad.bottom - (y / yMax) * (height - pad.top - pad.bottom);
-    const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * yMax);
-    return { xs, yMax, scaleX, scaleY, ticks };
+      height - pad.bottom - ((y - yMin) / (yMax - yMin || 1)) * (height - pad.top - pad.bottom);
+    const ticks = [...new Set([yMin, 0, yMax * 0.5, yMax])];
+    return { xs, yMax, yMin, scaleX, scaleY, ticks };
   }, [series, height]);
 
   if (!series.length || !xs.length) return <p className="notice">No data yet.</p>;
@@ -62,6 +68,7 @@ export function LineChart({
       px: (scaleX(xs[best]) / width) * rect.width,
       py: event.clientY - rect.top,
     });
+    onHoverIndex?.(best);
   }
 
   const hoverX = hover ? xs[hover.xIndex] : null;
@@ -72,7 +79,10 @@ export function LineChart({
         viewBox={`0 0 ${width} ${height}`}
         style={{ width: "100%", height: "auto", display: "block" }}
         onMouseMove={handleMove}
-        onMouseLeave={() => setHover(null)}
+        onMouseLeave={() => {
+          setHover(null);
+          onHoverIndex?.(null);
+        }}
         role="img"
         aria-label={`${yLabel} by year for ${series.map((s) => s.name).join(", ")}`}
       >
@@ -83,7 +93,7 @@ export function LineChart({
               x2={width - pad.right}
               y1={scaleY(t)}
               y2={scaleY(t)}
-              stroke="var(--line-2)"
+              stroke={t === 0 && yMin < 0 ? "var(--ink-3)" : "var(--line-2)"}
               strokeWidth={1}
             />
             <text

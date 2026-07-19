@@ -72,6 +72,42 @@ class TimelineResolutionTest(unittest.TestCase):
         self.assertEqual([b.type for b in resolved], ["active_duty_separate", "gap", "grad_school", "research_career"])
 
 
+class TerminalDurationTest(unittest.TestCase):
+    def test_terminal_without_duration_fills_horizon(self) -> None:
+        scenario = make_scenario()  # single tech block, no duration
+        resolved = resolve_timeline(PROFILE, scenario)
+        self.assertEqual(resolved[-1].type, "tech_career")
+        self.assertEqual(resolved[-1].end_month_index, 51 * 12 - 1)
+
+    def test_terminal_with_duration_gets_implicit_retirement_tail(self) -> None:
+        scenario = make_scenario(
+            blocks=[{"id": "t", "type": "tech_career", "careerProfileId": "GENERIC_IC", "durationMonths": 12 * 15}],
+        )
+        resolved = resolve_timeline(PROFILE, scenario)
+        self.assertEqual([b.type for b in resolved], ["active_duty_separate", "tech_career", "retire"])
+        tech, retire = resolved[1], resolved[2]
+        self.assertEqual(tech.duration_months, 12 * 15)
+        self.assertEqual(retire.start_month_index, tech.end_month_index + 1)
+        self.assertEqual(retire.end_month_index, 51 * 12 - 1)
+        self.assertEqual(retire.id, "implicit_retire")
+
+    def test_terminal_duration_reaching_horizon_has_no_tail(self) -> None:
+        scenario = make_scenario(
+            serviceExit={"type": "separation", "year": 2027, "month": 12},
+            blocks=[{"id": "t", "type": "tech_career", "careerProfileId": "GENERIC_IC", "durationMonths": 49 * 12}],
+        )
+        resolved = resolve_timeline(PROFILE, scenario)
+        self.assertEqual([b.type for b in resolved], ["active_duty_separate", "tech_career"])
+        self.assertEqual(resolved[-1].end_month_index, 51 * 12 - 1)
+
+    def test_zero_terminal_duration_rejected(self) -> None:
+        scenario = make_scenario(
+            blocks=[{"id": "t", "type": "tech_career", "careerProfileId": "GENERIC_IC", "durationMonths": 0}],
+        )
+        errors = validate_scenario(PROFILE, scenario)
+        self.assertTrue(any("positive duration" in e for e in errors), errors)
+
+
 class ValidationTest(unittest.TestCase):
     def test_valid_scenario_has_no_errors(self) -> None:
         self.assertEqual(validate_scenario(PROFILE, make_scenario()), [])

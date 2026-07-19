@@ -76,6 +76,14 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+
+/* Scrollbars carry the theme: hairline bone-on-carbon, square, no chrome. */
+* { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--line); border-radius: 0; }
+*::-webkit-scrollbar-thumb:hover { background: var(--ink-3); }
+*::-webkit-scrollbar-corner { background: transparent; }
 body {
   background-color: var(--paper);
   background-image: radial-gradient(var(--dot) 1px, transparent 1px);
@@ -161,7 +169,7 @@ body {
 .engine-pill.ready .dot { background: var(--gold); }
 .engine-pill.error .dot { background: var(--danger); }
 
-.main { flex: 1; min-width: 0; padding: 30px 32px 72px; max-width: 1104px; }
+.main { flex: 1; min-width: 0; padding: 30px 32px 72px; max-width: 1440px; margin: 0 auto; }
 .screen-head { margin: 0 0 22px; }
 .screen-head h2 {
   font-family: var(--font-display); font-size: 30px; font-weight: 700;
@@ -231,13 +239,17 @@ body {
   font-size: 9px; color: var(--ink-3); font-family: var(--font-mono);
 }
 
-/* Phase colors (ribbons sit on carbon panels in both modes). */
-.card {
-  --blk-active: #8b99a6;
+/* Phase colors — material vocabulary (validated in timeline-adjacency order;
+   the two muted neutrals are deliberate and relieved by segment labels+gaps):
+   slate service, bone gap, titanium-violet school, verdigris research,
+   copper retirement, brass tech. Global scope: the Path Builder's block
+   chips live outside cards. Mid-tones read on both grounds. */
+:root {
+  --blk-active: #77808f;
   --blk-school: #9a6bb5;
   --blk-tech: #bd8322;
-  --blk-research: #3fa36b;
-  --blk-gap: #5a5f66;
+  --blk-research: #4aa173;
+  --blk-gap: #99906f;
   --blk-retire: #b5714b;
 }
 
@@ -304,6 +316,82 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .mode-toggle { border-radius: var(--radius-pill); overflow: hidden; }
 .mode-toggle button:first-child { border-radius: var(--radius-pill) 0 0 var(--radius-pill); }
 .mode-toggle button:last-child { border-radius: 0 var(--radius-pill) var(--radius-pill) 0; }
+
+/* ---------- chart picker dropdown ---------- */
+.chart-picker { position: relative; }
+.chart-picker-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 30;
+  min-width: 240px;
+  background: var(--card); border: 1px solid var(--line);
+  border-top: 2px solid var(--gold);
+  padding: 6px 0;
+}
+.chart-picker-menu label {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 14px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--ink-2);
+}
+.chart-picker-menu label:hover { background: var(--paper); color: var(--ink); }
+.chart-picker-menu label.locked { cursor: default; color: var(--ink-3); }
+.chart-picker-menu input[type="checkbox"] { accent-color: var(--gold); width: 13px; height: 13px; }
+
+/* ---------- collapse toggles & dismissible callouts ---------- */
+.collapse-toggle {
+  border: none; background: none; padding: 0 6px 0 0; cursor: pointer;
+  font-family: var(--font-mono); font-size: 10px; color: var(--ink-3);
+  line-height: 1;
+}
+.collapse-toggle:hover { color: var(--gold); background: none; }
+.callout { position: relative; padding-right: 38px; }
+.callout-x {
+  position: absolute; right: 6px; top: 6px;
+  border: none; background: none; padding: 4px 8px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);
+}
+.callout-x:hover { color: var(--danger); background: none; }
+.block-range {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em;
+  color: var(--ink-3); text-transform: uppercase;
+}
+
+/* ---------- chart MORE panel (crosshair-synced breakdown) ---------- */
+.chart-split { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+/* The chart never shrinks below a readable floor — the panel wraps below instead. */
+.chart-split > div:first-child { flex: 1; min-width: 560px; }
+.chart-more-toggle {
+  border: none; background: none; padding: 2px 6px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.chart-more-toggle:hover { color: var(--gold); background: none; }
+.chart-more {
+  width: 320px; flex-shrink: 0;
+  border-left: 1px solid var(--line); padding-left: 16px;
+}
+.chart-more-year {
+  font-family: var(--font-display); font-size: 22px; font-weight: 700;
+  color: var(--stat-on-panel); margin-bottom: 6px;
+}
+.chart-more-year span {
+  display: block;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 400;
+}
+.chart-more table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.chart-more th { padding: 3px 4px; text-align: right; }
+.chart-more td {
+  padding: 3px 4px; border-bottom: 1px solid var(--line-2);
+  text-align: right; font-family: var(--font-mono); font-size: 10.5px; white-space: nowrap;
+}
+.chart-more td:first-child {
+  text-align: left; font-family: var(--font-ui); font-size: 11px; color: var(--ink-2);
+}
+.chart-more tr.total td { border-top: 1px solid var(--line); border-bottom: none; color: var(--ink); font-weight: 500; }
+@media (max-width: 900px) {
+  .chart-more { width: 100%; border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 10px; }
+  .chart-split > div:first-child { min-width: 0; } /* no horizontal overflow on small screens */
+}
 
 /* ---------- tables ---------- */
 .table-scroll { overflow-x: auto; border: 1px solid var(--line); background: transparent; }

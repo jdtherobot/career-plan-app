@@ -17,6 +17,55 @@ function blockColor(type: string): string {
   return BLOCK_TYPES.find((b) => b.id === type)?.color ?? "var(--blk-gap)";
 }
 
+/* Date range each block covers, tiled from the month after service exit.
+   Format: year-only when the block aligns to clean calendar years
+   ("2035 – 2039"), month+year when it doesn't ("Jun 2028 – May 2033") —
+   precision only where it carries information. */
+function blockRanges(scenario: any, profile: any): { ranges: string[]; tail: string | null } {
+  const baseYear = profile?.baseYear ?? 2026;
+  const horizonYear = baseYear + (profile?.projectionYears ?? 51) - 1;
+  let cursorY = scenario.serviceExit?.year ?? baseYear;
+  let cursorM = scenario.serviceExit?.month ?? 12; // last month of service
+
+  const fmt = (sy: number, sm: number, ey: number, em: number, terminal: boolean): string => {
+    const clean = sm === 1 && (terminal || em === 12);
+    const start = clean ? `${sy}` : `${MONTHS[sm - 1]} ${sy}`;
+    if (terminal) return `${start} → ${horizonYear} (horizon)`;
+    if (clean && sy === ey) return `${sy}`;
+    const end = clean ? `${ey}` : `${MONTHS[em - 1]} ${ey}`;
+    return `${start} – ${end}`;
+  };
+
+  const ranges: string[] = (scenario.blocks ?? []).map((block: any, i: number) => {
+    const sm = cursorM === 12 ? 1 : cursorM + 1;
+    const sy = cursorM === 12 ? cursorY + 1 : cursorY;
+    const terminal = i === scenario.blocks.length - 1;
+    if (terminal && block.durationMonths == null) {
+      cursorY = horizonYear;
+      cursorM = 12;
+      return fmt(sy, sm, horizonYear, 12, true);
+    }
+    const duration = Number(block.durationMonths) || 0;
+    if (duration <= 0) return "set a duration";
+    const endTotal = sy * 12 + (sm - 1) + duration - 1;
+    const ey = Math.floor(endTotal / 12);
+    const em = (endTotal % 12) + 1;
+    cursorY = ey;
+    cursorM = em;
+    return fmt(sy, sm, ey, em, false);
+  });
+
+  // Blocks end before the horizon → the engine fills the rest with retirement.
+  let tail: string | null = null;
+  if (scenario.blocks?.length && !(cursorY === horizonYear && cursorM === 12) && cursorY <= horizonYear) {
+    const tm = cursorM === 12 ? 1 : cursorM + 1;
+    const ty = cursorM === 12 ? cursorY + 1 : cursorY;
+    const start = tm === 1 ? `${ty}` : `${MONTHS[tm - 1]} ${ty}`;
+    tail = `${start} → ${horizonYear}`;
+  }
+  return { ranges, tail };
+}
+
 let blockCounter = 100;
 
 export function Paths() {
@@ -63,10 +112,14 @@ export function Paths() {
   }
 
   function moveBlock(index: number, dir: -1 | 1) {
-    const blocks = [...scenario.blocks];
+    const blocks = scenario.blocks.map((b: any) => ({ ...b }));
     const target = index + dir;
     if (target < 0 || target >= blocks.length) return;
     [blocks[index], blocks[target]] = [blocks[target], blocks[index]];
+    // No run-to-horizon block may sit mid-list after a reorder.
+    for (let i = 0; i < blocks.length - 1; i++) {
+      if (blocks[i].durationMonths == null) blocks[i].durationMonths = 48;
+    }
     update({ blocks });
   }
 
@@ -80,11 +133,16 @@ export function Paths() {
     if (type === "research_career") block.careerProfileId = employers[0]?.id;
     if (type === "grad_school") block.programId = programs[0]?.id;
     if (type === "retire") block.durationMonths = null;
-    const blocks = [...scenario.blocks];
+    const blocks = scenario.blocks.map((b: any) => ({ ...b }));
     // Retire must be last: insert before an existing retire block.
     const retireIdx = blocks.findIndex((b: any) => b.type === "retire");
     if (type !== "retire" && retireIdx >= 0) blocks.splice(retireIdx, 0, block);
     else blocks.push(block);
+    // A former run-to-horizon terminal needs a real duration once something
+    // follows it — give it a visible default the user can adjust.
+    for (let i = 0; i < blocks.length - 1; i++) {
+      if (blocks[i].durationMonths == null) blocks[i].durationMonths = 48;
+    }
     update({ blocks });
   }
 
@@ -261,13 +319,20 @@ export function Paths() {
             </p>
           </div>
 
-          {scenario.blocks.map((block: any, index: number) => {
+          {(() => {
+            const { ranges, tail } = blockRanges(scenario, state.profile);
+            return (
+              <>
+            {scenario.blocks.map((block: any, index: number) => {
             const isLast = index === scenario.blocks.length - 1;
             return (
               <div className="block-card" key={block.id}>
                 <div className="row head between">
-                  <span className="block-type-chip" style={{ background: blockColor(block.type) }}>
-                    {BLOCK_TYPES.find((b) => b.id === block.type)?.label ?? block.type}
+                  <span className="row" style={{ gap: 10 }}>
+                    <span className="block-type-chip" style={{ background: blockColor(block.type) }}>
+                      {BLOCK_TYPES.find((b) => b.id === block.type)?.label ?? block.type}
+                    </span>
+                    <span className="block-range">{ranges[index]}</span>
                   </span>
                   <div className="row">
                     <button className="small" onClick={() => moveBlock(index, -1)} disabled={index === 0} aria-label="Move up">↑</button>
@@ -276,42 +341,42 @@ export function Paths() {
                   </div>
                 </div>
                 <div className="row">
-                  {!isLast && (
-                    <div style={{ width: 170 }}>
-                      <label className="field">Duration</label>
-                      <div className="row">
-                        <input
-                          type="number"
-                          min={0}
-                          max={50}
-                          style={{ width: 64 }}
-                          value={Math.floor((block.durationMonths ?? 0) / 12)}
-                          onChange={(e) =>
-                            updateBlock(index, {
-                              durationMonths: Number(e.target.value) * 12 + ((block.durationMonths ?? 0) % 12),
-                            })
-                          }
-                          aria-label="Years"
-                        />
-                        <span className="notice">yr</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={11}
-                          style={{ width: 56 }}
-                          value={(block.durationMonths ?? 0) % 12}
-                          onChange={(e) =>
-                            updateBlock(index, {
-                              durationMonths: Math.floor((block.durationMonths ?? 0) / 12) * 12 + Number(e.target.value),
-                            })
-                          }
-                          aria-label="Months"
-                        />
-                        <span className="notice">mo</span>
-                      </div>
+                  <div style={{ width: 190 }}>
+                    <label className="field">Duration</label>
+                    <div className="row">
+                      <input
+                        type="number"
+                        min={0}
+                        max={50}
+                        style={{ width: 64 }}
+                        value={Math.floor((block.durationMonths ?? 0) / 12)}
+                        onChange={(e) => {
+                          const months = Number(e.target.value) * 12 + ((block.durationMonths ?? 0) % 12);
+                          updateBlock(index, { durationMonths: isLast && months === 0 ? null : months });
+                        }}
+                        aria-label="Years"
+                      />
+                      <span className="notice">yr</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={11}
+                        style={{ width: 56 }}
+                        value={(block.durationMonths ?? 0) % 12}
+                        onChange={(e) => {
+                          const months = Math.floor((block.durationMonths ?? 0) / 12) * 12 + Number(e.target.value);
+                          updateBlock(index, { durationMonths: isLast && months === 0 ? null : months });
+                        }}
+                        aria-label="Months"
+                      />
+                      <span className="notice">mo</span>
                     </div>
-                  )}
-                  {isLast && <span className="notice" style={{ paddingTop: 20 }}>Runs to the end of the horizon</span>}
+                    {isLast && (
+                      <span className="notice" style={{ fontSize: 10.5 }}>
+                        {block.durationMonths == null ? "0 = runs to the horizon" : "ends early → retirement fills the rest"}
+                      </span>
+                    )}
+                  </div>
 
                   {block.type === "grad_school" && (
                     <div style={{ flex: 1, minWidth: 220 }}>
@@ -353,6 +418,25 @@ export function Paths() {
               </div>
             );
           })}
+            {tail && (
+              <div className="block-card" style={{ opacity: 0.8 }}>
+                <div className="row head between">
+                  <span className="row" style={{ gap: 10 }}>
+                    <span className="block-type-chip" style={{ background: "var(--blk-retire)" }}>
+                      Retirement (implicit)
+                    </span>
+                    <span className="block-range">{tail}</span>
+                  </span>
+                </div>
+                <span className="notice">
+                  No blocks cover these years, so the engine models them as retirement — living off pension,
+                  benefits, and withdrawals. Add a Retire block if you want to control the withdrawal policy.
+                </span>
+              </div>
+            )}
+              </>
+            );
+          })()}
           {scenario.blocks.length === 0 && (
             <p className="notice">No blocks yet — add what comes after service with the buttons above.</p>
           )}

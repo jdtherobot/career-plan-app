@@ -253,11 +253,18 @@ def validate_scenario(profile: dict[str, Any], scenario: ScenarioV2) -> list[str
         if not is_terminal:
             if block.duration_months is None or block.duration_months <= 0:
                 errors.append(f"Block '{block.id or position}' needs a positive duration in whole months.")
+        elif block.duration_months is not None and block.duration_months <= 0:
+            errors.append(
+                f"Block '{block.id or position}' needs a positive duration (or leave it unset to run to the horizon)."
+            )
 
-    # Contiguous tiling from the first post-service month; the final block fills the horizon.
+    # Contiguous tiling from the first post-service month. Every block may carry
+    # a duration; a final block without one runs to the horizon, and a final
+    # block WITH one leaves the remainder to an implicit retirement.
     cursor = exit_abs + 1
     for position, block in enumerate(scenario.blocks):
-        if position == len(scenario.blocks) - 1:
+        is_terminal = position == len(scenario.blocks) - 1
+        if is_terminal and block.duration_months is None:
             if cursor > horizon - 1:
                 errors.append("Blocks extend beyond the projection horizon; shorten a duration.")
             break
@@ -273,9 +280,11 @@ def validate_scenario(profile: dict[str, Any], scenario: ScenarioV2) -> list[str
 def resolve_timeline(profile: dict[str, Any], scenario: ScenarioV2) -> list[ResolvedBlock]:
     """Resolve a scenario into contiguous month-indexed blocks.
 
-    The synthetic leading active-duty block runs from the projection start to the
-    service-exit month. Post-service blocks tile contiguously; the final block
-    fills the remaining horizon. Raises ValueError if the scenario is invalid.
+    The synthetic leading active-duty block runs from the projection start to
+    the service-exit month. Post-service blocks tile contiguously. A final
+    block without a duration runs to the horizon; a final block WITH a duration
+    ends when it says, and the remaining years become an implicit retirement
+    (living off assets). Raises ValueError if the scenario is invalid.
     """
     errors = validate_scenario(profile, scenario)
     if errors:
@@ -294,10 +303,10 @@ def resolve_timeline(profile: dict[str, Any], scenario: ScenarioV2) -> list[Reso
     cursor = exit_abs + 1
     last_index = len(scenario.blocks) - 1
     for position, block in enumerate(scenario.blocks):
-        if position == last_index:
+        if position == last_index and block.duration_months is None:
             end = horizon - 1
         else:
-            end = cursor + int(block.duration_months) - 1
+            end = min(cursor + int(block.duration_months) - 1, horizon - 1)
         resolved.append(
             _make_resolved(
                 block.id or f"block_{position + 1}",
@@ -312,6 +321,10 @@ def resolve_timeline(profile: dict[str, Any], scenario: ScenarioV2) -> list[Reso
             )
         )
         cursor = end + 1
+
+    # Timeline ends before the horizon: the remaining years are retirement.
+    if cursor <= horizon - 1:
+        resolved.append(_make_resolved("implicit_retire", "retire", cursor, horizon - 1, base_year))
 
     return resolved
 

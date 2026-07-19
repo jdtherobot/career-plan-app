@@ -3,6 +3,7 @@
 
 import { Fragment, useState } from "react";
 import { useAppState, fmtMoney, pathColor } from "../state/store";
+import { CompositionPanel } from "../components/CompositionPanel";
 
 const COLUMN_SETS: Record<string, { key: string; label: string }[]> = {
   Overview: [
@@ -177,6 +178,8 @@ export function Explorer() {
           </tbody>
         </table>
       </div>
+
+      <CompositionPanel entry={active} />
     </>
   );
 }

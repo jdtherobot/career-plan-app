@@ -34,7 +34,9 @@ export interface AppState {
   hydrated: boolean;
 }
 
-export const DEFAULT_CHARTS = ["portfolio", "accounts", "savings", "income_vs_expenses"];
+export const DEFAULT_CHARTS = ["net_cf", "portfolio", "income", "spending"];
+export const FALLBACK_CHART = "net_cf";
+const VALID_CHARTS = new Set(["net_cf", "portfolio", "income", "spending", "savings", "taxes", "healthcare", "retirement_income"]);
 
 const initial: AppState = {
   profile: null,
@@ -51,7 +53,14 @@ const initial: AppState = {
   theme:
     (localStorage.getItem("cpc-theme") as Theme) ||
     (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
-  chartsEnabled: JSON.parse(localStorage.getItem("cpc-charts") || "null") ?? DEFAULT_CHARTS,
+  chartsEnabled: (() => {
+    const stored = JSON.parse(localStorage.getItem("cpc-charts") || "null");
+    const migrate: Record<string, string> = { income_vs_expenses: "net_cf", income_comp: "income", expense_comp: "spending" };
+    const valid = Array.isArray(stored)
+      ? [...new Set(stored.map((id: string) => migrate[id] ?? id))].filter((id) => VALID_CHARTS.has(id))
+      : [];
+    return valid.length ? valid : DEFAULT_CHARTS;
+  })(),
   focusPathId: null,
   panelBrightness: Number(localStorage.getItem("cpc-panel-bright") ?? 25),
   hydrated: false,
@@ -103,9 +112,12 @@ function reducer(state: AppState, action: Action): AppState {
       localStorage.setItem("cpc-theme", action.value);
       document.documentElement.dataset.theme = action.value;
       return { ...state, theme: action.value };
-    case "setChartsEnabled":
-      localStorage.setItem("cpc-charts", JSON.stringify(action.charts));
-      return { ...state, chartsEnabled: action.charts };
+    case "setChartsEnabled": {
+      // Never allow an empty chart set — income vs expenses is the floor.
+      const charts = action.charts.length ? action.charts : [FALLBACK_CHART];
+      localStorage.setItem("cpc-charts", JSON.stringify(charts));
+      return { ...state, chartsEnabled: charts };
+    }
     case "setFocusPath":
       return { ...state, focusPathId: action.id };
     case "setPanelBrightness":
@@ -283,8 +295,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
    both — validator-passed against carbon #17161A through the brightest
    panel-slider position (#393735). */
 
-const CARBON_PATHS = ["#3FA36B", "#BD8322", "#4E8FC4", "#9A6BB5"];
-const CARBON_CATS = ["#B5714B", "#4E8FC4", "#3FA36B", "#9A6BB5", "#BD8322", "#C56A8C"];
+/* Material-derived accents (validated on carbon through the slider range):
+   paths — brass, anodized steel, verdigris, titanium violet;
+   cats  — copper, steel, verdigris, ti-violet, brass, rose. */
+const CARBON_PATHS = ["#BD8322", "#4E8FC4", "#4AA173", "#9A6BB5"];
+const CARBON_CATS = ["#B5714B", "#4E8FC4", "#4AA173", "#9A6BB5", "#BD8322", "#C56A8C"];
 
 export const PATH_COLORS: Record<Theme, string[]> = { light: CARBON_PATHS, dark: CARBON_PATHS };
 export const CAT_COLORS: Record<Theme, string[]> = { light: CARBON_CATS, dark: CARBON_CATS };
