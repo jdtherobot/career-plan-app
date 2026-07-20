@@ -88,7 +88,9 @@ doc rendered on the project page). Rewrite it as a visitor-facing overview (drop
 repo-internal dev/deploy sections) covering:
 - In-browser Python engine via Pyodide — no backend, no account; visitor data stays in their browser
 - Live app: https://britt.gg/career-plan-app/
-- 100+ passing tests (unit + golden-master + parity-contract suites)
+- 129 passing Python tests (unit, golden-master, schema/migration, exporter, and
+  money-invariant suites). Do NOT claim native↔Pyodide parity is tested — the
+  fixture ships but the browser-side assertion is not wired up.
 - Composable month-level path builder — assemble any sequence of career segments
 - Full retirement lifecycle: High-3 pension, 36-month GI Bill ledger, Social Security
   with claim-age factors, RMDs, Medicare at 65, account-level drawdown

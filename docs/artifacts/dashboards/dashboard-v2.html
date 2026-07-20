@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JD Britt — 50-Year Financial Projection Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f1117;color:#e1e5ee;padding:20px;min-width:900px}
+.header{text-align:center;margin-bottom:24px}
+.header h1{font-size:1.7rem;color:#fff;margin-bottom:6px}
+.header p{color:#6b7280;font-size:0.85rem}
+.updated{display:inline-block;background:#1a1d28;border:1px solid #2a2d3a;border-radius:20px;padding:3px 12px;font-size:0.75rem;color:#6b7280;margin-top:6px}
+.controls{background:#161929;border:1px solid #252838;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.ctrl-group{display:flex;flex-direction:column;gap:5px}
+.ctrl-group label{font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+.ctrl-group select{background:#0f1117;border:1px solid #2a2d3a;border-radius:7px;color:#e1e5ee;padding:6px 10px;font-size:0.82rem;cursor:pointer;min-width:160px}
+.ctrl-group select:focus{outline:none;border-color:#60a5fa}
+.path-toggles{display:flex;gap:10px}
+.ptoggle{display:flex;align-items:center;gap:7px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1px solid #2a2d3a;font-size:0.82rem;transition:all .15s;user-select:none}
+.ptoggle.active-a{background:rgba(74,222,128,.12);border-color:#4ade80;color:#4ade80}
+.ptoggle.active-b{background:rgba(251,146,60,.12);border-color:#fb923c;color:#fb923c}
+.ptoggle.active-c{background:rgba(96,165,250,.12);border-color:#60a5fa;color:#60a5fa}
+.ptoggle.inactive{background:#0f1117;border-color:#2a2d3a;color:#6b7280}
+.dot{width:9px;height:9px;border-radius:50%;background:currentColor}
+.ctrl-divider{width:1px;background:#252838;align-self:stretch}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:#1a1d28;border:1px solid #2a2d3a;border-radius:11px;padding:16px 18px}
+.kpi h3{font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;font-weight:600}
+.kpi .val{font-size:1.65rem;font-weight:700;line-height:1}
+.kpi .sub{font-size:0.75rem;color:#6b7280;margin-top:5px}
+.kpi .sub span{color:#9ca3af}
+.ga{color:#4ade80}.gb{color:#fb923c}.gc{color:#60a5fa}.gy{color:#fbbf24}.gw{color:#e1e5ee}.gp{color:#c084fc}
+.timeline-block{background:#1a1d28;border:1px solid #2a2d3a;border-radius:11px;padding:16px 18px;margin-bottom:20px}
+.timeline-block h2{font-size:1rem;color:#fff;margin-bottom:14px}
+.tl-row{margin-bottom:10px}
+.tl-label{font-size:0.75rem;color:#6b7280;margin-bottom:5px}
+.tl{display:flex;border-radius:7px;overflow:hidden;height:38px}
+.tl-seg{display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:0.65rem;text-align:center;padding:2px 6px}
+.tl-seg .tl-title{font-weight:700;font-size:0.68rem}
+.tl-seg .tl-yrs{font-size:0.6rem;opacity:.8}
+.mil{background:#1c3a2f;color:#4ade80;border-right:1px solid #0f1117}
+.phd{background:#2d2010;color:#fb923c;border-right:1px solid #0f1117}
+.rs{background:#1c1f3a;color:#c084fc;border-right:1px solid #0f1117}
+.cs{background:#2d1c10;color:#fbbf24;border-right:1px solid #0f1117}
+.gap{background:#1a1a20;color:#6b7280}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.chart-full{margin-bottom:16px}
+.chart-card{background:#1a1d28;border:1px solid #2a2d3a;border-radius:11px;padding:18px 20px}
+.chart-card h2{font-size:0.95rem;color:#fff;margin-bottom:6px}
+.chart-sub{font-size:0.75rem;color:#6b7280;margin-bottom:12px}
+.chart-wrap{position:relative;height:300px}
+.chart-wrap-lg{position:relative;height:340px}
+.scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.scenario-card{background:#1a1d28;border:1px solid #2a2d3a;border-radius:11px;padding:14px 16px}
+.scenario-card h4{font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;font-weight:600}
+.sc-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #22253a}
+.sc-row:last-child{border-bottom:none}
+.sc-label{font-size:0.78rem;color:#9ca3af}
+.sc-val{font-size:0.82rem;font-weight:600;color:#e1e5ee}
+.sc-note{font-size:0.7rem;color:#6b7280;margin-top:8px;font-style:italic}
+.tbl-wrap{background:#1a1d28;border:1px solid #2a2d3a;border-radius:11px;padding:18px 20px;margin-bottom:20px;overflow-x:auto}
+.tbl-wrap h2{font-size:0.95rem;color:#fff;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:0.8rem}
+th{background:#252838;color:#9ca3af;padding:8px 14px;text-align:right;font-weight:600;font-size:0.75rem}
+th:first-child{text-align:left}
+td{padding:7px 14px;text-align:right;border-bottom:1px solid #22253a}
+td:first-child{text-align:left;color:#9ca3af}
+tr:last-child td{border-bottom:none}
+.td-a{color:#4ade80}.td-b{color:#fb923c}.td-c{color:#60a5fa}
+.td-best{font-weight:700}
+.footer{text-align:center;margin-top:28px;padding-top:18px;border-top:1px solid #22253a;color:#4b5563;font-size:0.75rem;line-height:1.7}
+@media(max-width:900px){.chart-row{grid-template-columns:1fr}.controls{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>JD Britt — 50-Year Financial Projection</h1>
+  <p>Three career paths &nbsp;·&nbsp; Military Retirement vs. CS / Tech vs. PhD &rarr; Research Scientist</p>
+  <span class="updated">Data from Financial_Planner_Britt_v5.0.xlsx &nbsp;&middot;&nbsp; March 2026</span>
+</div>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <label>Horizon</label>
+    <select id="horizonSel" onchange="update()">
+      <option value="9">10 years (2026&ndash;2035)</option>
+      <option value="19">20 years (2026&ndash;2045)</option>
+      <option value="29" selected>30 years (2026&ndash;2055)</option>
+      <option value="39">40 years (2026&ndash;2065)</option>
+      <option value="49">50 years (2026&ndash;2075)</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <label>Paths shown</label>
+    <div class="path-toggles">
+      <div class="ptoggle active-a" id="tog-a" onclick="togglePath('a')"><div class="dot"></div>Path A</div>
+      <div class="ptoggle active-b" id="tog-b" onclick="togglePath('b')"><div class="dot"></div>Path B</div>
+      <div class="ptoggle active-c" id="tog-c" onclick="togglePath('c')"><div class="dot"></div>Path C</div>
+    </div>
+  </div>
+  <div class="ctrl-divider"></div>
+  <div class="ctrl-group">
+    <label>Grad School (PhD paths)</label>
+    <select id="schoolSel" onchange="updateScenario()">
+      <option value="0">Stanford &mdash; $57K stipend / $4,992 BAH</option>
+      <option value="1">UC Berkeley &mdash; $44K stipend / $4,992 BAH</option>
+      <option value="2">MIT &mdash; $51.2K stipend / $3,513 BAH</option>
+      <option value="3">CMU &mdash; $42.9K stipend / $1,400 BAH</option>
+      <option value="4" selected>UW Seattle &mdash; $47K stipend / $3,900 BAH</option>
+      <option value="5">UC Davis &mdash; $40.8K stipend / $2,700 BAH</option>
+      <option value="6">Cambridge UK &mdash; $22K stipend / $0 BAH</option>
+      <option value="7">Science Tokyo &mdash; $18K stipend / $0 BAH</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <label>Post-PhD Employer</label>
+    <select id="employerSel" onchange="updateScenario()">
+      <option value="0" selected>Conservative RS &mdash; $220K base</option>
+      <option value="1">Intel Labs &mdash; $230K base</option>
+      <option value="2">Neuralink &mdash; $245K base</option>
+      <option value="3">Microsoft Research &mdash; $260K base</option>
+      <option value="4">DeepMind &mdash; $264K base</option>
+      <option value="5">NVIDIA Research &mdash; $285K base</option>
+      <option value="6">Anthropic &mdash; $350K base</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <label>VA Disability</label>
+    <select id="vaSel" onchange="updateScenario()">
+      <option value="0">None &mdash; $0/mo</option>
+      <option value="1">10% &mdash; $175/mo</option>
+      <option value="2">20% &mdash; $346/mo</option>
+      <option value="3" selected>30% &mdash; $553/mo</option>
+      <option value="4">40% &mdash; $795/mo</option>
+      <option value="5">50% &mdash; $1,075/mo</option>
+      <option value="6">60% &mdash; $1,362/mo</option>
+      <option value="7">70% &mdash; $1,716/mo</option>
+      <option value="8">80% &mdash; $1,995/mo</option>
+      <option value="9">90% &mdash; $2,241/mo</option>
+      <option value="10">100% &mdash; $3,757/mo</option>
+    </select>
+  </div>
+</div>
+
+<div class="scenario-grid" id="scenarioPanel"></div>
+<div class="kpi-grid" id="kpiGrid"></div>
+
+<div class="timeline-block">
+  <h2>Life Phase Timeline</h2>
+  <div class="tl-row">
+    <div class="tl-label">PATH A &nbsp;&middot;&nbsp; <span class="ga">Stay Military &rarr; Retire 2034 &rarr; PhD (5 yrs) &rarr; Research Scientist</span></div>
+    <div class="tl">
+      <div class="tl-seg mil" style="flex:8"><div class="tl-title">Active Duty</div><div class="tl-yrs">2026&ndash;2033</div></div>
+      <div class="tl-seg phd" style="flex:5"><div class="tl-title">Ret&apos;d + PhD</div><div class="tl-yrs">2034&ndash;2038</div></div>
+      <div class="tl-seg rs" style="flex:37"><div class="tl-title">Ret&apos;d + Research Scientist</div><div class="tl-yrs">2039&ndash;2076</div></div>
+    </div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-label">PATH B &nbsp;&middot;&nbsp; <span class="gb">Separate Nov 2027 &rarr; CS / Tech Job (immediate, no PhD)</span></div>
+    <div class="tl">
+      <div class="tl-seg mil" style="flex:2"><div class="tl-title">Active</div><div class="tl-yrs">2026&ndash;27</div></div>
+      <div class="tl-seg cs" style="flex:48"><div class="tl-title">CS / Tech IC</div><div class="tl-yrs">2028&ndash;2076 (48 yrs)</div></div>
+    </div>
+  </div>
+  <div class="tl-row" style="margin-bottom:0">
+    <div class="tl-label">PATH C &nbsp;&middot;&nbsp; <span class="gc">Separate Nov 2027 &rarr; Gap Year &rarr; PhD (5 yrs) &rarr; Research Scientist</span></div>
+    <div class="tl">
+      <div class="tl-seg mil" style="flex:2"><div class="tl-title">Active</div><div class="tl-yrs">2026&ndash;27</div></div>
+      <div class="tl-seg gap" style="flex:1"><div class="tl-title">Gap</div><div class="tl-yrs">'28</div></div>
+      <div class="tl-seg phd" style="flex:5"><div class="tl-title">PhD</div><div class="tl-yrs">2029&ndash;2033</div></div>
+      <div class="tl-seg rs" style="flex:42"><div class="tl-title">Research Scientist</div><div class="tl-yrs">2034&ndash;2076</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="chart-row">
+  <div class="chart-card">
+    <h2>Investment Portfolio Growth</h2>
+    <div class="chart-sub">prior &times; 7% + retirement savings + 20% of positive net cash flow</div>
+    <div class="chart-wrap"><canvas id="chartPortfolio"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h2>Annual Net Cash Flow</h2>
+    <div class="chart-sub">Gross + Tax-Free &minus; Taxes &minus; Healthcare &minus; Living Expenses</div>
+    <div class="chart-wrap"><canvas id="chartCashflow"></canvas></div>
+  </div>
+</div>
+
+<div class="chart-row">
+  <div class="chart-card">
+    <h2>Annual Gross Income</h2>
+    <div class="chart-sub">Base pay / CS salary / PhD stipend / Research Scientist base (taxable)</div>
+    <div class="chart-wrap"><canvas id="chartGross"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h2>Tax-Free Income</h2>
+    <div class="chart-sub">Military BAH/BAS, VA disability, GI Bill BAH &mdash; all non-taxable</div>
+    <div class="chart-wrap"><canvas id="chartTaxFree"></canvas></div>
+  </div>
+</div>
+
+<div class="chart-full">
+  <div class="chart-card">
+    <h2>Cumulative Cash Flow &mdash; All Paths</h2>
+    <div class="chart-sub">Running total of annual net cash flow since 2026. Path B overtakes A in 2028; Path C overtakes A in 2032.</div>
+    <div class="chart-wrap-lg"><canvas id="chartCumul"></canvas></div>
+  </div>
+</div>
+
+<div class="chart-row">
+  <div class="chart-card">
+    <h2>Annual Taxes Paid</h2>
+    <div class="chart-sub">Military BAH/BAS exclusions reduce Path A tax burden early; RS salary drives it later</div>
+    <div class="chart-wrap"><canvas id="chartTaxes"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h2>Healthcare Costs</h2>
+    <div class="chart-sub">TRICARE $182/yr (Path A) vs civilian premiums. Path C = $0 during PhD (university coverage).</div>
+    <div class="chart-wrap"><canvas id="chartHealth"></canvas></div>
+  </div>
+</div>
+
+<div class="tbl-wrap">
+  <h2>Path Comparison Summary</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:left">Metric</th>
+        <th class="td-a">Path A (Military &rarr; RS)</th>
+        <th class="td-b">Path B (CS/Tech, no PhD)</th>
+        <th class="td-c">Path C (Gap &rarr; PhD &rarr; RS)</th>
+        <th>Best</th>
+      </tr>
+    </thead>
+    <tbody id="compTableBody"></tbody>
+  </table>
+</div>
+
+<div class="footer">
+  All projections from <strong>Financial_Planner_Britt_v5.0.xlsx</strong> &mdash; ASSUMPTIONS sheet drives all numbers.<br>
+  School and employer selectors are reference panels &mdash; update ASSUMPTIONS in Excel to apply changes to projections.<br>
+  Path A pension $43,596/yr &middot; GI Bill BAH Bay Area $4,992/mo &middot; Post-PhD RS conservative $220K &middot; PhD stipend avg $47K
+</div>
+
+<script>
+const D={"years":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50],"cal_years":[2026,2027,2028,2029,2030,2031,2032,2033,2034,2035,2036,2037,2038,2039,2040,2041,2042,2043,2044,2045,2046,2047,2048,2049,2050,2051,2052,2053,2054,2055,2056,2057,2058,2059,2060,2061,2062,2063,2064,2065,2066,2067,2068,2069,2070,2071,2072,2073,2074,2075,2076],"ages":[36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86],"a_status":["Active Duty","Active Duty","Active Duty","Active Duty","Active Duty","Active Duty","Active Duty","Active Duty","Retirement Year","PhD Student","PhD Student","PhD Student","PhD Student","PhD Student","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist"],"a_gross":[67100,68777,70497,72259,74066,75917,77815,79761,72215,91817,93072,94362,95688,97051,271452,281693,292326,303367,314830,326734,339095,351930,365258,379098,393470,408395,423895,439990,456706,474065,492094,510817,530262,550458,571433,593217,615843,639344,663752,689104,715437,742789,771199,800709,831362,863203,896277,930634,966324,1003398,1041911],"a_taxfree":[38624,39590,40579,41594,42634,43699,44792,45912,36952,67719,67910,68106,68308,68515,7824,8043,8269,8500,8738,8983,9234,9493,9759,10032,10313,10602,10898,11204,11517,11840,12171,12512,12862,13223,13593,13973,14365,14767,15180,15605,16042,16492,16953,17428,17916,18418,18933,19464,20009,20569,21145],"a_taxes":[5410,5546,5684,5826,5972,6121,6274,6431,6700,4579,4781,4989,5202,5422,81725,84831,88058,91409,94889,98503,102257,106155,110205,114411,118779,123316,128029,132924,138008,143290,148776,154474,160394,166543,172930,179566,186458,193619,201057,208785,216812,225152,233816,242817,252168,261883,271977,282463,293358,304677,316438],"a_health":[0,0,0,0,0,0,0,0,46,187,193,199,205,211,217,224,231,237,245,252,259,267,275,284,292,301,310,319,329,339,349,359,370,381,392,404,416,429,442,455,469,483,497,512,527,543,560,576,594,612,630],"a_expenses":[28726,29588,30475,31390,32331,33301,34300,35329,36389,37481,38605,39763,40956,42185,43450,44754,46097,47479,48904,50371,51882,53439,55042,56693,58394,60146,61950,63808,65723,67694,69725,71817,73971,76191,78476,80831,83255,85753,88326,90976,93705,96516,99411,102394,105466,108630,111888,115245,118702,122263,125931],"a_savings":[22800,22800,22800,22800,22800,22800,22800,22800,0,0,0,0,0,0,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000],"a_cashflow":[48788,50434,52117,53837,55596,57394,59233,61112,66033,117289,117403,117517,117632,117749,147884,153927,160210,166741,173532,180591,187931,195561,203495,211743,220319,229235,238505,248143,258163,268582,279415,290679,302389,314566,327226,340390,354078,368310,383108,398495,414494,431129,448427,466414,485117,504564,524786,545814,567679,590415,614057],"a_portfolio":[154401,198095,245185,295916,350549,409366,472668,540778,591839,656725,726176,800512,880075,965229,1068372,1179944,1300582,1430971,1571845,1723993,1888258,2065549,2256836,2463163,2685648,2925491,3183976,3462483,3762489,4085580,4433454,4807931,5210964,5644645,6111215,6613079,7152810,7733168,8357112,9027808,9748654,10523285,11355601,12249776,13210283,14241916,15349807,16539456,17816754,19188010,20659982],"b_status":["Active Duty","Active Duty","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job","CS / Tech Job"],"b_gross":[67100,68777,117638,122344,127237,132327,137620,143125,148850,154804,160996,167436,174133,181098,188342,195876,203711,211859,220334,229147,238313,247846,257759,268070,278793,289944,301542,313604,326148,339194,352761,366872,381547,396809,412681,429188,446356,464210,482778,502090,522173,543060,564782,587374,610869,635303,660716,687144,714630,743215,772944],"b_taxfree":[38624,39590,6630,6815,7006,7202,7404,7611,7824,8043,8269,8500,8738,8983,9234,9493,9759,10032,10313,10602,10898,11204,11517,11840,12171,12512,12862,13223,13593,13973,14365,14767,15180,15605,16042,16492,16953,17428,17916,18418,18933,19464,20009,20569,21145,21737,22345,22971,23614,24275,24955],"b_taxes":[5410,5546,32192,33503,34867,36286,37763,39299,40897,42560,44291,46091,47964,49913,51941,54051,56246,58530,60906,63378,65950,68626,71410,74307,77320,80455,83717,87110,90641,94314,98135,102110,106246,110549,115025,119682,124527,129567,134810,140265,145940,151843,157984,164373,171020,177934,185127,192610,200395,208493,216917],"b_health":[0,0,3000,3240,3499,3779,4081,4408,4761,5141,5553,5997,6477,6995,7555,8159,8812,9517,10278,11100,11988,12947,13983,15102,16310,17614,19024,20545,22189,23964,25881,27952,30188,32603,35211,38028,41070,44356,47905,51737,55876,60346,65174,70387,76018,82100,88668,95761,103422,111696,120632],"b_expenses":[28726,29588,30475,31390,32331,33301,34300,35329,36389,37481,38605,39763,40956,42185,43450,44754,46097,47479,48904,50371,51882,53439,55042,56693,58394,60146,61950,63808,65723,67694,69725,71817,73971,76191,78476,80831,83255,85753,88326,90976,93705,96516,99411,102394,105466,108630,111888,115245,118702,122263,125931],"b_savings":[22800,22800,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000],"b_cashflow":[48788,50434,52600,55026,57546,60163,62880,65700,68627,71664,74816,78084,81474,84988,88630,92405,96315,100365,104559,108900,113391,118037,122842,127808,132940,138241,143714,149362,155188,161195,167385,173760,180322,187072,194011,201139,208457,215962,223654,231530,239586,247819,256222,264788,273509,282376,291377,300499,309725,319039,328419],"b_portfolio":[154401,198095,228482,261481,297294,336137,378242,423859,473255,526716,584549,647084,714675,787699,866565,951705,1043587,1142712,1249613,1364866,1489085,1622928,1767102,1922361,2089514,2269428,2463031,2671315,2895345,3136258,3395273,3673694,3972917,4294436,4639848,5010866,5409318,5837162,6296494,6789555,7318741,7886617,8495924,9149596,9850770,10602799,11409271,12274019,13201146,14195034,15260370],"c_status":["Active Duty","Active Duty","Gap Year","PhD Student","PhD Student","PhD Student","PhD Student","PhD Student","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist","Research Scientist"],"c_gross":[67100,68777,0,47000,47000,47000,47000,47000,220000,228800,237952,247470,257369,267664,278370,289505,301085,313129,325654,338680,352227,366316,380969,396208,412056,428538,445680,463507,482047,501329,521382,542237,563927,586484,609943,634341,659715,686103,713547,742089,771773,802644,834750,868140,902865,938980,976539,1015601,1056225,1098474,1142412],"c_taxfree":[38624,39590,6630,67719,67910,68106,68308,68515,7824,8043,8269,8500,8738,8983,9234,9493,9759,10032,10313,10602,10898,11204,11517,11840,12171,12512,12862,13223,13593,13973,14365,14767,15180,15605,16042,16492,16953,17428,17916,18418,18933,19464,20009,20569,21145,21737,22345,22971,23614,24275,24955],"c_taxes":[5410,5546,0,4700,4700,4700,4700,4700,65774,68435,71202,74081,77076,80191,83432,86804,90311,93960,97756,101704,105812,110085,114530,119154,123964,128968,134173,139588,145221,151080,157175,163516,170111,176972,184109,191533,199256,207289,215646,224338,233380,242786,252570,262747,273333,284345,295800,307715,320109,333001,346412],"c_health":[0,0,3000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c_expenses":[28726,29588,30475,31390,32331,33301,34300,35329,36389,37481,38605,39763,40956,42185,43450,44754,46097,47479,48904,50371,51882,53439,55042,56693,58394,60146,61950,63808,65723,67694,69725,71817,73971,76191,78476,80831,83255,85753,88326,90976,93705,96516,99411,102394,105466,108630,111888,115245,118702,122263,125931],"c_savings":[22800,22800,0,0,0,0,0,0,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000,6000],"c_cashflow":[48788,50434,-26846,78630,77879,77105,76308,75486,119661,124928,130414,136126,142075,148271,154722,161440,168436,175721,183307,191206,199432,207996,216915,226200,235869,245937,256419,267333,278696,290528,302846,315672,329024,342927,357400,372469,388157,404489,421492,439193,457621,476806,496777,517568,539211,561742,585196,609611,635027,661484,689024],"c_portfolio":[154401,198095,211962,242525,275078,309754,346699,386065,443021,505019,572453,645750,725367,811797,905567,1007245,1117439,1236804,1366042,1505906,1657206,1820810,1997649,2188725,2395109,2617954,2858495,3118056,3398060,3700029,4025601,4376527,4754689,5162102,5600929,6073488,6582264,7129920,7719313,8353503,9035773,9769638,10558868,11407503,12319870,13300609,14354691,15487442,16704568,18012184,19416842],"a_cumul":[48788,99222,151339,205176,260772,318166,377399,438511,504544,621833,739236,856753,974385,1092134,1240018,1393945,1554155,1720896,1894428,2075019,2262950,2458511,2662006,2873749,3094068,3323303,3561808,3809951,4068114,4336696,4616111,4906790,5209179,5523745,5850971,6191361,6545439,6913749,7296857,7695352,8109846,8540975,8989402,9455816,9940933,10445497,10970283,11516097,12083776,12674191,13288248],"b_cumul":[48788,99222,151822,206848,264394,324557,387437,453137,521764,593428,668244,746328,827802,912790,1001420,1093825,1190140,1290505,1395064,1503964,1617355,1735392,1858234,1986042,2118982,2257223,2400937,2550299,2705487,2866682,3034067,3207827,3388149,3575221,3769232,3970371,4178828,4394790,4618444,4849974,5089560,5337379,5593601,5858389,6131898,6414274,6705651,7006150,7315875,7634914,7963333],"c_cumul":[48788,99222,72376,151006,228885,305990,382298,457784,577445,702373,832787,968913,1110988,1259259,1413981,1575421,1743857,1919578,2102885,2294091,2493523,2701519,2918434,3144634,3380503,3626440,3882859,4150192,4428888,4719416,5022262,5337934,5666958,6009885,6367285,6739754,7127911,7532400,7953892,8393085,8850706,9327512,9824289,10341857,10881068,11442810,12028006,12637617,13272644,13934128,14623152]};
+
+const SCHOOLS=[
+  {name:'Stanford',stipend:57000,bah:4992,state:'CA (13.3%)',rent:3200,note:'Dream program. Yellow Ribbon covers tuition.'},
+  {name:'UC Berkeley',stipend:44000,bah:4992,state:'CA (13.3%)',rent:3000,note:'Dream program. GRE not accepted.'},
+  {name:'MIT',stipend:51200,bah:3513,state:'MA (5%)',rent:2800,note:'Strong CSAIL neuroscience-adjacent PIs.'},
+  {name:'CMU',stipend:42900,bah:1400,state:'PA (3.07%)',rent:1800,note:'BAH ~$43K/yr lower than Bay Area — major factor.'},
+  {name:'UW Seattle',stipend:47000,bah:3900,state:'WA (0%)',rent:2400,note:'Rajesh Rao at Center for Neurotechnology.'},
+  {name:'UC Davis',stipend:40800,bah:2700,state:'CA (13.3%)',rent:1800,note:'Nearby (Sacramento). More accessible profile.'},
+  {name:'Cambridge UK',stipend:22000,bah:0,state:'UK (20%)',rent:2000,note:'2 referees. Gates Cambridge funding opportunity.'},
+  {name:'Science Tokyo',stipend:18000,bah:0,state:'Japan',rent:1400,note:'Requires advisor consent before applying.'},
+];
+const EMPLOYERS=[
+  {name:'Conservative RS',base:220000,tc:280000,note:'Floor estimate — understates top-tier potential'},
+  {name:'Intel Labs',base:230000,tc:295000,note:'Neuromorphic/Loihi research alignment'},
+  {name:'Neuralink',base:245000,tc:310000,note:'BCI direct alignment'},
+  {name:'Microsoft Research',base:260000,tc:340000,note:'Strong RS culture, equity upside'},
+  {name:'DeepMind',base:264000,tc:350000,note:'Avg total comp from public reports'},
+  {name:'NVIDIA Research',base:285000,tc:400000,note:'GPU/AI hardware alignment'},
+  {name:'Anthropic',base:350000,tc:500000,note:'Median RS $442K from 2024 reports'},
+];
+const VA_RATES=[0,175,346,553,795,1075,1362,1716,1995,2241,3757];
+const VA_LABELS=['None','10%','20%','30%','40%','50%','60%','70%','80%','90%','100%'];
+
+let showA=true,showB=true,showC=true;
+let charts={};
+
+const fmt=v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':v>=1e3?'$'+(v/1000).toFixed(0)+'K':'$'+Math.round(v).toLocaleString();
+const fmtFull=v=>'$'+Math.round(v).toLocaleString();
+const slice=(arr,n)=>arr.slice(0,n+1);
+const sumArr=(arr,n)=>arr.slice(0,n+1).reduce((a,b)=>a+b,0);
+function getN(){return parseInt(document.getElementById('horizonSel').value)}
+
+function updateScenario(){
+  const si=parseInt(document.getElementById('schoolSel').value);
+  const ei=parseInt(document.getElementById('employerSel').value);
+  const vi=parseInt(document.getElementById('vaSel').value);
+  const sch=SCHOOLS[si],emp=EMPLOYERS[ei];
+  const va_mo=VA_RATES[vi],va_yr=va_mo*12;
+  const phd_total=sch.stipend+sch.bah*12+va_yr;
+  document.getElementById('scenarioPanel').innerHTML=`
+  <div class="scenario-card">
+    <h4>Grad School &mdash; ${sch.name}</h4>
+    <div class="sc-row"><span class="sc-label">PhD Stipend</span><span class="sc-val ga">${fmtFull(sch.stipend)}/yr</span></div>
+    <div class="sc-row"><span class="sc-label">GI Bill BAH</span><span class="sc-val ga">${fmtFull(sch.bah)}/mo</span></div>
+    <div class="sc-row"><span class="sc-label">State Tax</span><span class="sc-val">${sch.state}</span></div>
+    <div class="sc-row"><span class="sc-label">Est. Rent</span><span class="sc-val">${fmtFull(sch.rent)}/mo</span></div>
+    <div class="sc-note">${sch.note}</div>
+  </div>
+  <div class="scenario-card">
+    <h4>Post-PhD Employer &mdash; ${emp.name}</h4>
+    <div class="sc-row"><span class="sc-label">Base Salary</span><span class="sc-val gc">${fmtFull(emp.base)}/yr</span></div>
+    <div class="sc-row"><span class="sc-label">Est. Total Comp</span><span class="sc-val gc">${fmtFull(emp.tc)}/yr</span></div>
+    <div class="sc-row"><span class="sc-label">Growth Rate</span><span class="sc-val">4%/yr (modeled)</span></div>
+    <div class="sc-note">${emp.note}</div>
+  </div>
+  <div class="scenario-card">
+    <h4>VA Disability &mdash; ${VA_LABELS[vi]}</h4>
+    <div class="sc-row"><span class="sc-label">Monthly Benefit</span><span class="sc-val gy">${fmtFull(va_mo)}/mo</span></div>
+    <div class="sc-row"><span class="sc-label">Annual (tax-free)</span><span class="sc-val gy">${fmtFull(va_yr)}/yr</span></div>
+    <div class="sc-row"><span class="sc-label">Applies to</span><span class="sc-val">All 3 paths</span></div>
+    <div class="sc-note">VA disability stacks with all income sources. Update ASSUMPTIONS!B89 in Excel.</div>
+  </div>
+  <div class="scenario-card">
+    <h4>PhD Phase Est. Income</h4>
+    <div class="sc-row"><span class="sc-label">Stipend</span><span class="sc-val ga">${fmtFull(sch.stipend)}/yr</span></div>
+    <div class="sc-row"><span class="sc-label">+ GI Bill BAH</span><span class="sc-val ga">+${fmtFull(sch.bah*12)}/yr</span></div>
+    <div class="sc-row"><span class="sc-label">+ VA Disability</span><span class="sc-val gy">+${fmtFull(va_yr)}/yr</span></div>
+    <div class="sc-row"><span class="sc-label">= Combined</span><span class="sc-val gw">${fmtFull(phd_total)}/yr</span></div>
+    <div class="sc-note">Update ASSUMPTIONS rows 94&ndash;100 in Excel to reflect selected school.</div>
+  </div>`;
+}
+
+function updateKPIs(){
+  const n=getN();
+  const yr=D.cal_years[n];
+  const aPort=D.a_portfolio[n],bPort=D.b_portfolio[n],cPort=D.c_portfolio[n];
+  const maxPort=Math.max(aPort,bPort,cPort);
+  let beB='Never',beC='Never';
+  for(let i=1;i<=n;i++){
+    if(beB==='Never'&&D.b_cumul[i]>D.a_cumul[i])beB=D.cal_years[i];
+    if(beC==='Never'&&D.c_cumul[i]>D.a_cumul[i])beC=D.cal_years[i];
+  }
+  document.getElementById('kpiGrid').innerHTML=`
+  <div class="kpi"><h3>Portfolio at ${yr}</h3>
+    <div class="val ga ${aPort===maxPort?'':'opacity:.7'}">${fmt(aPort)}</div>
+    <div class="sub">A &nbsp;|&nbsp; <span class="gb">${fmt(bPort)}</span> B &nbsp;|&nbsp; <span class="gc">${fmt(cPort)}</span> C</div></div>
+  <div class="kpi"><h3>Cumul. Gross (${n+1} yrs)</h3>
+    <div class="val ga">${fmt(sumArr(D.a_gross,n))}</div>
+    <div class="sub">A &nbsp;|&nbsp; <span class="gb">${fmt(sumArr(D.b_gross,n))}</span> B &nbsp;|&nbsp; <span class="gc">${fmt(sumArr(D.c_gross,n))}</span> C</div></div>
+  <div class="kpi"><h3>Cumul. Tax-Free Income</h3>
+    <div class="val ga">${fmt(sumArr(D.a_taxfree,n))}</div>
+    <div class="sub">A &nbsp;|&nbsp; <span class="gb">${fmt(sumArr(D.b_taxfree,n))}</span> B &nbsp;|&nbsp; <span class="gc">${fmt(sumArr(D.c_taxfree,n))}</span> C</div></div>
+  <div class="kpi"><h3>Cumul. Taxes Paid</h3>
+    <div class="val ga">${fmt(sumArr(D.a_taxes,n))}</div>
+    <div class="sub">A &nbsp;|&nbsp; <span class="gb">${fmt(sumArr(D.b_taxes,n))}</span> B &nbsp;|&nbsp; <span class="gc">${fmt(sumArr(D.c_taxes,n))}</span> C</div></div>
+  <div class="kpi"><h3>B Overtakes A (Cumul CF)</h3>
+    <div class="val gy">${beB}</div>
+    <div class="sub">Path B cumul. cash flow exceeds Path A within ${yr} horizon</div></div>
+  <div class="kpi"><h3>C Overtakes A (Cumul CF)</h3>
+    <div class="val gc">${beC}</div>
+    <div class="sub">Path C cumul. cash flow exceeds Path A within ${yr} horizon</div></div>`;
+}
+
+function updateTable(){
+  const n=getN();
+  const rows=[
+    ['Final Portfolio',D.a_portfolio[n],D.b_portfolio[n],D.c_portfolio[n],true],
+    ['Cumul. Gross Income',sumArr(D.a_gross,n),sumArr(D.b_gross,n),sumArr(D.c_gross,n),true],
+    ['Cumul. Tax-Free Income',sumArr(D.a_taxfree,n),sumArr(D.b_taxfree,n),sumArr(D.c_taxfree,n),true],
+    ['Cumul. Taxes Paid',sumArr(D.a_taxes,n),sumArr(D.b_taxes,n),sumArr(D.c_taxes,n),false],
+    ['Cumul. Healthcare',sumArr(D.a_health,n),sumArr(D.b_health,n),sumArr(D.c_health,n),false],
+    ['Cumul. Living Expenses',sumArr(D.a_expenses,n),sumArr(D.b_expenses,n),sumArr(D.c_expenses,n),false],
+    ['Cumul. Cash Flow',D.a_cumul[n],D.b_cumul[n],D.c_cumul[n],true],
+    ['Final Year Net CF',D.a_cashflow[n],D.b_cashflow[n],D.c_cashflow[n],true],
+  ];
+  document.getElementById('compTableBody').innerHTML=rows.map(([label,a,b,c,highGood])=>{
+    const best=highGood?Math.max(a,b,c):Math.min(a,b,c);
+    const ba=a===best?'td-best':'',bb=b===best?'td-best':'',bc=c===best?'td-best':'';
+    const bestLabel=a===best?'<span class="td-a">A</span>':b===best?'<span class="td-b">B</span>':'<span class="td-c">C</span>';
+    return`<tr><td>${label}</td><td class="td-a ${ba}">${fmtFull(a)}</td><td class="td-b ${bb}">${fmtFull(b)}</td><td class="td-c ${bc}">${fmtFull(c)}</td><td>${bestLabel}</td></tr>`;
+  }).join('');
+}
+
+const COPTS=(yFmt)=>({
+  responsive:true,maintainAspectRatio:false,
+  interaction:{mode:'index',intersect:false},
+  plugins:{
+    legend:{labels:{color:'#9ca3af',font:{size:11},boxWidth:12,padding:14}},
+    tooltip:{backgroundColor:'#1a1d28',titleColor:'#fff',bodyColor:'#9ca3af',borderColor:'#2a2d3a',borderWidth:1,padding:10,
+      callbacks:{label:ctx=>' '+ctx.dataset.label+': $'+Math.round(ctx.raw).toLocaleString()}}
+  },
+  scales:{
+    x:{ticks:{color:'#5a6070',maxTicksLimit:14,font:{size:10}},grid:{color:'#1e2130'}},
+    y:{ticks:{color:'#5a6070',font:{size:10},callback:v=>{
+      if(yFmt==='M') return'$'+(v/1e6).toFixed(1)+'M';
+      if(yFmt==='K') return'$'+(v/1000).toFixed(0)+'K';
+      return'$'+Math.round(v).toLocaleString();
+    }},grid:{color:'#1e2130'}}
+  }
+});
+
+function mkDs(label,data,color,fill){
+  const c=color;
+  const bg=fill?c.replace('rgb(','rgba(').replace(')',',0.12)'):c;
+  return{label,data,borderColor:c,backgroundColor:bg,fill:!!fill,tension:0.35,pointRadius:0,pointHoverRadius:5,borderWidth:2.5};
+}
+
+function mkChart(id,type,labels,datasets,opts){
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id),{type,data:{labels,datasets},options:opts});
+}
+
+function update(){
+  const n=getN();
+  const labels=slice(D.cal_years,n);
+  const yFmt=n>=29?'M':'K';
+
+  function ds3(getter,fill){
+    const out=[];
+    if(showA)out.push(mkDs('Path A',slice(getter('a'),n),'rgb(74,222,128)',fill));
+    if(showB)out.push(mkDs('Path B',slice(getter('b'),n),'rgb(251,146,60)',fill));
+    if(showC)out.push(mkDs('Path C',slice(getter('c'),n),'rgb(96,165,250)',fill));
+    return out;
+  }
+
+  mkChart('chartPortfolio','line',labels,ds3(p=>D[p+'_portfolio'],true),COPTS(yFmt));
+  mkChart('chartCashflow','line',labels,ds3(p=>D[p+'_cashflow'],false),COPTS('K'));
+  mkChart('chartGross','line',labels,ds3(p=>D[p+'_gross'],false),COPTS('K'));
+  mkChart('chartTaxFree','line',labels,ds3(p=>D[p+'_taxfree'],false),COPTS('K'));
+  mkChart('chartCumul','line',labels,ds3(p=>D[p+'_cumul'],true),COPTS(yFmt));
+  mkChart('chartTaxes','line',labels,ds3(p=>D[p+'_taxes'],false),COPTS('K'));
+  mkChart('chartHealth','line',labels,ds3(p=>D[p+'_health'],false),COPTS());
+
+  updateKPIs();
+  updateTable();
+}
+
+function togglePath(p){
+  if(p==='a')showA=!showA;
+  else if(p==='b')showB=!showB;
+  else showC=!showC;
+  if(!showA&&!showB&&!showC){
+    if(p==='a')showA=true;
+    else if(p==='b')showB=true;
+    else showC=true;
+  }
+  document.getElementById('tog-a').className='ptoggle '+(showA?'active-a':'inactive');
+  document.getElementById('tog-b').className='ptoggle '+(showB?'active-b':'inactive');
+  document.getElementById('tog-c').className='ptoggle '+(showC?'active-c':'inactive');
+  update();
+}
+
+updateScenario();
+update();
+</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
+
+Copyright (c) 2026 JD Britt
+
+WHAT THIS COVERS
+
+This license applies to the written documentation and development artifacts in
+this repository:
+
+  - README.md
+  - ENGINEERING.md
+  - docs/ — including docs/artifacts/ (workbooks, dashboards, screenshots)
+
+It does NOT cover the software. The Python projection engine (planner_app/), the
+web application (web/), the build and export scripts (scripts/), and the test
+suite (tests/) are licensed under the MIT License. See LICENSE.
+
+SUMMARY
+
+You are free to:
+
+  Share — copy and redistribute the material in any medium or format
+  Adapt  — remix, transform, and build upon the material
+
+Under the following terms:
+
+  Attribution — You must give appropriate credit to JD Britt, provide a link to
+  the license, and indicate if changes were made. You may do so in any
+  reasonable manner, but not in any way that suggests the licensor endorses you
+  or your use.
+
+  NonCommercial — You may not use the material for commercial purposes.
+
+  No additional restrictions — You may not apply legal terms or technological
+  measures that legally restrict others from doing anything the license
+  permits.
+
+FULL LICENSE TEXT
+
+The complete legal text of CC BY-NC 4.0 is available at:
+
+  https://creativecommons.org/licenses/by-nc/4.0/legalcode
+
+A human-readable summary is available at:
+
+  https://creativecommons.org/licenses/by-nc/4.0/
+
+The full legal text governs; the summary above is not a substitute for it.
+
+A NOTE ON THE ARTIFACTS
+
+The workbooks and dashboards under docs/artifacts/ are preserved development
+artifacts. Financial figures in them are illustrative: account balances and
+holdings have been replaced with representative values. Reference data
+(military pay tables, VA disability rates, published compensation research,
+graduate program figures) is drawn from public sources cited within the
+artifacts themselves.
+
+Nothing in these artifacts constitutes financial advice.

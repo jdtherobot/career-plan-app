@@ -1,32 +1,25 @@
-# React + TypeScript + Vite
+# web/
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The React + TypeScript + Vite front end for the Career Plan financial planner.
 
-Currently, two official plugins are available:
+This directory is not meant to be used standalone — it depends on a data bundle
+and engine zip generated from the Python side. See the
+[project README](../README.md) for setup and
+[ENGINEERING.md](../ENGINEERING.md) for architecture.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+# from the repo root first — generates the data bundle + engine zip:
+python3 scripts/export_web_data.py
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+# then here:
+npm install && npm run dev      # http://localhost:5173
+npm run build:full              # full production build
+npm run lint                    # oxlint
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Key locations:
+
+- `src/screens/` — the seven screens (`Paths.tsx` is the Path Builder)
+- `src/engine/` — the Pyodide Blob worker and its client
+- `src/state/` — IndexedDB-backed store
+- `src/report/` — static HTML report renderer (`react-dom/server`)

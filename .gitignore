@@ -27,3 +27,6 @@ private/
 web/public/planner_data.json
 web/public/planner_app.zip
 web/public/parity_fixture.json
+
+# Excel lock files
+~$*
