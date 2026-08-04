@@ -7,8 +7,8 @@ browser and never leaves your device.
 
 **[Launch the app](https://britt.gg/career-plan-app/)**
 
-For how this was built — the five implementations that preceded it and what the
-rewrite proved wrong — see [ENGINEERING.md](ENGINEERING.md).
+I originally created this by hand in excel, but wanted to add better functionality and UX, so everything in html/python versions was vibe coded from there. 
+For how this was built, including details on each stage of development — see [ENGINEERING.md](ENGINEERING.md).
 
 ---
 
