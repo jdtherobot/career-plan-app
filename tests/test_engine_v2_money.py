@@ -89,6 +89,45 @@ class GiBillLedgerTest(unittest.TestCase):
         self.assertTrue(all(row["incomeBreakdown"]["giBillHousing"] == 0 for row in rows))
 
 
+def _with_grad_program(scenario_id: str, program_id: str) -> ScenarioV2:
+    data = MIGRATED[scenario_id].to_dict()
+    for block in data["blocks"]:
+        if block["type"] == "grad_school":
+            block["programId"] = program_id
+    return ScenarioV2.from_dict(data)
+
+
+class ForeignSchoolGiBillTest(unittest.TestCase):
+    def test_not_approved_foreign_program_pays_nothing(self) -> None:
+        rows, _ = project(_with_grad_program("scenario_path_c", "IST-IGPC-MD"))
+        school_rows = [row for row in rows if row["activityType"] == "grad_school"]
+        self.assertTrue(school_rows)
+        for row in rows:
+            self.assertEqual(row["incomeBreakdown"]["giBillHousing"], 0)
+            self.assertEqual(row["incomeBreakdown"]["giBillBooks"], 0)
+        # VA disability still pays while abroad at school.
+        self.assertTrue(all(row["incomeBreakdown"]["vaCompensation"] > 0 for row in school_rows))
+
+    def test_not_approved_program_uses_no_entitlement(self) -> None:
+        data = _with_grad_program("scenario_path_c", "IST-IGPC-MD").to_dict()
+        grad_index = next(i for i, block in enumerate(data["blocks"]) if block["type"] == "grad_school")
+        data["blocks"][grad_index]["durationMonths"] = 24
+        data["blocks"].insert(grad_index + 1, {
+            "id": "us_phd", "type": "grad_school", "durationMonths": 60, "programId": "STAN-CS-PHD",
+        })
+        rows, _ = project(ScenarioV2.from_dict(data))
+        months = sum(row["incomeBreakdown"]["giBillHousing"] for row in rows) / 4992.0
+        self.assertAlmostEqual(months, 36, delta=0.01)
+
+    def test_approved_foreign_program_pays_flat_foreign_rate(self) -> None:
+        rows, _ = project(_with_grad_program("scenario_path_c", "CAM-CS-PHD"))
+        full_years = [row for row in rows if row["incomeBreakdown"]["giBillHousing"] >= 2522.0 * 12 - 1]
+        self.assertTrue(full_years)
+        self.assertAlmostEqual(full_years[0]["incomeBreakdown"]["giBillHousing"], 2522.0 * 12, delta=1)
+        total_months = sum(row["incomeBreakdown"]["giBillHousing"] for row in rows) / 2522.0
+        self.assertAlmostEqual(total_months, 36, delta=0.01)
+
+
 class ProrationMoneyTest(unittest.TestCase):
     def test_mid_year_separation_blends_income(self) -> None:
         scenario = ScenarioV2.from_dict({

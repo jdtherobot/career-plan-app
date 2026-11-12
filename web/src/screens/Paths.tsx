@@ -96,6 +96,25 @@ export function Paths() {
   const companies: any[] = bootstrap.referenceTables.tech_companies ?? [];
   const employers: any[] = bootstrap.referenceTables.research_employers ?? [];
   const vaRatings: any[] = bootstrap.referenceTables.va_disability ?? [];
+  const giBillRecords: any[] = bootstrap.referenceDomains?.gi_bill_benefits ?? [];
+  const overrides: any[] = state.referenceOverrides ?? [];
+  /* GI Bill terms for a program, with any Assumptions override applied. */
+  function giBillTerms(programId: string | undefined) {
+    const program = programs.find((p) => p.id === programId);
+    const record = giBillRecords.find((g) => g.id === program?.giBillBenefitId);
+    if (!record) return null;
+    const value = (field: string) => {
+      const o = overrides.find((x) => x.domain === "gi_bill_benefits" && x.id === record.id && x.field === field);
+      return o ? o.value : record[field];
+    };
+    return {
+      approved: Number(value("vaProgramApproved") ?? 1) >= 1,
+      mha: Number(value("monthlyHousingAllowance") ?? 0),
+      books: Number(value("booksSuppliesAnnual") ?? 0),
+      foreign: record.deliveryMode === "foreign_school",
+      tuitionCap: record.tuitionFeesCapAnnual as number | undefined,
+    };
+  }
   const scenarioErrors = errors?.[scenario.id] ?? [];
   const metrics = results?.scenarios?.find((s: any) => s.scenarioId === scenario.id)?.metrics;
 
@@ -473,6 +492,17 @@ export function Paths() {
                           </option>
                         ))}
                       </select>
+                      {(() => {
+                        const gi = giBillTerms(block.programId);
+                        if (!gi || !scenario.useGiBill) return null;
+                        return (
+                          <span className="notice" style={{ display: "block", fontSize: 10.5, marginTop: 4 }}>
+                            {gi.approved
+                              ? `GI Bill: ${fmtMoney(gi.mha)}/mo housing${gi.foreign ? " (flat foreign-school rate)" : ""} + ${fmtMoney(gi.books)}/yr books${gi.foreign && gi.tuitionCap ? `; tuition up to ${fmtMoney(gi.tuitionCap)}/yr` : ""} while entitlement lasts.`
+                              : "GI Bill: program not VA-approved — pays $0 here and uses no entitlement months. VA disability still pays. Change in Assumptions → GI Bill benefits if approval is granted."}
+                          </span>
+                        );
+                      })()}
                     </div>
                   )}
                   {block.type === "tech_career" && (

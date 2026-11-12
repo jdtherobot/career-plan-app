@@ -1,10 +1,29 @@
-/* Dashboard chart library — COMPARISON ONLY: every chart draws one line per
-   path so differences are legible at a glance. Single-path composition views
-   live at the bottom of the Explorer. */
+/* Dashboard chart library. Line view compares paths (one line per path);
+   bar view breaks one path's total into colour-coded categories per year so
+   each income stream, benefit and expense shows exactly when it applies. */
 
 import { useEffect, useRef, useState } from "react";
-import { useAppState, useDispatch, pathColor, fmtMoney } from "../state/store";
-import { LineChart, type Series } from "./Chart";
+import { useAppState, useDispatch, pathColor, fmtMoney, NEGATIVE_COLORS } from "../state/store";
+import { Bars, LineChart, type Series } from "./Chart";
+import { CHART_STACKS, phaseLabel } from "./stacks";
+
+type ChartView = "line" | "bars";
+
+function readView(id: string): ChartView {
+  try {
+    return localStorage.getItem(`cpc-chart-view-${id}`) === "bars" ? "bars" : "line";
+  } catch {
+    return "line";
+  }
+}
+
+function writeView(id: string, view: ChartView): void {
+  try {
+    localStorage.setItem(`cpc-chart-view-${id}`, view);
+  } catch {
+    /* view simply doesn't persist */
+  }
+}
 
 interface ChartDef {
   id: string;
@@ -39,11 +58,13 @@ const BREAKDOWNS: Record<string, BreakdownRow[]> = {
     { label: "Total", metric: (r) => r.portfolio },
   ],
   income: [
-    { label: "Military pay", metric: (r) => r.incomeBreakdown.militaryBasePay + r.incomeBreakdown.militaryBah + r.incomeBreakdown.militaryBas },
+    { label: "Military base pay", metric: (r) => r.incomeBreakdown.militaryBasePay },
+    { label: "BAH + BAS", metric: (r) => r.incomeBreakdown.militaryBah + r.incomeBreakdown.militaryBas },
     { label: "Pension", metric: (r) => r.incomeBreakdown.pension },
     { label: "Salary", metric: (r) => r.incomeBreakdown.salaryBase },
     { label: "Stipend", metric: (r) => r.incomeBreakdown.phdStipend },
-    { label: "VA + GI Bill", metric: (r) => r.incomeBreakdown.vaCompensation + r.incomeBreakdown.giBillHousing + r.incomeBreakdown.giBillBooks },
+    { label: "VA disability", metric: (r) => r.incomeBreakdown.vaCompensation },
+    { label: "GI Bill", metric: (r) => r.incomeBreakdown.giBillHousing + r.incomeBreakdown.giBillBooks },
     { label: "Social Security", metric: (r) => r.incomeBreakdown.socialSecurity ?? 0 },
     { label: "Total", metric: (r) => r.totalIncome },
   ],
@@ -228,7 +249,7 @@ export function ChartsPanel() {
           <div>
             <h3 style={{ margin: 0 }}>Compare the paths</h3>
             <p className="sub" style={{ margin: "2px 0 0" }}>
-              One line per path on every chart. Per-path breakdowns live in the Explorer.
+              Line: one line per path. Bars: one path's total split by category, year by year.
             </p>
           </div>
           <ChartPicker
@@ -273,10 +294,31 @@ function ChartCard({
   const [more, setMore] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [view, setView] = useState<ChartView>(() => readView(def.id));
+  const [barPathId, setBarPathId] = useState<string | null>(null);
   const breakdown = BREAKDOWNS[def.id];
+  const stack = CHART_STACKS[def.id];
   const lastIdx = (scenarios[0]?.projection.length ?? 1) - 1;
   const idx = hoverIdx ?? lastIdx;
   const year = scenarios[0]?.projection[idx]?.calendarYear;
+  const barEntry = scenarios.find((e) => e.scenarioId === barPathId) ?? scenarios[0];
+  const barIndex = Math.max(scenarios.indexOf(barEntry), 0);
+  const barSeries: Series[] = stack && barEntry
+    ? stack.parts.map((part) => ({
+        id: part.id,
+        name: part.name,
+        color: part.color,
+        hatch: part.hatch,
+        points: barEntry.projection.map((row: any) => ({
+          x: row.calendarYear,
+          y: deflate(row, part.metric(row), realDollars),
+        })),
+      }))
+    : [];
+  const chooseView = (next: ChartView) => {
+    setView(next);
+    writeView(def.id, next);
+  };
 
   return (
     <section className="card" style={{ marginBottom: 14 }}>
@@ -292,22 +334,68 @@ function ChartCard({
           </button>
           {def.title}
         </h3>
-        {!collapsed && breakdown && (
-          <button className="chart-more-toggle" aria-expanded={more} onClick={() => setMore(!more)}>
-            {more ? "less ◂" : "more ▸"}
-          </button>
+        {!collapsed && (
+          <div className="row" style={{ gap: 10 }}>
+            {stack && (
+              <div className="toggle" role="group" aria-label={`${def.title} view`}>
+                <button className={view === "line" ? "on" : ""} aria-pressed={view === "line"} onClick={() => chooseView("line")}>
+                  Line
+                </button>
+                <button className={view === "bars" ? "on" : ""} aria-pressed={view === "bars"} onClick={() => chooseView("bars")}>
+                  Bars
+                </button>
+              </div>
+            )}
+            {breakdown && (
+              <button className="chart-more-toggle" aria-expanded={more} onClick={() => setMore(!more)}>
+                {more ? "less ◂" : "more ▸"}
+              </button>
+            )}
+          </div>
         )}
       </div>
       {collapsed ? null : (
         <>
-      <p className="sub">{def.sub}</p>
+      <p className="sub">
+        {view === "bars" && stack
+          ? `${barEntry?.scenarioName ?? ""}: each bar is one year, split into its parts`
+          : def.sub}
+      </p>
+      {view === "bars" && stack && scenarios.length > 1 && (
+        <div className="toggle" role="group" aria-label="Path shown in bars" style={{ marginBottom: 8, flexWrap: "wrap" }}>
+          {scenarios.map((entry, i) => (
+            <button
+              key={entry.scenarioId}
+              className={i === barIndex ? "on" : ""}
+              aria-pressed={i === barIndex}
+              onClick={() => setBarPathId(entry.scenarioId)}
+            >
+              <span className="pathdot" style={{ background: pathColor(i, theme), display: "inline-block", marginRight: 5, width: 8, height: 8 }} />
+              {entry.scenarioName}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="chart-split">
         <div>
-          <LineChart
-            series={series}
-            yLabel={`${def.title}, ${unit}`}
-            onHoverIndex={more ? setHoverIdx : undefined}
-          />
+          {view === "bars" && stack ? (
+            <Bars
+              series={barSeries}
+              height={300}
+              yLabel={`${def.title}, ${unit}`}
+              totalLabel={stack.totalLabel}
+              negativeColor={NEGATIVE_COLORS[theme]}
+              tipLabel={(i) => phaseLabel(barEntry?.projection[i])}
+              onHoverIndex={more ? setHoverIdx : undefined}
+            />
+          ) : (
+            <LineChart
+              series={series}
+              yLabel={`${def.title}, ${unit}`}
+              onHoverIndex={more ? setHoverIdx : undefined}
+              tipLabel={(i) => `Age ${scenarios[0]?.projection[i]?.age ?? ""}`}
+            />
+          )}
         </div>
         {more && breakdown && (
           <aside className="chart-more" aria-label={`${def.title} breakdown by path`}>

@@ -361,10 +361,17 @@ class ReferenceDataTests(unittest.TestCase):
         self.assertEqual(website_claim["fieldLabel"], "Website")
         self.assertFalse(any(item["targetDomain"] == "path_timeline_defaults" for item in claims))
 
-    def test_international_gi_bill_record_is_structured_without_claiming_ineligibility(self) -> None:
-        intl = next(item for item in REFERENCE_DOMAINS["gi_bill_benefits"] if item["id"] == "gi_bill_international_placeholder")
-        self.assertEqual(intl["monthlyHousingAllowance"], 0.0)
-        self.assertEqual(intl["eligibilityReason"], "international_rate_pending_research")
+    def test_foreign_gi_bill_records_use_flat_foreign_school_rate(self) -> None:
+        records = {item["id"]: item for item in REFERENCE_DOMAINS["gi_bill_benefits"]}
+        self.assertNotIn("gi_bill_international_placeholder", records)
+        for record_id in ("gi_bill_foreign_science_tokyo", "gi_bill_foreign_cambridge_uk"):
+            record = records[record_id]
+            self.assertEqual(record["deliveryMode"], "foreign_school")
+            self.assertEqual(record["monthlyHousingAllowance"], 2522.0)
+            self.assertEqual(record["booksSuppliesAnnual"], 1000.0)
+            self.assertEqual(record["tuitionFeesCapAnnual"], 30908.34)
+        self.assertEqual(records["gi_bill_foreign_science_tokyo"]["vaProgramApproved"], 0)
+        self.assertEqual(records["gi_bill_foreign_cambridge_uk"]["vaProgramApproved"], 1)
 
     def test_research_workbook_export_and_import_round_trip_supports_text_numeric_and_blank_reset(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
