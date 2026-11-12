@@ -480,7 +480,9 @@ def project_scenario_v2(
                     income_breakdown["phdStipend"] += stipend * f
                     if gi_months_remaining > 0 and program:
                         benefit = _domain_lookup(domains, "gi_bill_benefits", program.get("giBillBenefitId"))
-                        if benefit:
+                        # A program VA has not approved pays nothing and uses no
+                        # entitlement (foreign schools must be approved per program).
+                        if benefit and float(benefit.get("vaProgramApproved", 1) or 0) >= 1:
                             months_used = min(seg.months, gi_months_remaining)
                             gi_months_remaining -= months_used
                             mha = float(benefit.get("monthlyHousingAllowance", 0)) * months_used

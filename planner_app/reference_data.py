@@ -75,7 +75,7 @@ PROGRAM_FINANCIAL_DEFAULTS: dict[str, dict[str, Any]] = {
         "durationYears": 5,
         "stipendAnnual": 13200,
         "estimatedRentMonthly": 800,
-        "giBillBenefitId": "gi_bill_international_placeholder",
+        "giBillBenefitId": "gi_bill_foreign_science_tokyo",
         "healthcareProfileId": "university_funded_healthcare",
         "taxProfileId": "phd_international",
     },
@@ -84,7 +84,7 @@ PROGRAM_FINANCIAL_DEFAULTS: dict[str, dict[str, Any]] = {
         "durationYears": 5,
         "stipendAnnual": 25200,
         "estimatedRentMonthly": 1600,
-        "giBillBenefitId": "gi_bill_international_placeholder",
+        "giBillBenefitId": "gi_bill_foreign_cambridge_uk",
         "healthcareProfileId": "university_funded_healthcare",
         "taxProfileId": "phd_international",
     },
@@ -486,6 +486,8 @@ REFERENCE_FIELD_METADATA: dict[str, dict[str, Any]] = {
             {"field": "monthlyHousingAllowance", "label": "Housing / Month", "kind": "currency", "sourceable": True},
             {"field": "booksSuppliesAnnual", "label": "Books / Year", "kind": "currency", "sourceable": True},
             {"field": "monthsEligible", "label": "Months", "kind": "number", "sourceable": True},
+            {"field": "vaProgramApproved", "label": "VA-Approved (1/0)", "kind": "number"},
+            {"field": "tuitionFeesCapAnnual", "label": "Tuition Cap / Year", "kind": "currency", "sourceable": True},
             {"field": "eligibilityReason", "label": "Eligibility Note"},
             {"field": "verificationStatus", "label": "Verified", "kind": "status"},
         ],
@@ -499,6 +501,7 @@ REFERENCE_FIELD_METADATA: dict[str, dict[str, Any]] = {
             "monthlyHousingAllowance": {"label": "Monthly housing allowance", "kind": "currency"},
             "booksSuppliesAnnual": {"label": "Books and supplies", "kind": "currency"},
             "monthsEligible": {"label": "Months eligible", "kind": "number"},
+            "vaProgramApproved": {"label": "Program VA-approved (1 = yes, 0 = no)", "kind": "number"},
         },
         "sourceableFields": ["monthlyHousingAllowance", "booksSuppliesAnnual", "monthsEligible"],
         "filterFields": ["id", "label", "locationId", "eligibilityReason", "notes"],
@@ -1100,11 +1103,11 @@ def _build_locations() -> list[dict[str, Any]]:
             "stateCode": "",
             "countryCode": "JP",
             "regionType": "international",
-            "bahAreaLabel": "International / pending research",
+            "bahAreaLabel": "GI Bill foreign-school flat rate",
             "taxProfileId": "phd_international",
             "costProfileId": "cost_tokyo_jp",
             "verificationStatus": "placeholder_pending_research",
-            "notes": "International GI Bill handling remains a placeholder until the research pass.",
+            "notes": "GI Bill uses the flat foreign-school housing rate (see gi_bill_foreign_science_tokyo). Living costs and taxes here are still placeholders.",
         },
         {
             "id": "cambridge_uk",
@@ -1113,11 +1116,11 @@ def _build_locations() -> list[dict[str, Any]]:
             "stateCode": "",
             "countryCode": "GB",
             "regionType": "international",
-            "bahAreaLabel": "International / pending research",
+            "bahAreaLabel": "GI Bill foreign-school flat rate",
             "taxProfileId": "phd_international",
             "costProfileId": "cost_cambridge_uk",
             "verificationStatus": "placeholder_pending_research",
-            "notes": "International GI Bill handling remains a placeholder until the research pass.",
+            "notes": "GI Bill uses the flat foreign-school housing rate (see gi_bill_foreign_cambridge_uk). Living costs and taxes here are still placeholders.",
         },
     ]
 
@@ -1446,6 +1449,12 @@ def _build_va_disability() -> list[dict[str, Any]]:
     ]
 
 
+# Post-9/11 GI Bill foreign-school rates, academic year Aug 1 2026 - Jul 31 2027.
+FOREIGN_SCHOOL_MHA_2026_27 = 2522.0
+FOREIGN_SCHOOL_TUITION_CAP_2026_27 = 30908.34
+FOREIGN_SCHOOL_SOURCE_URL = "https://www.va.gov/education/about-gi-bill-benefits/how-to-use-benefits/study-at-foreign-schools/"
+
+
 def _build_gi_bill_benefits() -> list[dict[str, Any]]:
     return [
         {
@@ -1519,18 +1528,49 @@ def _build_gi_bill_benefits() -> list[dict[str, Any]]:
             "notes": "UC Davis reference MHA used in the planner baseline.",
         },
         {
-            "id": "gi_bill_international_placeholder",
-            "label": "GI Bill international placeholder",
+            "id": "gi_bill_foreign_science_tokyo",
+            "label": "GI Bill foreign school · Science Tokyo",
             "locationId": "tokyo_jp",
-            "deliveryMode": "international",
-            "monthlyHousingAllowance": 0.0,
+            "deliveryMode": "foreign_school",
+            "monthlyHousingAllowance": FOREIGN_SCHOOL_MHA_2026_27,
             "booksSuppliesAnnual": 1000.0,
+            "tuitionFeesCapAnnual": FOREIGN_SCHOOL_TUITION_CAP_2026_27,
             "monthsEligible": 36,
-            "eligibilityReason": "international_rate_pending_research",
-            "sourceLabel": "Placeholder pending research",
-            "sourceUrl": "",
-            "verificationStatus": "placeholder_pending_research",
-            "notes": "This 0 value does not imply ineligibility. It preserves current planner behavior until the international GI Bill rules are researched and verified.",
+            "vaProgramApproved": 0,
+            "eligibilityReason": "foreign_program_not_va_approved",
+            "sourceLabel": "VA: study at foreign schools; Post-9/11 foreign-school rates 2026-27",
+            "sourceUrl": FOREIGN_SCHOOL_SOURCE_URL,
+            "verificationStatus": "researched_2026_11_12",
+            "notes": (
+                "Foreign schools get a flat housing rate ($2,522/mo full-time, 2026-27), not a location rate; "
+                "tuition and fees are paid up to $30,908.34/yr and books up to $1,000/yr. The program must be "
+                "VA-approved, and only the school can request approval (federal.approvals@va.gov). Science Tokyo "
+                "was not on VA's approved list as of Sep 2026, so vaProgramApproved = 0: the GI Bill pays nothing "
+                "for this block and no entitlement months are used. Set vaProgramApproved to 1 in Assumptions if "
+                "the program is approved. VA disability compensation is paid at the same rate while living abroad "
+                "and is modeled separately."
+            ),
+        },
+        {
+            "id": "gi_bill_foreign_cambridge_uk",
+            "label": "GI Bill foreign school · Cambridge, UK",
+            "locationId": "cambridge_uk",
+            "deliveryMode": "foreign_school",
+            "monthlyHousingAllowance": FOREIGN_SCHOOL_MHA_2026_27,
+            "booksSuppliesAnnual": 1000.0,
+            "tuitionFeesCapAnnual": FOREIGN_SCHOOL_TUITION_CAP_2026_27,
+            "monthsEligible": 36,
+            "vaProgramApproved": 1,
+            "eligibilityReason": "foreign_school_processes_va_benefits_program_approval_to_confirm",
+            "sourceLabel": "University of Cambridge: US Veteran Affairs benefits; VA foreign-school rates 2026-27",
+            "sourceUrl": "https://www.cambridgestudents.cam.ac.uk/fees-and-funding/student-loans/us-veteran-affairs-benefits",
+            "verificationStatus": "researched_2026_11_12",
+            "notes": (
+                "Cambridge processes VA benefits and VA caps payments at foreign schools. Flat foreign-school "
+                "housing rate ($2,522/mo full-time, 2026-27), tuition and fees up to $30,908.34/yr, books up to "
+                "$1,000/yr. Approval of the specific CS PhD program still needs confirming in VA's GI Bill "
+                "Comparison Tool; set vaProgramApproved to 0 if it is not approved."
+            ),
         },
     ]
 
@@ -2412,7 +2452,11 @@ def build_compatibility_reference_tables(reference_domains: dict[str, list[dict[
                 "stateTaxRate": tax_profile.get("stateRate", 0.0),
                 "durationYears": int(program.get("durationYears", 5) or 5),
                 "stipendAnnual": program.get("stipendAnnual", 0.0),
-                "giBillBahMonthly": gi_bill.get("monthlyHousingAllowance", 0.0),
+                "giBillBahMonthly": (
+                    gi_bill.get("monthlyHousingAllowance", 0.0) if gi_bill.get("vaProgramApproved", 1) else 0.0
+                ),
+                "giBillBenefitId": program.get("giBillBenefitId"),
+                "giBillVaApproved": bool(gi_bill.get("vaProgramApproved", 1)) if gi_bill else None,
                 "universityHealthCovered": health_profile.get("annualCost", 0.0) == 0.0,
                 "estimatedRentMonthly": cost_profile.get("estimatedRentMonthly", program.get("estimatedRentMonthly", 0.0)),
                 "applicationFee": program.get("applicationFeeUsd", 0.0),

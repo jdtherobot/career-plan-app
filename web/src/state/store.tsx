@@ -376,6 +376,12 @@ const CARBON_CATS = ["#B5714B", "#4E8FC4", "#4AA173", "#9A6BB5", "#BD8322", "#C5
 
 export const PATH_COLORS: Record<Theme, string[]> = { light: CARBON_PATHS, dark: CARBON_PATHS };
 export const CAT_COLORS: Record<Theme, string[]> = { light: CARBON_CATS, dark: CARBON_CATS };
+/* Stacked-bar categories: up to eight parts per bar need eight hues that stay
+   apart for every adjacent pair. Validated (dataviz six checks) on carbon
+   #17161A — CVD ΔE ≥ 8.4, normal-vision ΔE ≥ 19.3, all ≥ 3:1. Slot order is
+   part of the validation; assign in order, never cycle. */
+export const STACK_COLORS = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"];
+
 export const NEGATIVE_COLORS: Record<Theme, string> = { light: "#D06557", dark: "#D06557" };
 
 /* Panel brightness: slider 0–100 → cream-into-carbon mix 2%–14% on .card. */
