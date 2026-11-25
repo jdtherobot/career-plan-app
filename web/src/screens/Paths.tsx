@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useAppState, useDispatch, pathColor, fmtMoney } from "../state/store";
+import { GradBlockEditor } from "../components/GradBlockEditor";
+import { StationTimeline } from "../components/StationTimeline";
+import { MONTHS, PAY_GRADES, STATE_NAMES, groupLocations, locationLabel } from "../components/planHelpers";
 
 const BLOCK_TYPES = [
   { id: "tech_career", label: "Tech career", color: "var(--blk-tech)" },
@@ -9,16 +12,6 @@ const BLOCK_TYPES = [
   { id: "grad_school", label: "Grad school", color: "var(--blk-school)" },
   { id: "gap", label: "Gap", color: "var(--blk-gap)" },
   { id: "retire", label: "Retire", color: "var(--blk-retire)" },
-];
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/* Standard DFAS 2026 pay grades (researched, all-grade table). */
-const PAY_GRADES = [
-  "E-1", "E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9",
-  "W-1", "W-2", "W-3", "W-4", "W-5",
-  "O-1", "O-2", "O-3", "O-1E", "O-2E", "O-3E",
-  "O-4", "O-5", "O-6", "O-7", "O-8", "O-9", "O-10",
 ];
 
 function blockColor(type: string): string {
@@ -92,28 +85,22 @@ export function Paths() {
     );
   }
 
-  const programs: any[] = bootstrap.referenceTables.phd_programs ?? [];
+  const programs: any[] = bootstrap.referenceDomains?.programs ?? [];
+  const offerings = programs.filter((p) => !p.legacy && p.institutionId);
+  const locations: any[] = bootstrap.referenceDomains?.locations ?? [];
+  const stateRates: any[] = bootstrap.referenceDomains?.state_tax_rates ?? [];
+  const entry = results?.scenarios?.find((s: any) => s.scenarioId === scenario.id);
   const companies: any[] = bootstrap.referenceTables.tech_companies ?? [];
   const employers: any[] = bootstrap.referenceTables.research_employers ?? [];
   const vaRatings: any[] = bootstrap.referenceTables.va_disability ?? [];
-  const giBillRecords: any[] = bootstrap.referenceDomains?.gi_bill_benefits ?? [];
-  const overrides: any[] = state.referenceOverrides ?? [];
-  /* GI Bill terms for a program, with any Assumptions override applied. */
-  function giBillTerms(programId: string | undefined) {
-    const program = programs.find((p) => p.id === programId);
-    const record = giBillRecords.find((g) => g.id === program?.giBillBenefitId);
-    if (!record) return null;
-    const value = (field: string) => {
-      const o = overrides.find((x) => x.domain === "gi_bill_benefits" && x.id === record.id && x.field === field);
-      return o ? o.value : record[field];
-    };
-    return {
-      approved: Number(value("vaProgramApproved") ?? 1) >= 1,
-      mha: Number(value("monthlyHousingAllowance") ?? 0),
-      books: Number(value("booksSuppliesAnnual") ?? 0),
-      foreign: record.deliveryMode === "foreign_school",
-      tuitionCap: record.tuitionFeesCapAnnual as number | undefined,
-    };
+  /* Where a post-service block lives when no location is picked (mirrors the engine). */
+  function autoLocation(block: any): string {
+    const careerLocations: any[] = bootstrap.referenceDomains?.career_locations ?? [];
+    if (block.careerProfileId) {
+      const mapped = careerLocations.find((c) => c.id === block.careerProfileId)?.locationId;
+      if (mapped) return mapped;
+    }
+    return state.profile?.defaultLocationId ?? "sacramento_ca";
   }
   const scenarioErrors = errors?.[scenario.id] ?? [];
   const metrics = results?.scenarios?.find((s: any) => s.scenarioId === scenario.id)?.metrics;
@@ -158,7 +145,12 @@ export function Paths() {
     const block: any = { id: `block_${++blockCounter}`, type, durationMonths: type === "grad_school" ? 60 : 48, overrides: {} };
     if (type === "tech_career") block.careerProfileId = companies[0]?.id;
     if (type === "research_career") block.careerProfileId = employers[0]?.id;
-    if (type === "grad_school") block.programId = programs[0]?.id;
+    if (type === "grad_school") {
+      const first = offerings.find((o) => o.level === "phd") ?? offerings[0];
+      block.programId = first?.id;
+      block.durationMonths = Math.round((first?.durationYearsDefault ?? 5) * 12);
+      block.benefit = "gi_bill";
+    }
     if (type === "retire") block.durationMonths = null;
     const blocks = scenario.blocks.map((b: any) => ({ ...b }));
     // Retire must be last: insert before an existing retire block.
@@ -237,7 +229,6 @@ export function Paths() {
               dependents: true,
               dutyLocationId: "sacramento_ca",
             };
-            const locations: any[] = bootstrap.referenceDomains?.locations ?? [];
             const setSvc = (patch: any) => {
               const next = { ...svc, ...patch };
               dispatch({
@@ -249,26 +240,37 @@ export function Paths() {
                 },
               });
             };
+            const setProfile = (patch: any) => dispatch({ type: "setProfile", profile: { ...state.profile, ...patch } });
+            const promotions: any[] = svc.gradeHistory ?? [];
+            const setPromotions = (list: any[]) => setSvc({ gradeHistory: list });
+            const residency: any[] = state.profile?.taxResidency ?? [];
+            const setResidency = (list: any[]) => setProfile({ taxResidency: list });
+            const baseYear = state.profile?.baseYear ?? 2026;
             return (
               <>
                 <div className="row">
                   <div style={{ flex: 1 }}>
-                    <label className="field">Pay grade</label>
-                    <select value={svc.payGrade} onChange={(e) => setSvc({ payGrade: e.target.value })}>
+                    <label className="field" htmlFor="svc-grade">Pay grade now</label>
+                    <select id="svc-grade" value={svc.payGrade} onChange={(e) => setSvc({ payGrade: e.target.value })}>
                       {PAY_GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
                     </select>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <label className="field">Duty station</label>
-                    <select value={svc.dutyLocationId} onChange={(e) => setSvc({ dutyLocationId: e.target.value })}>
-                      {locations.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+                  <div style={{ flex: 1.4 }}>
+                    <label className="field" htmlFor="svc-station">Current duty station</label>
+                    <select id="svc-station" value={svc.dutyLocationId} onChange={(e) => setSvc({ dutyLocationId: e.target.value })}>
+                      {groupLocations(locations, true).map((g) => (
+                        <optgroup key={g.label} label={g.label}>
+                          {g.items.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+                        </optgroup>
+                      ))}
                     </select>
                   </div>
                 </div>
                 <div className="row">
                   <div style={{ flex: 1 }}>
-                    <label className="field">Service entry (TAFMS)</label>
+                    <label className="field" htmlFor="svc-entry-m">Service entry (TAFMS)</label>
                     <select
+                      id="svc-entry-m"
                       value={svc.serviceEntryMonth}
                       onChange={(e) => setSvc({ serviceEntryMonth: Number(e.target.value) })}
                     >
@@ -276,8 +278,9 @@ export function Paths() {
                     </select>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label className="field">Year</label>
+                    <label className="field" htmlFor="svc-entry-y">Year</label>
                     <input
+                      id="svc-entry-y"
                       type="number"
                       min={1986}
                       max={2026}
@@ -293,13 +296,80 @@ export function Paths() {
                     onChange={(e) => setSvc({ dependents: e.target.checked })}
                     style={{ marginRight: 6 }}
                   />
-                  With dependents (BAH rate)
+                  With dependents (BAH / OHA / COLA rate)
                 </label>
                 {!state.profile?.serviceProfile && (
                   <p className="notice" style={{ marginTop: 6 }}>
                     Using the seeded service trajectory — change any field to switch to the standard pay tables.
                   </p>
                 )}
+
+                <p className="section-h">Promotions</p>
+                <p className="notice" style={{ margin: "-4px 0 6px" }}>
+                  Pay follows your grade from the month it takes effect. Add past promotions for your record and
+                  planned ones to model them.
+                </p>
+                {promotions.map((p: any, i: number) => (
+                  <div className="timeline-row" key={i}>
+                    <select aria-label="Grade" value={p.grade} onChange={(e) => setPromotions(promotions.map((x, j) => (j === i ? { ...x, grade: e.target.value } : x)))}>
+                      {PAY_GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <span className="notice">from</span>
+                    <select aria-label="Month" value={p.month ?? 1} onChange={(e) => setPromotions(promotions.map((x, j) => (j === i ? { ...x, month: Number(e.target.value) } : x)))}>
+                      {MONTHS.map((m, k) => <option key={m} value={k + 1}>{m}</option>)}
+                    </select>
+                    <input aria-label="Year" type="number" min={1990} max={2070} value={p.year} onChange={(e) => setPromotions(promotions.map((x, j) => (j === i ? { ...x, year: Number(e.target.value) } : x)))} />
+                    <button className="small danger" aria-label="Remove promotion" onClick={() => setPromotions(promotions.filter((_, j) => j !== i))}>✕</button>
+                  </div>
+                ))}
+                <button
+                  className="small"
+                  onClick={() => {
+                    const lastGrade = promotions.length ? promotions[promotions.length - 1].grade : svc.payGrade;
+                    const idx = PAY_GRADES.indexOf(lastGrade);
+                    const nextGrade = PAY_GRADES[Math.min(idx + 1, PAY_GRADES.length - 1)] ?? lastGrade;
+                    const lastYear = promotions.length ? Number(promotions[promotions.length - 1].year) : baseYear;
+                    setPromotions([...promotions, { grade: nextGrade, year: lastYear + 3, month: 6 }]);
+                  }}
+                >
+                  + Promotion
+                </button>
+
+                <p className="section-h">State of legal residence</p>
+                <p className="notice" style={{ margin: "-4px 0 6px" }}>
+                  Military pay is taxed only by your home-of-record state, wherever you're stationed. Without an entry,
+                  state tax follows where you live.
+                </p>
+                {residency.map((r: any, i: number) => {
+                  const rec = stateRates.find((x) => x.id === r.stateCode);
+                  return (
+                    <div key={i}>
+                      <div className="timeline-row">
+                        <select aria-label="State" value={r.stateCode} onChange={(e) => setResidency(residency.map((x, j) => (j === i ? { ...x, stateCode: e.target.value } : x)))}>
+                          {stateRates.map((x) => <option key={x.id} value={x.id}>{STATE_NAMES[x.id] ?? x.id}</option>)}
+                        </select>
+                        <span className="notice">from</span>
+                        <input aria-label="From year" type="number" min={baseYear} max={2076} value={r.fromYear} onChange={(e) => setResidency(residency.map((x, j) => (j === i ? { ...x, fromYear: Number(e.target.value) } : x)))} />
+                        <button className="small danger" aria-label="Remove state" onClick={() => setResidency(residency.filter((_, j) => j !== i))}>✕</button>
+                      </div>
+                      {rec && (
+                        <p className="notice" style={{ margin: "0 0 6px" }}>
+                          {rec.type === "none" ? "No state income tax." : `~${(rec.effectiveRateAt80k * 100).toFixed(1)}% effective at $80K, ${(rec.effectiveRateAt150k * 100).toFixed(1)}% at $150K.`}{" "}
+                          Military retired pay: {rec.militaryRetiredPayExempt === "yes" ? "exempt" : rec.militaryRetiredPayExempt === "partial" ? "partly exempt" : "taxed"}.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+                <button
+                  className="small"
+                  onClick={() => {
+                    const last = residency[residency.length - 1];
+                    setResidency([...residency, { stateCode: last ? "TX" : "CA", fromYear: last ? Number(last.fromYear) + 5 : baseYear }]);
+                  }}
+                >
+                  + State
+                </button>
               </>
             );
           })()}
@@ -338,6 +408,7 @@ export function Paths() {
           </div>
 
           <p className="section-h">Benefits</p>
+          <p className="notice" style={{ margin: "-4px 0 4px" }}>GI Bill or VR&amp;E is chosen on each grad-school block.</p>
           <label className="field">VA disability rating</label>
           <select value={scenario.selectedVaRatingId} onChange={(e) => update({ selectedVaRatingId: e.target.value })}>
             {vaRatings.map((r) => <option key={r.id} value={r.id}>{r.label} — {fmtMoney(r.annual)}/yr</option>)}
@@ -346,9 +417,7 @@ export function Paths() {
             <label style={{ fontSize: 13 }}>
               <input type="checkbox" checked={scenario.useVa} onChange={(e) => update({ useVa: e.target.checked })} /> VA compensation
             </label>
-            <label style={{ fontSize: 13 }}>
-              <input type="checkbox" checked={scenario.useGiBill} onChange={(e) => update({ useGiBill: e.target.checked })} /> GI Bill (36 mo)
-            </label>
+
           </div>
 
           <p className="section-h">Retirement income</p>
@@ -409,6 +478,22 @@ export function Paths() {
         </section>
 
         <section>
+          <StationTimeline
+            scenario={scenario}
+            scenarios={scenarios}
+            profile={state.profile}
+            locations={locations}
+            entry={entry}
+            onChange={(stations) => update({ stations })}
+            onCopy={(ids, stations) =>
+              dispatch({
+                type: "setScenarios",
+                scenarios: scenarios.map((s) =>
+                  ids.includes(s.id) ? { ...s, stations: stations.map((st: any) => ({ ...st })) } : s,
+                ),
+              })
+            }
+          />
           <div className="card" style={{ marginBottom: 12 }}>
             <div className="row between">
               <h3 style={{ margin: 0 }}>Blocks after service</h3>
@@ -482,29 +567,26 @@ export function Paths() {
                     )}
                   </div>
 
-                  {block.type === "grad_school" && (
-                    <div style={{ flex: 1, minWidth: 220 }}>
-                      <label className="field">Program</label>
-                      <select value={block.programId ?? ""} onChange={(e) => updateBlock(index, { programId: e.target.value })}>
-                        {programs.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.label} — {fmtMoney(p.stipendAnnual)}/yr stipend
-                          </option>
-                        ))}
-                      </select>
-                      {(() => {
-                        const gi = giBillTerms(block.programId);
-                        if (!gi || !scenario.useGiBill) return null;
-                        return (
-                          <span className="notice" style={{ display: "block", fontSize: 10.5, marginTop: 4 }}>
-                            {gi.approved
-                              ? `GI Bill: ${fmtMoney(gi.mha)}/mo housing${gi.foreign ? " (flat foreign-school rate)" : ""} + ${fmtMoney(gi.books)}/yr books${gi.foreign && gi.tuitionCap ? `; tuition up to ${fmtMoney(gi.tuitionCap)}/yr` : ""} while entitlement lasts.`
-                              : "GI Bill: program not VA-approved — pays $0 here and uses no entitlement months. VA disability still pays. Change in Assumptions → GI Bill benefits if approval is granted."}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  )}
+                  {block.type !== "grad_school" && block.type !== "retire" && (() => {
+                    const auto = autoLocation(block);
+                    return (
+                      <div style={{ minWidth: 200, flex: 1 }}>
+                        <label className="field" htmlFor={`loc-${block.id}`}>Where you'll live</label>
+                        <select
+                          id={`loc-${block.id}`}
+                          value={block.locationId ?? ""}
+                          onChange={(e) => updateBlock(index, { locationId: e.target.value || null })}
+                        >
+                          <option value="">Auto — {locationLabel(locations, auto)}</option>
+                          {groupLocations(locations, false).map((g) => (
+                            <optgroup key={g.label} label={g.label}>
+                              {g.items.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })()}
                   {block.type === "tech_career" && (
                     <div style={{ flex: 1, minWidth: 220 }}>
                       <label className="field">Company</label>
@@ -530,6 +612,17 @@ export function Paths() {
                     </div>
                   )}
                 </div>
+                {block.type === "grad_school" && (
+                  <GradBlockEditor
+                    block={block}
+                    scenario={scenario}
+                    programs={programs}
+                    locations={locations}
+                    entry={entry}
+                    blockRows={(entry?.projection ?? []).filter((r: any) => (r.segments ?? []).some((sg: any) => sg.blockId === block.id))}
+                    onChange={(patch) => updateBlock(index, patch)}
+                  />
+                )}
               </div>
             );
           })}

@@ -206,6 +206,22 @@ export function useDispatch() {
   return useContext(DispatchCtx);
 }
 
+/* Payload v3: paths gain duty stations + year-by-year line edits; grad blocks
+   pointing at a workbook program id move to its researched degree offering
+   (same money — the engine treats both ids alike). Safe to run repeatedly. */
+export function normalizeScenarios(scenarios: any[], bootstrap: any): any[] {
+  const programs: any[] = bootstrap?.referenceDomains?.programs ?? [];
+  const legacy = new Map(programs.filter((p) => p.legacy && p.offeringId).map((p) => [p.id, p.offeringId]));
+  return (scenarios ?? []).map((s) => ({
+    ...s,
+    stations: Array.isArray(s.stations) ? s.stations : [],
+    lineOverrides: s.lineOverrides && typeof s.lineOverrides === "object" ? s.lineOverrides : {},
+    blocks: (s.blocks ?? []).map((b: any) =>
+      b.type === "grad_school" && legacy.has(b.programId) ? { ...b, programId: legacy.get(b.programId) } : b,
+    ),
+  }));
+}
+
 export function buildPayload(state: AppState) {
   return {
     plannerProfile: state.profile,
@@ -219,7 +235,7 @@ export function buildPayload(state: AppState) {
 export function exportStateJson(state: AppState): string {
   return JSON.stringify(
     {
-      version: 2,
+      version: 3,
       exportedAt: new Date().toISOString(),
       plannerProfile: state.profile,
       scenarios: state.scenarios,
@@ -293,7 +309,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         type: "hydrate",
         payload: {
           profile: seed.plannerProfile ?? defaults.plannerProfile,
-          scenarios: seed.scenarios ?? defaults.scenarios,
+          scenarios: normalizeScenarios(seed.scenarios ?? defaults.scenarios, bootstrap),
           manualInputs: seed.manualInputs ?? defaults.manualInputs,
           baselineId: seed.baselineId ?? defaults.baselineId,
           referenceOverrides: seed.referenceOverrides ?? [],

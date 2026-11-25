@@ -362,7 +362,7 @@ def _apply_overseas_research(merged: dict[str, list[dict[str, Any]]]) -> None:
         oha = entry.get("ohaRentCeilingLocal") or {}
         for grade, value in (oha.get("withDependents") or {}).items():
             ceilings.append({
-                "id": f"{location_id}:{grade}", "label": f"{entry.get('label', location_id)} · {grade}",
+                "id": f"{location_id}:{grade}", "label": f"{grade} · {entry.get('label', location_id)}",
                 "locationId": location_id, "grade": grade,
                 "withDependentsLocal": float(value or 0),
                 "withoutDependentsLocal": float((oha.get("withoutDependents") or {}).get(grade) or 0),
@@ -373,7 +373,7 @@ def _apply_overseas_research(merged: dict[str, list[dict[str, Any]]]) -> None:
         cola = entry.get("colaMonthlyUsd") or {}
         for grade, value in (cola.get("withDependents") or {}).items():
             colas.append({
-                "id": f"{location_id}:{grade}", "label": f"{entry.get('label', location_id)} · {grade}",
+                "id": f"{location_id}:{grade}", "label": f"{grade} · {entry.get('label', location_id)}",
                 "locationId": location_id, "grade": grade,
                 "withDependentsUsd": float(value or 0),
                 "withoutDependentsUsd": float((cola.get("withoutDependents") or {}).get(grade) or 0),

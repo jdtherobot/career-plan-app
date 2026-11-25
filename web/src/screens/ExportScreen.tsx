@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { EMBEDDED, bytesToB64 } from "../embedded";
 import { exportXlsxBase64 } from "../engine/client";
 import { buildReportHtml } from "../report/buildReport";
-import { buildPayload, clearLocalData, exportStateJson, useAppState, useDispatch } from "../state/store";
+import { buildPayload, clearLocalData, exportStateJson, normalizeScenarios, useAppState, useDispatch } from "../state/store";
 
 // Assembled at runtime so the literal never appears inside the bundled JS —
 // the template must contain exactly one occurrence (its placeholder script).
@@ -128,7 +128,7 @@ export function ExportScreen() {
         type: "replaceAll",
         payload: {
           profile: data.plannerProfile,
-          scenarios: data.scenarios,
+          scenarios: normalizeScenarios(data.scenarios, state.bootstrap),
           manualInputs: data.manualInputs,
           baselineId: data.baselineId ?? data.scenarios[0]?.id ?? null,
           referenceOverrides: data.referenceOverrides ?? [],

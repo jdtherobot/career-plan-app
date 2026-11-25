@@ -12,7 +12,7 @@ const DOMAIN_GROUPS: { title: string; note: string; domains: { id: string; label
     domains: [
       { id: "tech_companies", label: "Tech companies", fields: ["baseSalary", "bonusPct", "annualRsu", "growthRate"] },
       { id: "research_employers", label: "Research employers", fields: ["baseSalary", "bonusPct", "annualRsu", "growthRate"] },
-      { id: "phd_programs", label: "PhD programs", fields: ["stipendAnnual", "giBillBahMonthly", "estimatedRentMonthly"] },
+      { id: "programs", label: "Degree programs", fields: ["tuitionAnnual", "stipendAnnual", "fundedYears", "durationYearsDefault", "healthInsuranceAnnual"] },
     ],
   },
   {
@@ -21,6 +21,15 @@ const DOMAIN_GROUPS: { title: string; note: string; domains: { id: string; label
     domains: [
       { id: "location_cost_profiles", label: "Living costs by location", fields: ["housingMonthly", "foodMonthly", "utilitiesMonthly", "transportationMonthly", "annualGrowthRate"] },
       { id: "career_locations", label: "Employer → location", fields: ["locationId"] },
+    ],
+  },
+  {
+    title: "Duty stations & overseas allowances",
+    note: "OHA reimburses rent up to the ceiling (local currency); UA and COLA are paid on top. Rows marked estimate came from partial research — replace them with DTMO calculator figures when you have them.",
+    domains: [
+      { id: "overseas_allowances", label: "Overseas stations", fields: ["usdPerLocal", "uaWithDependentsLocal", "uaWithoutDependentsLocal", "colaIndex"] },
+      { id: "oha_rent_ceilings", label: "OHA rent ceilings (local currency / mo)", fields: ["withDependentsLocal", "withoutDependentsLocal", "verificationStatus"] },
+      { id: "overseas_cola", label: "Overseas COLA (USD / mo)", fields: ["withDependentsUsd", "withoutDependentsUsd", "verificationStatus"] },
     ],
   },
   {
@@ -38,6 +47,7 @@ const DOMAIN_GROUPS: { title: string; note: string; domains: { id: string; label
     note: "Effective-rate profiles and lifecycle tables.",
     domains: [
       { id: "tax_profiles", label: "Tax profiles", fields: ["federalRate", "stateRate"] },
+      { id: "state_tax_rates", label: "State income tax (state of residence)", fields: ["effectiveRateAt80k", "effectiveRateAt150k", "militaryRetiredPayExempt"] },
       { id: "healthcare_profiles", label: "Healthcare profiles", fields: ["annualCost", "inflationRate"] },
       { id: "retirement_tax_profiles", label: "Retirement taxes", fields: ["federalRate", "stateRate"] },
       { id: "medicare_profiles", label: "Medicare", fields: ["annualCost", "inflationRate", "startAge"] },
