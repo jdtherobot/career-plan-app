@@ -56,9 +56,9 @@ class StationTimelineTest(unittest.TestCase):
         self.assertEqual(line(rows[2028], "bah"), 0.0)
         self.assertGreater(line(rows[2028], "oha"), 0)
         self.assertGreater(line(rows[2028], "ua"), 0)
-        # No official COLA loaded: flagged, never estimated.
-        self.assertEqual(line(rows[2028], "cola"), 0.0)
-        self.assertEqual(rows[2028]["lines"]["cola"]["status"], "missing_official_rate")
+        # COLA from DTMO's tables (index 130, spendable income by compensation band).
+        self.assertGreater(line(rows[2028], "cola"), 0)
+        self.assertNotEqual(rows[2028]["lines"]["cola"].get("status"), "missing_official_rate")
 
     def test_oha_nets_to_zero_against_rent_under_the_cap(self) -> None:
         rows = rows_of(payload(ALCONBURY))

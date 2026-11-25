@@ -28,8 +28,8 @@ export function OfficialDocuments() {
   }, [docs.length]);
 
   if (!docs.length) return null;
-  const retrieved = docs.filter((d) => d.status === "retrieved");
-  const pending = docs.filter((d) => d.status !== "retrieved");
+  const retrieved = docs.filter((d) => d.status === "retrieved" || d.status === "reconstructed");
+  const pending = docs.filter((d) => d.status === "not_retrieved");
 
   return (
     <>
@@ -41,7 +41,14 @@ export function OfficialDocuments() {
       <div className="doc-grid">
         {retrieved.map((d) => (
           <article className="card doc-card" key={d.id} id={`doc-${d.id}`}>
-            <p className="doc-agency">{d.agency}</p>
+            <p className="doc-agency">
+              {d.agency}
+              {d.status === "reconstructed" && (
+                <span className="recon-chip" title="Rebuilt from cross-checked sources because the agency file couldn't be downloaded — see the description">
+                  Reconstructed
+                </span>
+              )}
+            </p>
             <h3>{d.title}</h3>
             {d.detail && <p className="sub">{d.detail}</p>}
             <dl className="doc-meta">
@@ -111,13 +118,14 @@ export function OfficialDocuments() {
             DTMO's method: your annual compensation (from DTMO's table, by grade and years of service) picks a row of the
             spendable-income table; the COLA is that spendable income times the locality's index above 100, paid monthly.
           </p>
-          <code>monthly COLA = spendable income × (index − 100) ÷ 100 ÷ 12</code>
+          <code>daily COLA = spendable income × (index − 100) ÷ 100 ÷ 360 · month = 30 days</code>
           <p className="calc-example">
-            Alconbury (GB001) index <strong>130</strong>, effective 2026-07-01 → 30% of spendable income.{" "}
-            <a href="#sources:dtmo-cola-indices">Index file</a> · <a href="#sources:dtmo-cola-spendable">Spendable income table</a>.
-            Example row: compensation $100,000–$104,999, no dependents → $38,250 × 30% ÷ 12 = <strong>$956.25</strong>/mo.
-            Your COLA is computed this way once DTMO's annual compensation table (the row lookup) is attached — until then it
-            pays $0 and is flagged.
+            Alconbury (GB001) index <strong>130</strong>, effective 2026-07-01 → 30% of spendable income. E-7 over 12 years,
+            no dependents: annual compensation <strong>$109,399</strong> → row $105,000–$109,999 → spendable income{" "}
+            <strong>$39,330</strong> × 30% = $11,799/yr ÷ 360 = $32.775/day × 30 = <strong>$983.25</strong>/mo (with one
+            dependent: $110,911 → $42,560 → $1,064.00/mo). Years of service move you into higher rows over time.{" "}
+            <a href="#sources:dtmo-cola-indices">Index file</a> · <a href="#sources:dtmo-cola-spendable">Spendable income</a> ·{" "}
+            <a href="#sources:dtmo-cola-annual-comp">Annual compensation</a>
           </p>
         </div>
         <div className="calc-row">

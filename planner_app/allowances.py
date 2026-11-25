@@ -81,15 +81,18 @@ def official_cola_monthly(domains: dict, station: dict, grade: str, yos: int, de
         return None, "no DTMO COLA index for this locality"
     comp_rows = [r for r in domains.get("cola_annual_compensation", []) if r.get("grade") == grade]
     if not comp_rows:
-        return None, "DTMO annual compensation table not attached"
+        return None, f"no annual compensation row for {grade}"
     eligible = [r for r in comp_rows if int(r.get("yos", 0)) <= yos] or comp_rows[:1]
-    compensation = float(max(eligible, key=lambda r: int(r.get("yos", 0)))["annualCompensation"])
+    row = max(eligible, key=lambda r: int(r.get("yos", 0)))
+    compensation = float(row.get("withDependents" if dependents else "withoutDependents") or row.get("annualCompensation") or 0)
     deps = 1 if dependents else 0
     for band in domains.get("cola_spendable_income", []):
         low, high = band.get("compensationLow") or 0, band.get("compensationHigh")
         if compensation >= low and (high is None or compensation <= high):
             spendable = float(band[f"spendable{deps}Dependents"])
-            return spendable * (float(index) - 100.0) / 100.0 / 12.0, "DTMO tables"
+            annual = spendable * (float(index) - 100.0) / 100.0
+            daily = round(annual / 360.0, 5)  # FMR Table 68-9: daily rate to five decimals
+            return daily * 30.0, "DTMO tables"
     return None, "compensation outside the spendable income table"
 
 

@@ -23,8 +23,12 @@ class OfficialSourcesTest(unittest.TestCase):
 
     def test_pending_documents_explain_why(self) -> None:
         for doc in MANIFEST["documents"]:
-            if doc["status"] != "retrieved":
+            if doc["status"] == "not_retrieved":
                 self.assertTrue(doc.get("statusNote"), doc["id"])
+            if doc["status"] == "reconstructed":
+                self.assertIn("verified", doc["detail"])  # says how it was checked
+                data = (ROOT / "official_sources" / doc["file"]).read_bytes()
+                self.assertEqual(hashlib.sha256(data).hexdigest(), doc["sha256"], doc["id"])
 
     def test_engine_uses_the_dtmo_oha_document_values(self) -> None:
         domains = bootstrap_data()["referenceDomains"]
@@ -59,15 +63,16 @@ class OfficialColaMathTest(unittest.TestCase):
         domains = dict(bootstrap_data()["referenceDomains"])
         station = next(r for r in domains["overseas_allowances"] if r["id"] == "raf_alconbury_uk")
         self.assertEqual(station["colaIndex"], 130.0)  # DTMO 26-11-01 indices, GB001
-        # Without DTMO's annual compensation table, COLA is reported missing — never guessed.
-        self.assertIsNone(official_cola_monthly(domains, station, "E-7", 12, False)[0])
-        # With a compensation row, the spendable-income band and index give the COLA:
-        # $101,000 falls in $100,000–$104,999 -> $38,250 (0 dependents) -> x 30% / 12.
-        domains["cola_annual_compensation"] = [{"grade": "E-7", "yos": 12, "annualCompensation": 101000}]
+        # E-7 over 12 YOS, no dependents: annual compensation $109,399 -> band $105,000-$109,999
+        # -> spendable $39,330 -> x 30% = $11,799/yr -> /360 = $32.775/day -> 30 days = $983.25.
         monthly, _ = official_cola_monthly(domains, station, "E-7", 12, False)
-        self.assertAlmostEqual(monthly, 38250 * 0.30 / 12, places=2)
+        self.assertAlmostEqual(monthly, 983.25, places=2)
+        # With 1 dependent: $110,911 -> band $110,000-$114,999 -> $42,560 -> $1,064.00.
         monthly_dep, _ = official_cola_monthly(domains, station, "E-7", 12, True)
-        self.assertAlmostEqual(monthly_dep, 40375 * 0.30 / 12, places=2)
+        self.assertAlmostEqual(monthly_dep, 1064.00, places=2)
+        # A grade with no compensation row is reported missing, never guessed.
+        domains["cola_annual_compensation"] = [r for r in domains["cola_annual_compensation"] if r["grade"] != "E-7"]
+        self.assertIsNone(official_cola_monthly(domains, station, "E-7", 12, False)[0])
 
     def test_import_is_up_to_date(self) -> None:
         import importlib.util

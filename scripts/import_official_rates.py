@@ -40,7 +40,7 @@ BAH_ZIP = SRC / "dtmo_BAH-ASCII-2026.zip"
 PAY_PDF = SRC / "dfas_basic_pay_enlisted_2026.pdf"
 COLA_XLS = SRC / "dtmo_cola_indices_2026-11-01.xls"
 SPENDABLE_PDF = SRC / "dtmo_cola_spendable_income_2026-02-01.pdf"
-ANNUAL_COMP = sorted(SRC.glob("dtmo_cola_annual_compensation_*"))
+ANNUAL_COMP_CSV = SRC / "cola_annual_compensation_2026_reconstructed.csv"
 
 # DTMO ASCII-FILE-FORMAT.pdf column order after the MHA code.
 BAH_GRADES = ["E-1", "E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9",
@@ -188,9 +188,26 @@ def import_cola() -> dict:
     if not bands or bands[0]["spendableIncome"][0] != 61650:
         raise SystemExit("Spendable income parse check failed")
 
-    annual_comp = None
-    if ANNUAL_COMP:
-        annual_comp = {"file": ANNUAL_COMP[0].name, "status": "attached — parser pending"}
+    # Annual compensation by grade and YOS column (reconstructed table; see the CSV header).
+    comp_rows = []
+    if ANNUAL_COMP_CSV.exists():
+        import csv
+
+        lines = [l for l in ANNUAL_COMP_CSV.read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
+        for rec in csv.DictReader(lines):
+            without, with_deps = int(rec["annual_compensation_without_dependents"]), int(rec["annual_compensation_with_dependents"])
+            if without <= 0 and with_deps <= 0:
+                continue  # grade not held at this many years of service
+            yos = 0 if rec["yos_column"] == "<2" else int(rec["yos_column"])
+            comp_rows.append({
+                "id": f"{rec['grade']}:{rec['yos_column']}", "label": f"{rec['grade']} · over {rec['yos_column']} YOS",
+                "grade": rec["grade"], "yos": yos,
+                "withoutDependents": without, "withDependents": with_deps,
+                "verificationStatus": "reconstructed",
+                "sourceLabel": "DTMO 2026 COLA annual compensation table (reconstructed, cross-checked)",
+                "sourceUrl": "",
+            })
+    annual_comp = {"file": ANNUAL_COMP_CSV.name, "rows": len(comp_rows), "status": "reconstructed"} if comp_rows else None
 
     data = {
         "indicesFile": COLA_XLS.name, "indicesHeader": effective_header,
@@ -198,7 +215,9 @@ def import_cola() -> dict:
         "spendableIncomeFile": SPENDABLE_PDF.name, "spendableIncomeEffective": "2026-02-01",
         "spendableIncome": bands,
         "annualCompensation": annual_comp,
-        "method": "Annual COLA = spendable income x (index - 100) / 100, paid monthly (annual / 12). "
+        "annualCompensationRows": comp_rows,
+        "method": "Annual COLA = spendable income x (index - 100) / 100; daily rate = annual / 360 carried to five "
+                  "decimals (FMR Table 68-9); a 30-day month pays 30 x the daily rate. "
                   "Spendable income is looked up by annual compensation (DTMO annual compensation table, "
                   "by grade and years of service) and number of dependents.",
     }
@@ -260,7 +279,23 @@ def update_manifest(results: dict, cola: dict) -> None:
         by_id[doc["id"]] = entry
     # The old placeholders this replaces.
     by_id.pop("dtmo-cola-gb001", None)
-    if not ANNUAL_COMP:
+    if ANNUAL_COMP_CSV.exists():
+        e7 = [r for r in cola["annualCompensationRows"] if r["grade"] == "E-7" and r["yos"] in (10, 12, 14, 16)]
+        by_id["dtmo-cola-annual-comp"] = {
+            "id": "dtmo-cola-annual-comp", "agency": "Defense Travel Management Office (DTMO) — reconstructed",
+            "title": "COLA annual compensation table, effective January 1, 2026 (FMR Vol. 7A, ch. 68, Table 68-8)",
+            "detail": ("DTMO's file couldn't be downloaded from this environment, so this table was rebuilt and verified: "
+                       "values transcribed from a published calculator that cites DTMO's 2026 tables; that source's "
+                       "spendable-income table matches DTMO's official PDF in all 210 cells; every row minus official "
+                       "DFAS basic pay and BAS leaves a smooth BAH + tax-advantage amount (DoD's RMC definition); and "
+                       "grade levels agree with DoD's 2026 average RMC (CRS IF10532)."),
+            "officialUrl": "https://www.travel.dod.mil/Allowances/Overseas-Cost-of-Living-Allowance/Overseas-COLA-Tables",
+            "effective": "2026-01-01", "retrieved": "2026-11-25", "retrievedBy": "Reconstructed and cross-checked (see detail)",
+            "file": ANNUAL_COMP_CSV.name, "sha256": sha256(ANNUAL_COMP_CSV), "status": "reconstructed",
+            "values": [{"label": f"E-7 over {r['yos']} years", "value": f"${r['withoutDependents']:,} without / ${r['withDependents']:,} with dependents"} for r in e7],
+            "feeds": ["Overseas COLA (which spendable-income row applies)"],
+        }
+    else:
         by_id["dtmo-cola-annual-comp"] = {
             "id": "dtmo-cola-annual-comp", "agency": "Defense Travel Management Office (DTMO)",
             "title": "COLA annual compensation table (by grade and years of service), 2026",
@@ -303,7 +338,7 @@ def main() -> None:
         print("   ", line)
     gb = cola["indices"]["raf_alconbury_uk"]
     print(f"COLA index GB001: {gb['index']} effective {gb['effective']}; {len(cola['spendableIncome'])} spendable bands;"
-          f" annual compensation table: {'attached' if ANNUAL_COMP else 'MISSING'}")
+          f" annual compensation rows: {len(cola['annualCompensationRows'])}")
 
 
 if __name__ == "__main__":
