@@ -1,0 +1,173 @@
+{
+  "collectedAt": "2026-11-25",
+  "states": {
+    "CA": {
+      "type": "progressive",
+      "effectiveRateAt80k": 0.04,
+      "effectiveRateAt150k": 0.065,
+      "militaryRetiredPayExempt": "partial",
+      "notes": "1%-12.3% (+1% over $1M). Up to a $20,000 exclusion of military retired pay/SBP for tax years 2025-2029 (SB 132, 2025 budget). The governor's proposal carried AGI caps (<$125k single); confirm the enacted limits."
+    },
+    "TX": {
+      "type": "none",
+      "effectiveRateAt80k": 0,
+      "effectiveRateAt150k": 0,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "No personal income tax."
+    },
+    "FL": {
+      "type": "none",
+      "effectiveRateAt80k": 0,
+      "effectiveRateAt150k": 0,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "No personal income tax."
+    },
+    "WA": {
+      "type": "none",
+      "effectiveRateAt80k": 0,
+      "effectiveRateAt150k": 0,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "No wage income tax. A 7% capital gains tax (9.9% over $1M) applies to long-term gains above about $270k."
+    },
+    "NV": {
+      "type": "none",
+      "effectiveRateAt80k": 0,
+      "effectiveRateAt150k": 0,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "No personal income tax."
+    },
+    "VA": {
+      "type": "progressive",
+      "effectiveRateAt80k": 0.047,
+      "effectiveRateAt150k": 0.052,
+      "militaryRetiredPayExempt": "partial",
+      "notes": "2%-5.75% (top bracket from $17k). Up to a $40,000 subtraction of military retired pay from 2025 on."
+    },
+    "MA": {
+      "type": "flat",
+      "effectiveRateAt80k": 0.047,
+      "effectiveRateAt150k": 0.049,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "5% flat, plus a 4% surtax on income over about $1.08M. US military pensions are exempt."
+    },
+    "PA": {
+      "type": "flat",
+      "effectiveRateAt80k": 0.031,
+      "effectiveRateAt150k": 0.031,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "3.07% flat with no standard deduction, plus local earned income taxes (~1-3.8%). Retirement income, including military, is exempt."
+    },
+    "NY": {
+      "type": "progressive",
+      "effectiveRateAt80k": 0.047,
+      "effectiveRateAt150k": 0.052,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "About 3.9%-10.9% (2026 middle-class rate cuts). NYC adds about 3-3.9% for residents. Military pensions are fully exempt."
+    },
+    "NC": {
+      "type": "flat",
+      "effectiveRateAt80k": 0.034,
+      "effectiveRateAt150k": 0.037,
+      "militaryRetiredPayExempt": "partial",
+      "notes": "3.99% flat (2026), standard deduction $12,750. Military retired pay is exempt with 20+ years of service or a medical retirement (Bailey/2021 law). A 20-year retiree qualifies."
+    },
+    "GA": {
+      "type": "flat",
+      "effectiveRateAt80k": 0.042,
+      "effectiveRateAt150k": 0.046,
+      "militaryRetiredPayExempt": "partial",
+      "notes": "4.99% flat for 2026 (HB 463, falling toward 3.99%), $12k standard exemption. Under 62: a $17,500 military retirement exclusion, plus another $17,500 if GA earned income exceeds $17,500. 62+: general retirement exclusion of $35k, or $65k at 65+."
+    },
+    "CO": {
+      "type": "flat",
+      "effectiveRateAt80k": 0.035,
+      "effectiveRateAt150k": 0.039,
+      "militaryRetiredPayExempt": "partial",
+      "notes": "4.4% of federal taxable income (TABOR temporary cuts possible). Under 55: limited military retirement subtraction (verify, about $15k). 55-64: $20k pension subtraction. 65+: $24k."
+    },
+    "OR": {
+      "type": "progressive",
+      "effectiveRateAt80k": 0.068,
+      "effectiveRateAt150k": 0.086,
+      "militaryRetiredPayExempt": "no",
+      "notes": "4.75%-9.9% (8.75% from about $11k), with a limited federal tax subtraction. Military retired pay is taxable except the portion for service before Oct 1991. Some small credits apply."
+    },
+    "AZ": {
+      "type": "flat",
+      "effectiveRateAt80k": 0.02,
+      "effectiveRateAt150k": 0.022,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "2.5% flat with the federal standard deduction. Military retired pay has been fully exempt since 2021."
+    },
+    "TN": {
+      "type": "none",
+      "effectiveRateAt80k": 0,
+      "effectiveRateAt150k": 0,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "No tax on wages; the Hall tax was repealed in 2021."
+    },
+    "SD": {
+      "type": "none",
+      "effectiveRateAt80k": 0,
+      "effectiveRateAt150k": 0,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "No personal income tax."
+    },
+    "AK": {
+      "type": "none",
+      "effectiveRateAt80k": 0,
+      "effectiveRateAt150k": 0,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "No personal income tax (PFD dividend paid to residents)."
+    },
+    "WY": {
+      "type": "none",
+      "effectiveRateAt80k": 0,
+      "effectiveRateAt150k": 0,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "No personal income tax."
+    },
+    "NH": {
+      "type": "none",
+      "effectiveRateAt80k": 0,
+      "effectiveRateAt150k": 0,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "No wage tax; the interest/dividends tax was repealed from 2025."
+    },
+    "NJ": {
+      "type": "progressive",
+      "effectiveRateAt80k": 0.036,
+      "effectiveRateAt150k": 0.049,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "1.4%-10.75%. Military pensions are exempt."
+    },
+    "IL": {
+      "type": "flat",
+      "effectiveRateAt80k": 0.048,
+      "effectiveRateAt150k": 0.049,
+      "militaryRetiredPayExempt": "yes",
+      "notes": "4.95% flat with a personal exemption of about $2,850. All retirement income, including military, is exempt."
+    },
+    "_general": {
+      "notes": "Effective rate = state income tax / gross income for a single filer, all wage income, standard deduction, no local tax. These are model approximations (+/-0.5pp) using 2025/26 brackets. Under SCRA/MSRRA, active-duty military pay is taxable only by the state of legal residence (domicile), not the duty-station state. Military retired pay is taxed by the retiree's state of residence after retirement. Several states (e.g. CA, OR, NY, VA) do not exempt active-duty pay for their own domiciliaries, though some do."
+    }
+  },
+  "sources": [
+    {
+      "title": "501 CSW Alconbury/Molesworth/Wyton ToRCH guide",
+      "url": "https://www.501csw.usafe.af.mil/Portals/7/ToRCH%20Alconbury-Molesworth-Wyton.pdf"
+    },
+    {
+      "title": "501 CSW Council Taxes (Dec 2024)",
+      "url": "https://www.501csw.usafe.af.mil/Portals/7/Council%20Taxes%20CAO%20Dec%2024.pdf"
+    },
+    {
+      "title": "homenicom Huntingdonshire council tax",
+      "url": "https://homenicom.co.uk/area/huntingdonshire/council-tax"
+    },
+    {
+      "title": "MOAA state tax roundup",
+      "url": "https://www.moaa.org/taxroundup25"
+    }
+  ]
+}

@@ -9,6 +9,8 @@ drift between what was computed and what is displayed.
 
 from __future__ import annotations
 
+from .lines import LINE_DEFS
+
 import copy
 import hashlib
 import json
@@ -56,6 +58,7 @@ def bootstrap_data() -> dict[str, Any]:
         "referenceDomains": domains,
         "referenceTables": REFERENCE_TABLES,
         "defaults": default_payload(),
+        "lineDefs": LINE_DEFS,
     }
 
 

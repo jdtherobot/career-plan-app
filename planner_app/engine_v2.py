@@ -41,6 +41,12 @@ class YearSegment:
     career_profile_id: str | None = None
     program_id: str | None = None
     location_id: str | None = None
+    housing: str | None = None  # active-duty station housing mode
+    station_index: int | None = None  # 0 = current duty station
+    benefit: str | None = None  # grad school education benefit
+    funding_source_id: str | None = None
+    block_start_month_index: int = 0
+    block_overrides: dict | None = None
 
     @property
     def fraction(self) -> float:
@@ -102,6 +108,12 @@ def resolve_year_segments(
                 career_profile_id=block.career_profile_id,
                 program_id=block.program_id,
                 location_id=block.location_id,
+                housing=block.housing,
+                station_index=block.station_index,
+                benefit=block.benefit,
+                funding_source_id=block.funding_source_id,
+                block_start_month_index=block.start_month_index,
+                block_overrides=block.overrides,
             )
         )
     return segments
@@ -133,6 +145,18 @@ from .models import YearProjection
 from .reference_data import REFERENCE_DOMAINS, hydrate_military_reference_domains
 from .reference_v2 import merge_v2_reference_domains
 from .schema_v2 import completed_service_years
+from .allowances import station_allowances
+from .education import apply_education as _apply_education, load_education_rules, stipend_for as _stipend_for
+from .lines import (
+    LINE_BY_ID,
+    LIVING_LINE_IDS,
+    YearLines,
+    household_has_dependents,
+    household_lines,
+    resolve_year_lines,
+)
+from .reference_v2 import load_military_pay_2026
+from typing import Any
 
 INVESTED_ACCOUNTS = ("brokerage", "rothIra", "tspRoth", "trad401k")
 
@@ -154,11 +178,12 @@ def _military_pay_for_year(domains: dict, calendar_year: int) -> dict[str, float
             "bah": float(row.get("bahAnnual", 0) or 0),
             "bas": float(row.get("basAnnual", 0) or 0),
             "grade": row.get("projectedPayGradeNumeric"),
+            "payGrade": row.get("payGrade") or f"E-{int(row.get('projectedPayGradeNumeric') or 7)}",
             "yos": int(row.get("yearsOfService", 0) or 0),
         }
     schedule = domains.get("military_compensation_projection_view", [])
     if not schedule:
-        return {"basePay": 0.0, "bah": 0.0, "bas": 0.0, "grade": None, "yos": 0}
+        return {"basePay": 0.0, "bah": 0.0, "bas": 0.0, "grade": None, "payGrade": "E-7", "yos": 0}
     last = max(schedule, key=lambda item: int(item.get("calendarYear", 0) or 0))
     last_year = int(last.get("calendarYear", calendar_year))
     growth = _rule(domains, "military_raise_default", default=0.025)
@@ -168,6 +193,7 @@ def _military_pay_for_year(domains: dict, calendar_year: int) -> dict[str, float
         "bah": float(last.get("bahAnnual", 0) or 0) * factor,
         "bas": float(last.get("basAnnual", 0) or 0) * factor,
         "grade": last.get("projectedPayGradeNumeric"),
+        "payGrade": last.get("payGrade") or f"E-{int(last.get('projectedPayGradeNumeric') or 7)}",
         "yos": int(last.get("yearsOfService", 0) or 0) + max(calendar_year - last_year, 0),
     }
 
@@ -356,6 +382,46 @@ def _rmd_for_age(domains: dict, age: int, trad_balance: float) -> float:
     return trad_balance / float(record["divisor"])
 
 
+def _residency_state(tax_residency: list[dict], calendar_year: int) -> str | None:
+    state = None
+    for entry in tax_residency:
+        if int(entry.get("fromYear", 0) or 0) <= calendar_year:
+            state = str(entry["stateCode"]).upper()
+    return state
+
+
+def _state_effective_rate(record: dict, annual_taxable: float) -> float:
+    """Effective state rate for an annual taxable income, interpolated between the
+    researched $80k and $150k effective rates (flat below/above)."""
+    low = float(record.get("effectiveRateAt80k", 0) or 0)
+    high = float(record.get("effectiveRateAt150k", low) or low)
+    if annual_taxable <= 80000:
+        return low
+    if annual_taxable >= 150000:
+        return high
+    return low + (high - low) * (annual_taxable - 80000) / 70000
+
+
+def _serialize_lines(final_lines: dict[str, dict]) -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    for line_id, entry in final_lines.items():
+        if abs(entry["calc"]) < 0.005 and abs(entry["value"]) < 0.005 and not entry.get("status") and not entry.get("notes"):
+            continue
+        item = {
+            "calc": _round(entry["calc"]),
+            "value": _round(entry["value"]),
+            "months": round(float(entry["months"]), 3),
+        }
+        if entry.get("overridden"):
+            item["overridden"] = True
+        if entry.get("status"):
+            item["status"] = entry["status"]
+        if entry.get("notes"):
+            item["notes"] = entry["notes"]
+        out[line_id] = item
+    return out
+
+
 def project_scenario_v2(
     scenario: ScenarioV2 | dict,
     planner_profile: dict,
@@ -409,8 +475,22 @@ def project_scenario_v2(
     pension_cola = float((_domain_lookup(domains, "pension_profiles", "high_3_path_a") or {}).get("colaRate", 0.028))
     va = _domain_lookup(domains, "va_disability", scenario.selected_va_rating_id)
 
-    gi_months_remaining = gi_months_total if scenario.use_gi_bill else 0
     withdrawal_age = float(scenario.retirement.withdrawal_age_years)
+    edu_rules = load_education_rules()
+    edu_ledger = {
+        "giRemaining": int(edu_rules.get("giEntitlementMonths", gi_months_total) or gi_months_total),
+        "giUsed": 0.0,
+        "vreUsed": 0.0,
+    }
+    pay_data = load_military_pay_2026()
+    pay_data_year = int(pay_data.get("effectiveYear", 2026) or 2026)
+    military_raise = _rule(domains, "military_raise_default", default=0.025)
+    service_dependents = bool((planner_profile.get("serviceProfile") or {}).get("dependents", True))
+    tax_residency = sorted(
+        [entry for entry in planner_profile.get("taxResidency") or [] if entry.get("stateCode")],
+        key=lambda entry: int(entry.get("fromYear", 0) or 0),
+    )
+    household_categories: dict[str, dict] = {}
 
     rows: list[YearProjection] = []
     totals = {"gross": 0.0, "taxFree": 0.0, "taxes": 0.0, "healthcare": 0.0, "netCf": 0.0,
@@ -425,106 +505,164 @@ def project_scenario_v2(
         segments = resolve_year_segments(scenario, planner_profile, year_index)
         lead = dominant_segment(segments)
 
-        gross = 0.0
-        tax_free = 0.0
-        taxes = 0.0
-        healthcare = 0.0
-        living = 0.0
+        year_lines = YearLines()
         contributions_by_account: dict[str, float] = {key: 0.0 for key in accounts}
         employer_match = 0.0
-        income_breakdown: dict[str, Any] = {
-            "militaryBasePay": 0.0, "militaryBah": 0.0, "militaryBas": 0.0, "pension": 0.0,
-            "salaryBase": 0.0, "phdStipend": 0.0, "vaCompensation": 0.0,
-            "giBillHousing": 0.0, "giBillBooks": 0.0, "socialSecurity": 0.0,
-            "bonusPlaceholder": 0.0, "rsuPlaceholder": 0.0,
-        }
-        expense_breakdown_total: dict[str, float] = {}
-        federal_tax = 0.0
-        state_tax = 0.0
+        placeholders = {"bonusPlaceholder": 0.0, "rsuPlaceholder": 0.0}
         segments_meta: list[dict[str, Any]] = []
+        rate_samples: list[tuple[float, float, float]] = []  # (weight, fed, state)
 
         post_exit = any(seg.service_status != "active_duty" for seg in segments)
+        household_dep = household_has_dependents(planner_profile, calendar_year)
+        dependents = service_dependents if household_dep is None else household_dep
+        residency = _residency_state(tax_residency, calendar_year)
 
         for seg in segments:
             f = seg.fraction
-            seg_gross = 0.0
-            seg_tax_free = 0.0
+            months = float(seg.months)
+            taxable: list[tuple[str, float]] = []
             salary_annualized = 0.0
+            funded_this_year = True
+            program = None
+
+            location_id = _segment_location_id(seg, domains, default_location)
+            location = _domain_lookup(domains, "locations", location_id)
+            cost_profile = _domain_lookup(domains, "location_cost_profiles", (location or {}).get("costProfileId"))
+            expense_growth = float((cost_profile or {}).get("annualGrowthRate", 0) or 0) or _rule(domains, "living_expense_growth_default", default=0.03)
+            allowance = None
 
             if seg.activity_type == "active_duty":
                 pay = _military_pay_for_year(domains, calendar_year)
-                seg_gross = pay["basePay"] * f
-                seg_tax_free = (pay["bah"] + pay["bas"]) * f
-                income_breakdown["militaryBasePay"] += pay["basePay"] * f
-                income_breakdown["militaryBah"] += pay["bah"] * f
-                income_breakdown["militaryBas"] += pay["bas"] * f
+                year_lines.add("basePay", pay["basePay"] * f, months)
+                taxable.append(("basePay", pay["basePay"] * f))
+                year_lines.add("bas", pay["bas"] * f, months)
+                if seg.station_index is not None:
+                    allowance = station_allowances(
+                        domains, pay_data, location, location_id, seg.housing or "off_base", pay["payGrade"], dependents,
+                        calendar_year - pay_data_year, military_raise, expense_growth,
+                    )
+                    if allowance["bah"] > 0:
+                        line = year_lines.add("bah", allowance["bah"] * months, months)
+                        if allowance["estimate"]:
+                            line.status = line.status or "estimate"
+                    if allowance["cola"] > 0:
+                        year_lines.add("cola", allowance["cola"] * months, months)
+                    if allowance["ua"] > 0:
+                        year_lines.add("ua", allowance["ua"] * months, months).note(
+                            "Flat OHA utility/maintenance allowance, paid on top of rent.")
+                    for note in allowance["notes"]:
+                        year_lines.get("bah" if not allowance["overseas"] else "oha").note(note)
+                    if allowance["onBase"]:
+                        year_lines.get("bah" if not allowance["overseas"] else "oha").note(
+                            "Living in government quarters — no housing allowance; housing is provided.")
+                else:
+                    year_lines.add("bah", pay["bah"] * f, months)
             else:
                 # Pension (military retirement only), with COLA from the exit year.
                 if is_military_retirement and pension_info:
                     pension_annual = pension_info["annualAtRetirement"] * ((1 + pension_cola) ** seg.years_since_exit)
-                    seg_gross += pension_annual * f
-                    income_breakdown["pension"] += pension_annual * f
+                    year_lines.add("pension", pension_annual * f, months)
+                    taxable.append(("pension", pension_annual * f))
                     if pension_start_year is None:
                         pension_start_year = calendar_year
                 # VA disability for any post-service segment.
                 if scenario.use_va and va:
                     years_since_service = max(calendar_year - exit.year, 0)
                     va_annual = float(va.get("annual", 0)) * ((1 + va_cola) ** years_since_service)
-                    seg_tax_free += va_annual * f
-                    income_breakdown["vaCompensation"] += va_annual * f
+                    year_lines.add("va", va_annual * f, months)
 
                 if seg.activity_type == "grad_school":
                     program = _domain_lookup(domains, "programs", seg.program_id) if seg.program_id else None
-                    stipend = float((program or {}).get("stipendAnnual", 0) or 0)
-                    seg_gross += stipend * f
-                    income_breakdown["phdStipend"] += stipend * f
-                    if gi_months_remaining > 0 and program:
-                        benefit = _domain_lookup(domains, "gi_bill_benefits", program.get("giBillBenefitId"))
-                        # A program VA has not approved pays nothing and uses no
-                        # entitlement (foreign schools must be approved per program).
-                        if benefit and float(benefit.get("vaProgramApproved", 1) or 0) >= 1:
-                            months_used = min(seg.months, gi_months_remaining)
-                            gi_months_remaining -= months_used
-                            mha = float(benefit.get("monthlyHousingAllowance", 0)) * months_used
-                            books = float(benefit.get("booksSuppliesAnnual", 0)) * (months_used / 12.0)
-                            seg_tax_free += mha + books
-                            income_breakdown["giBillHousing"] += mha
-                            income_breakdown["giBillBooks"] += books
+                    funded_this_year, stipend = _stipend_for(program, seg)
+                    if stipend > 0:
+                        year_lines.add("stipend", stipend * f, months)
+                        taxable.append(("stipend", stipend * f))
+                    elif program:
+                        year_lines.get("stipend").note(
+                            "No stipend this year — the program's funded years are used up or it isn't funded.")
+                    edu_ledger = _apply_education(
+                        year_lines, seg, program, domains, edu_rules, edu_ledger, scenario, dependents,
+                        funded_this_year,
+                    )
                 elif seg.activity_type in ("tech_career", "research_career"):
                     career = _career_profile(reference_tables, seg.career_profile_id) or {}
                     salary_annualized = salary_for_year(career, seg.years_in_activity)
-                    seg_gross += salary_annualized * f
-                    income_breakdown["salaryBase"] += salary_annualized * f
-                    income_breakdown["bonusPlaceholder"] += salary_annualized * float(career.get("bonusPct", 0) or 0) * f
-                    income_breakdown["rsuPlaceholder"] += float(career.get("annualRsu", 0) or 0) * f
+                    year_lines.add("salary", salary_annualized * f, months)
+                    taxable.append(("salary", salary_annualized * f))
+                    placeholders["bonusPlaceholder"] += salary_annualized * float(career.get("bonusPct", 0) or 0) * f
+                    placeholders["rsuPlaceholder"] += float(career.get("annualRsu", 0) or 0) * f
                     match_rate = float(career.get("employerMatchRate", match_rate_default) or match_rate_default)
                     employer_match += salary_annualized * match_rate * f
 
-            # Taxes for this segment (flat effective rates on taxable gross).
+            # Taxes for this segment (flat effective rates on taxable gross),
+            # attributed to each taxable line so edits carry their taxes.
             tax_profile = _segment_tax_profile(seg, domains, salary_annualized)
-            federal_tax += seg_gross * float(tax_profile.get("federalRate", 0) or 0)
+            fed_rate = float(tax_profile.get("federalRate", 0) or 0)
             state_rate = float(tax_profile.get("stateRate", 0) or 0)
             if seg.activity_type == "retire":
                 override_rate = scenario.overrides.get("retirementStateTaxRate")
                 if isinstance(override_rate, (int, float)):
                     state_rate = float(override_rate)
-            state_tax += seg_gross * state_rate
+            seg_taxable_total = sum(amount for _, amount in taxable)
+            state_record = _domain_lookup(domains, "state_tax_rates", residency) if residency else None
+            if state_record:
+                state_rate = _state_effective_rate(state_record, seg_taxable_total / f if f else 0.0)
+            for line_id, amount in taxable:
+                line_state = state_rate
+                if state_record and line_id == "pension":
+                    exempt = str(state_record.get("militaryRetiredPayExempt", "no")).lower()
+                    line_state = 0.0 if exempt == "yes" else state_rate * 0.5 if exempt == "partial" else state_rate
+                line = year_lines.get(line_id)
+                line.fed_tax += amount * fed_rate
+                line.state_tax += amount * line_state
+            rate_samples.append((months, fed_rate, state_rate))
 
-            # Healthcare + living expenses for this segment's location.
+            # Health coverage. Grad years without funding pay the school plan.
             seg_health, _health_id = _segment_healthcare(seg, domains, age)
-            healthcare += seg_health * f
-            location_id = _segment_location_id(seg, domains, default_location)
-            location = _domain_lookup(domains, "locations", location_id)
-            cost_profile = _domain_lookup(domains, "location_cost_profiles", (location or {}).get("costProfileId"))
-            expense_growth = float((cost_profile or {}).get("annualGrowthRate", 0) or 0) or _rule(domains, "living_expense_growth_default", default=0.03)
+            if seg.activity_type == "grad_school" and seg_health == 0 and program and not funded_this_year:
+                seg_health = float(program.get("healthInsuranceAnnual", 0) or 0)
+            year_lines.add("healthcare", seg_health * f, months)
+
+            # Living expenses for this segment's location. The current duty
+            # station uses your own Finance numbers; later stations and
+            # post-service blocks use the location's researched costs.
+            uses_location_costs = seg.activity_type != "active_duty" or (seg.station_index or 0) > 0
             seg_expenses = _blended_expense_breakdown(
                 expense_inputs, cost_profile, expense_growth, year_index,
                 float(override_living_monthly) if override_living_monthly is not None else None,
-                post_service=seg.activity_type != "active_duty",
+                post_service=uses_location_costs,
             )
+            on_base = bool(allowance and allowance["onBase"])
             for key, value in seg_expenses.items():
-                expense_breakdown_total[key] = expense_breakdown_total.get(key, 0.0) + value * f
-            living += sum(seg_expenses.values()) * f
+                if on_base and key in ("housing", "utilities"):
+                    line = year_lines.get(key)
+                    line.status = "quarters"
+                    line.note("Government quarters — provided while on base.")
+                    continue
+                year_lines.add(key, value * f, months)
+            if allowance and allowance["overseas"] and not on_base:
+                rent_monthly = seg_expenses.get("housing", 0.0) / 12.0
+                cap = allowance["ohaCap"]
+                oha_monthly = min(rent_monthly, cap) if cap > 0 else 0.0
+                year_lines.add("oha", oha_monthly * months, months)
+                prior = year_lines.oha_months
+                year_lines.oha_months += months
+                year_lines.oha_cap_monthly = (
+                    (year_lines.oha_cap_monthly * prior + cap * months) / year_lines.oha_months
+                )
+                housing_line = year_lines.get("housing")
+                if cap > 0 and rent_monthly <= cap:
+                    housing_line.status = "covered"
+                    housing_line.note("Rent is covered by OHA (up to the cap) — OHA and rent net to $0.")
+                elif cap > 0:
+                    housing_line.status = "partial"
+                    housing_line.note(
+                        f"Rent is above the OHA cap (${cap:,.0f}/mo) — you pay the difference."
+                    )
+                year_lines.get("oha").note(
+                    f"OHA reimburses actual rent up to ${cap:,.0f}/mo; you keep nothing above rent.")
+                if allowance["ua"] > 0:
+                    year_lines.get("utilities").note("Offset by the OHA utility allowance.")
 
             # Contributions for this segment.
             policy = _domain_lookup(domains, "investment_policies", _contribution_policy_id(seg.activity_type)) or {}
@@ -534,12 +672,63 @@ def project_scenario_v2(
             account_key = _account_for_destination(policy.get("destinationId"))
             contributions_by_account[account_key] += contribution
 
-            gross += seg_gross
-            tax_free += seg_tax_free
             segments_meta.append({
                 "blockId": seg.block_id, "type": seg.block_type, "months": seg.months,
                 "phaseLabel": seg.phase_label, "activityType": seg.activity_type,
+                "locationId": location_id, "locationLabel": (location or {}).get("label"),
+                "housing": seg.housing, "benefit": seg.benefit,
             })
+
+        # Household members' costs (user-entered, whole years).
+        for item in household_lines(planner_profile, calendar_year):
+            year_lines.add(item["id"], item["monthly"] * 12.0, 12.0)
+            household_categories[item["id"]] = item
+
+        weight = sum(w for w, _, _ in rate_samples) or 1.0
+        fallback_tax = (
+            sum(w * fed for w, fed, _ in rate_samples) / weight,
+            sum(w * st for w, _, st in rate_samples) / weight,
+        )
+        final_lines = resolve_year_lines(year_lines, scenario.line_overrides, calendar_year, fallback_tax)
+
+        gross = 0.0
+        tax_free = 0.0
+        federal_tax = 0.0
+        state_tax = 0.0
+        living = 0.0
+        healthcare = 0.0
+        income_breakdown: dict[str, Any] = {
+            "militaryBasePay": 0.0, "militaryBah": 0.0, "militaryBas": 0.0, "militaryOha": 0.0,
+            "militaryUa": 0.0, "militaryCola": 0.0, "pension": 0.0,
+            "salaryBase": 0.0, "phdStipend": 0.0, "vaCompensation": 0.0,
+            "giBillHousing": 0.0, "giBillBooks": 0.0, "vreSubsistence": 0.0, "tuitionPaidByVa": 0.0,
+            "socialSecurity": 0.0, **placeholders,
+        }
+        expense_breakdown_total: dict[str, float] = {key: 0.0 for key in LIVING_LINE_IDS}
+        expense_breakdown_total["tuitionFees"] = 0.0
+        for line_id, entry in final_lines.items():
+            value = entry["value"]
+            definition = LINE_BY_ID.get(line_id)
+            if definition is None:  # household member line
+                category = household_categories.get(line_id, {}).get("category", "miscellaneous")
+                if category not in expense_breakdown_total:
+                    category = "miscellaneous"
+                expense_breakdown_total[category] += value
+                living += value
+                continue
+            if definition["kind"] == "income":
+                income_breakdown[definition["breakdown"]] = income_breakdown.get(definition["breakdown"], 0.0) + value
+                if definition.get("taxable"):
+                    gross += value
+                else:
+                    tax_free += value
+                federal_tax += entry.get("fedTax", 0.0)
+                state_tax += entry.get("stateTax", 0.0)
+            elif line_id == "healthcare":
+                healthcare += value
+            else:
+                expense_breakdown_total[definition["breakdown"]] = expense_breakdown_total.get(definition["breakdown"], 0.0) + value
+                living += value
 
         # Social Security (independent of blocks once claimed).
         ss_annual = _ss_annual(scenario, domains, age) if post_exit else 0.0
@@ -551,9 +740,15 @@ def project_scenario_v2(
             retirement_fed = float((_domain_lookup(domains, "retirement_tax_profiles", "retirement_income_default") or {}).get("federalRate", 0.12))
             federal_tax += ss_taxable * retirement_fed
             totals["ssPaid"] += ss_annual
+            final_lines["socialSecurity"] = {
+                "calc": ss_annual, "value": ss_annual, "months": 12.0, "overridden": False,
+                "status": None, "notes": [], "fedTax": ss_taxable * retirement_fed, "stateTax": 0.0,
+            }
             if ss_start_year is None:
                 ss_start_year = calendar_year
 
+        if income_breakdown["pension"] > 0 and pension_start_year is None:
+            pension_start_year = calendar_year
         retirement_contributions = sum(contributions_by_account.values())
         taxes = federal_tax + state_tax
         net_cash_flow = gross + tax_free - taxes - healthcare - living - retirement_contributions
@@ -696,6 +891,7 @@ def project_scenario_v2(
                 unfunded_spending=unfunded,
                 real_dollar_factor=real_factor,
                 segments_meta=segments_meta,
+                lines=_serialize_lines(final_lines),
             )
         )
 

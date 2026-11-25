@@ -1436,7 +1436,25 @@
       "estimatedFrom": "Unweighted mean across MHAs CA034, VA297, CA044, CA018, CA019, MA120, PA250, WA309. No official per-grade national-average BAH table is published by DTMO; per task instructions the mean of the listed MHAs is used. Note this metro set skews high-cost; the true national average (mean over all ~300 MHAs) is much lower, e.g. roughly $2,224 for E-5 with dependents per secondary sources."
     },
     "tokyo_jp": null,
-    "cambridge_uk": null
+    "cambridge_uk": null,
+    "beale_afb_ca": {
+      "mha": "CA033",
+      "mhaName": "Beale AFB, CA (Marysville/Yuba City)",
+      "note": "2026 rates from DTMO mirrors (E-5\u2013E-8 researched; other grades use the nearest researched grade).",
+      "withDependents": {
+        "E-5": 2967,
+        "E-6": 3132,
+        "E-7": 3150,
+        "E-8": 3159
+      },
+      "withoutDependents": {
+        "E-5": 2367,
+        "E-6": 2523,
+        "E-7": 2742,
+        "E-8": 3006
+      }
+    },
+    "raf_alconbury_uk": null
   },
   "notes": [
     "Basic pay: official 2026 table values (3.8% raise effective 2026-01-01, FY2026 NDAA signed 2025-12-18), transcribed from published 2026 charts \u2014 NOT derived here by applying a raise to 2025 rates. All values end in whole dimes per DFAS convention.",

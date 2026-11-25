@@ -30,7 +30,8 @@ class ServiceProfileHydrationTest(unittest.TestCase):
     def test_data_file_complete(self) -> None:
         self.assertEqual(len(PAY["basicPayMonthly"]), 27)
         self.assertGreater(PAY["basicPayMonthly"]["O-10"]["30"], PAY["basicPayMonthly"]["E-9"]["30"])
-        self.assertEqual(len([v for v in PAY["bah"].values() if v]), 13)
+        # 13 original MHAs + Beale AFB (overseas stations are null: they get OHA).
+        self.assertEqual(len([v for v in PAY["bah"].values() if v]), 14)
 
     def test_e5_2026_matches_dfas_table(self) -> None:
         row = schedule_row(profile_with({"payGrade": "E-5", "serviceEntryYear": 2020, "serviceEntryMonth": 6,
