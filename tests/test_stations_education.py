@@ -138,7 +138,8 @@ class OfficialDtmoRatesTest(unittest.TestCase):
     def test_no_bah_fallback_to_other_locations_or_grades(self) -> None:
         from planner_app.allowances import bah_monthly
         self.assertIsNone(bah_monthly(PAY, "nowhere_base", "E-7", False))
-        self.assertIsNone(bah_monthly(PAY, "beale_afb_ca", "O-3", False))  # Beale table holds E-5..E-8 only
+        self.assertIsNone(bah_monthly(PAY, "beale_afb_ca", "O-8", False))  # DTMO BAH tables stop at O-7
+        self.assertEqual(bah_monthly(PAY, "beale_afb_ca", "E-7", True), 3150.0)  # DTMO bahw26.txt, CA033
         self.assertEqual(bah_monthly(PAY, "beale_afb_ca", "E-7", False), PAY["bah"]["beale_afb_ca"]["withoutDependents"]["E-7"])
 
 

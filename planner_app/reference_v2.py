@@ -384,9 +384,29 @@ def _apply_overseas_research(merged: dict[str, list[dict[str, Any]]]) -> None:
                 "sourceLabel": "DTMO OCONUS COLA calculator",
                 "sourceUrl": "https://www.travel.dod.mil/Allowances/Overseas-Cost-of-Living-Allowance/",
             })
+    # Official COLA inputs (scripts/import_official_rates.py): locality index,
+    # spendable income by compensation band, and the annual compensation table.
+    cola = _load_json("data_cola_2026.json")
+    for station in stations:
+        index = (cola.get("indices") or {}).get(station["id"]) or {}
+        station["colaIndex"] = index.get("index")
+        station["colaIndexEffective"] = index.get("effective")
+    spendable_rows = []
+    for band in cola.get("spendableIncome") or []:
+        low, high = band["compensationLow"], band["compensationHigh"]
+        label = f"≥ ${low:,}" if high is None else (f"≤ ${high:,}" if low == 0 else f"${low:,} – ${high:,}")
+        row = {"id": f"band_{low}", "label": f"Annual compensation {label}",
+               "compensationLow": low, "compensationHigh": high,
+               "sourceLabel": "DTMO COLA spendable income table, eff. 2026-02-01", "sourceUrl": "",
+               "verificationStatus": "official"}
+        for deps, income in enumerate(band["spendableIncome"]):
+            row[f"spendable{deps}Dependents"] = income
+        spendable_rows.append(row)
     merged["overseas_allowances"] = stations
     merged["oha_rates"] = oha_rows
     merged["overseas_cola"] = cola_rows
+    merged["cola_spendable_income"] = spendable_rows
+    merged["cola_annual_compensation"] = list(cola.get("annualCompensationRows") or [])
 
 
 def _apply_state_tax_research(merged: dict[str, list[dict[str, Any]]]) -> None:

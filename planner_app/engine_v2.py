@@ -540,6 +540,7 @@ def project_scenario_v2(
                     allowance = station_allowances(
                         domains, pay_data, location, location_id, seg.housing or "off_base", pay["payGrade"], dependents,
                         calendar_year - pay_data_year, military_raise, expense_growth,
+                        yos=int(pay.get("yos") or 0),
                     )
                     if allowance["bah"] > 0:
                         year_lines.add("bah", allowance["bah"] * months, months)

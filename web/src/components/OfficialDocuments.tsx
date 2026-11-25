@@ -107,13 +107,33 @@ export function OfficialDocuments() {
         </div>
         <div className="calc-row">
           <h4>Overseas COLA</h4>
-          <p>DTMO's method: spendable income for your grade, years of service and dependents × (locality index − 100) ÷ 100.</p>
-          <code>COLA = spendable income × (index − 100) ÷ 100</code>
-          <p className="calc-example">Pays $0 until DTMO's index and spendable-income tables are attached (see “Not yet attached”).</p>
+          <p>
+            DTMO's method: your annual compensation (from DTMO's table, by grade and years of service) picks a row of the
+            spendable-income table; the COLA is that spendable income times the locality's index above 100, paid monthly.
+          </p>
+          <code>monthly COLA = spendable income × (index − 100) ÷ 100 ÷ 12</code>
+          <p className="calc-example">
+            Alconbury (GB001) index <strong>130</strong>, effective 2026-07-01 → 30% of spendable income.{" "}
+            <a href="#sources:dtmo-cola-indices">Index file</a> · <a href="#sources:dtmo-cola-spendable">Spendable income table</a>.
+            Example row: compensation $100,000–$104,999, no dependents → $38,250 × 30% ÷ 12 = <strong>$956.25</strong>/mo.
+            Your COLA is computed this way once DTMO's annual compensation table (the row lookup) is attached — until then it
+            pays $0 and is flagged.
+          </p>
         </div>
         <div className="calc-row">
           <h4>BAH (stateside)</h4>
-          <p>A straight lookup: Military Housing Area × grade × with/without dependents. Paid in cash whatever your rent is.</p>
+          <p>
+            A straight lookup in DTMO's 2026 rate file: Military Housing Area × grade × with/without dependents. Paid in cash
+            whatever your rent is. Beale AFB (CA033), E-7: <strong>$2,742</strong>/mo without dependents, $3,150 with.{" "}
+            <a href="#sources:dtmo-bah-2026">Document</a>
+          </p>
+        </div>
+        <div className="calc-row">
+          <h4>Basic pay</h4>
+          <p>
+            DFAS table effective January 1, 2026, by grade and cumulative years of service — e.g. E-7 over 12 years{" "}
+            <strong>$5,591.70</strong>/mo. <a href="#sources:dfas-pay-2026">Document</a>
+          </p>
         </div>
         <div className="calc-row">
           <h4>Later years</h4>

@@ -1,10 +1,10 @@
 {
-  "note": "Official documents behind the planner's numbers. Files listed here ship with the app (Sources \u2192 Official documents). Re-run scripts/export_web_data.py after adding one.",
+  "note": "Official documents behind the planner's numbers. Files listed here ship with the app (Sources → Official documents). Re-run scripts/export_web_data.py after adding one.",
   "documents": [
     {
       "id": "dtmo-oha-gb001",
       "agency": "Defense Travel Management Office (DTMO)",
-      "title": "Overseas Housing Allowance \u2014 United Kingdom, Alconbury (E) GB001",
+      "title": "Overseas Housing Allowance — United Kingdom, Alconbury (E) GB001",
       "detail": "OHA calculator result for an E-7 without dependents, pay period 2026-11-16 (allowances and rate of exchange effective 2026-07-01).",
       "officialUrl": "https://www.travel.dod.mil/Allowances/Overseas-Housing-Allowance/",
       "effective": "2026-07-01",
@@ -16,15 +16,15 @@
       "values": [
         {
           "label": "OHA rental allowance (E-7, without dependents)",
-          "value": "\u00a31,627.20 / $2,247.82 per month"
+          "value": "£1,627.20 / $2,247.82 per month"
         },
         {
           "label": "Utility / recurring maintenance allowance",
-          "value": "\u00a3623.25 / $860.96 per month"
+          "value": "£623.25 / $860.96 per month"
         },
         {
           "label": "Move-In Housing Allowance (one time)",
-          "value": "\u00a3502.00 / $693.47"
+          "value": "£502.00 / $693.47"
         },
         {
           "label": "Rate of exchange",
@@ -32,14 +32,177 @@
         }
       ],
       "feeds": [
-        "Assumptions \u2192 OHA by grade: E-7 without dependents \u00b7 RAF Alconbury",
-        "Assumptions \u2192 Overseas stations: rate of exchange"
+        "Assumptions → OHA by grade: E-7 without dependents · RAF Alconbury",
+        "Assumptions → Overseas stations: rate of exchange"
+      ]
+    },
+    {
+      "id": "dtmo-bah-2026",
+      "agency": "Defense Travel Management Office (DTMO)",
+      "title": "2026 Basic Allowance for Housing rate files (all MHAs, all grades)",
+      "officialUrl": "https://www.travel.dod.mil/Allowances/Basic-Allowance-for-Housing/BAH-Rate-Lookup",
+      "effective": "2026-01-01",
+      "status": "retrieved",
+      "feeds": [
+        "BAH at every stateside duty station and school city"
+      ],
+      "file": "dtmo_BAH-ASCII-2026.zip",
+      "detail": "DTMO's BAH ASCII download: bahw26.txt (with dependents), bahwo26.txt (without), MHA names, ZIP→MHA map.",
+      "retrieved": "2026-11-25",
+      "retrievedBy": "Official file supplied by the plan owner (downloaded from the agency site)",
+      "sha256": "5446fed831e125c23cc6a407dcde4cae541f108e90ac852aaadeec0aa11e515f",
+      "values": [
+        {
+          "label": "SACRAMENTO, CA (CA034) · E-7",
+          "value": "$2,610.00 without / $2,997.00 with dependents"
+        },
+        {
+          "label": "HAMPTON/NEWPORT NEWS, VA (VA297) · E-7",
+          "value": "$2,088.00 without / $2,439.00 with dependents"
+        },
+        {
+          "label": "SANTA CLARA COUNTY, CA (CA044) · E-7",
+          "value": "$4,368.00 without / $5,058.00 with dependents"
+        },
+        {
+          "label": "OAKLAND, CA (CA018) · E-7",
+          "value": "$3,483.00 without / $4,203.00 with dependents"
+        },
+        {
+          "label": "SAN FRANCISCO, CA (CA019) · E-7",
+          "value": "$4,782.00 without / $5,490.00 with dependents"
+        },
+        {
+          "label": "BOSTON, MA (MA120) · E-7",
+          "value": "$4,365.00 without / $4,938.00 with dependents"
+        },
+        {
+          "label": "PITTSBURGH, PA (PA250) · E-7",
+          "value": "$2,076.00 without / $2,628.00 with dependents"
+        },
+        {
+          "label": "SEATTLE, WA (WA309) · E-7",
+          "value": "$3,015.00 without / $4,020.00 with dependents"
+        },
+        {
+          "label": "BEALE AFB, CA (CA033) · E-7",
+          "value": "$2,742.00 without / $3,150.00 with dependents"
+        }
+      ]
+    },
+    {
+      "id": "dfas-pay-2026",
+      "agency": "Defense Finance and Accounting Service (DFAS)",
+      "title": "Basic Pay — Enlisted, effective January 1, 2026",
+      "officialUrl": "https://www.dfas.mil/MilitaryMembers/payentitlements/Pay-Tables/Basic-Pay/EM/",
+      "effective": "2026-01-01",
+      "status": "retrieved",
+      "feeds": [
+        "Enlisted basic pay (E-1 to E-9, all years of service)",
+        "High-3 pension"
+      ],
+      "file": "dfas_basic_pay_enlisted_2026.pdf",
+      "detail": "DFAS enlisted pay table (page saved as PDF). Officer and warrant tables not yet attached.",
+      "retrieved": "2026-11-25",
+      "retrievedBy": "Official file supplied by the plan owner (downloaded from the agency site)",
+      "sha256": "8845ae95cf4b509c8b3c99295c4f65e0ad60cd8ce7793e5c877ad7058c877794",
+      "values": [
+        {
+          "label": "E-7 over 10 years",
+          "value": "$5,300.40/mo"
+        },
+        {
+          "label": "E-7 over 12 years",
+          "value": "$5,591.70/mo"
+        },
+        {
+          "label": "E-7 over 14 years",
+          "value": "$5,835.00/mo"
+        },
+        {
+          "label": "E-7 over 16 years",
+          "value": "$6,000.90/mo"
+        },
+        {
+          "label": "E-7 over 18 years",
+          "value": "$6,177.30/mo"
+        },
+        {
+          "label": "E-7 over 20 years",
+          "value": "$6,245.70/mo"
+        }
+      ]
+    },
+    {
+      "id": "dtmo-cola-indices",
+      "file": "dtmo_cola_indices_2026-11-01.xls",
+      "agency": "Defense Travel Management Office (DTMO)",
+      "title": "Overseas COLA indexes, changes effective 1 November 2026",
+      "officialUrl": "https://www.travel.dod.mil/Allowances/Overseas-Cost-of-Living-Allowance/Overseas-COLA-Tables",
+      "feeds": [
+        "Overseas COLA index for each overseas station"
+      ],
+      "status": "retrieved",
+      "retrieved": "2026-11-25",
+      "retrievedBy": "Official file supplied by the plan owner (downloaded from the agency site)",
+      "sha256": "fbcf5055bc1e8711aa3e901778672de9fdd34dccbaa543796f71b5952e9e98e0",
+      "values": [
+        {
+          "label": "United Kingdom — Alconbury (E) (GB001)",
+          "value": "index 130, effective 2026-07-01"
+        },
+        {
+          "label": "Locality includes",
+          "value": "Alconbury includes Chicksands, Cottesmore, Leicester, Molesworth, RAF Henlow, and Wyton."
+        }
+      ],
+      "effective": "2026-11-01"
+    },
+    {
+      "id": "dtmo-cola-spendable",
+      "file": "dtmo_cola_spendable_income_2026-02-01.pdf",
+      "agency": "Defense Travel Management Office (DTMO)",
+      "title": "COLA average annual spendable income table, effective February 1, 2026",
+      "officialUrl": "https://www.travel.dod.mil/Allowances/Overseas-Cost-of-Living-Allowance/Overseas-COLA-Tables",
+      "effective": "2026-02-01",
+      "feeds": [
+        "Overseas COLA (spendable income by compensation and dependents)"
+      ],
+      "status": "retrieved",
+      "retrieved": "2026-11-25",
+      "retrievedBy": "Official file supplied by the plan owner (downloaded from the agency site)",
+      "sha256": "3d286ff257bbeeb138a7d78b68667502e66b04d1f3c1e77ef63d98099ea95468",
+      "values": [
+        {
+          "label": "Annual compensation $95,000–$99,999",
+          "value": "$37,170 (0 dependents) · $39,235 (1)"
+        },
+        {
+          "label": "Annual compensation $90,000–$94,999",
+          "value": "$36,090 (0 dependents) · $38,095 (1)"
+        },
+        {
+          "label": "Annual compensation $85,000–$89,999",
+          "value": "$35,010 (0 dependents) · $36,955 (1)"
+        },
+        {
+          "label": "Annual compensation $80,000–$84,999",
+          "value": "$33,930 (0 dependents) · $35,815 (1)"
+        },
+        {
+          "label": "Annual compensation $75,000–$79,999",
+          "value": "$32,850 (0 dependents) · $34,675 (1)"
+        },
+        {
+          "label": "Annual compensation ≤ $74,999",
+          "value": "$31,680 (0 dependents) · $33,440 (1)"
+        }
       ]
     },
     {
       "id": "va-post911-2026-27",
       "agency": "U.S. Department of Veterans Affairs",
-      "title": "Post-9/11 GI Bill (Chapter 33) rates, Aug 1 2026 \u2013 Jul 31 2027",
+      "title": "Post-9/11 GI Bill (Chapter 33) rates, Aug 1 2026 – Jul 31 2027",
       "detail": "Text extract of VA's rates page (original HTML checksum recorded inside the file).",
       "officialUrl": "https://www.va.gov/education/benefit-rates/post-9-11-gi-bill-rates/",
       "effective": "2026-08-01",
@@ -71,38 +234,14 @@
       ]
     },
     {
-      "id": "dtmo-bah-2026",
+      "id": "dtmo-cola-annual-comp",
       "agency": "Defense Travel Management Office (DTMO)",
-      "title": "2026 Basic Allowance for Housing rate tables",
-      "officialUrl": "https://www.travel.dod.mil/Allowances/Basic-Allowance-for-Housing/",
-      "effective": "2026-01-01",
+      "title": "COLA annual compensation table (by grade and years of service), 2026",
+      "officialUrl": "https://www.travel.dod.mil/Allowances/Overseas-Cost-of-Living-Allowance/Overseas-COLA-Tables",
       "status": "not_retrieved",
-      "statusNote": "DTMO's site refuses automated downloads, and the Internet Archive isn't reachable from this environment yet. BAH values in use are copies of the DTMO table from third-party sites until this file is attached.",
+      "statusNote": "Needed to place each grade/years-of-service in a spendable-income band. Overseas COLA pays $0 (flagged 'official rate missing') until it is attached; the index and spendable income tables are in.",
       "feeds": [
-        "BAH at stateside duty stations (Beale AFB and other locations)"
-      ]
-    },
-    {
-      "id": "dtmo-cola-gb001",
-      "agency": "Defense Travel Management Office (DTMO)",
-      "title": "OCONUS COLA index and spendable income tables (Alconbury, UK)",
-      "officialUrl": "https://www.travel.dod.mil/Allowances/Overseas-Cost-of-Living-Allowance/",
-      "status": "not_retrieved",
-      "statusNote": "Not yet downloaded (same block as above). Overseas COLA pays $0 and is flagged 'official rate missing' until it is.",
-      "feeds": [
-        "Overseas COLA at RAF Alconbury"
-      ]
-    },
-    {
-      "id": "dfas-pay-2026",
-      "agency": "Defense Finance and Accounting Service (DFAS)",
-      "title": "2026 military basic pay and BAS tables",
-      "officialUrl": "https://www.dfas.mil/MilitaryMembers/payentitlements/Pay-Tables/",
-      "effective": "2026-01-01",
-      "status": "not_retrieved",
-      "statusNote": "DFAS's site refuses automated downloads. Basic pay and BAS in use are copies of the DFAS table from third-party sites until this file is attached.",
-      "feeds": [
-        "Military base pay and BAS"
+        "Overseas COLA"
       ]
     }
   ]

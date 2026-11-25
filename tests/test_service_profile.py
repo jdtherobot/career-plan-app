@@ -30,8 +30,12 @@ class ServiceProfileHydrationTest(unittest.TestCase):
     def test_data_file_complete(self) -> None:
         self.assertEqual(len(PAY["basicPayMonthly"]), 27)
         self.assertGreater(PAY["basicPayMonthly"]["O-10"]["30"], PAY["basicPayMonthly"]["E-9"]["30"])
-        # 13 original MHAs + Beale AFB (overseas stations are null: they get OHA).
-        self.assertEqual(len([v for v in PAY["bah"].values() if v]), 14)
+        # 13 planner locations with an MHA, every one from the DTMO 2026 BAH file.
+        entries = [v for v in PAY["bah"].values() if v]
+        self.assertEqual(len(entries), 13)
+        for entry in entries:
+            self.assertEqual(entry["verificationStatus"], "official", entry["mha"])
+            self.assertEqual(len(entry["withoutDependents"]), 24, entry["mha"])
 
     def test_e5_2026_matches_dfas_table(self) -> None:
         row = schedule_row(profile_with({"payGrade": "E-5", "serviceEntryYear": 2020, "serviceEntryMonth": 6,
@@ -54,10 +58,12 @@ class ServiceProfileHydrationTest(unittest.TestCase):
         # 2028 = (bracket may also step 2→4 YOS) — at minimum the raise applies.
         self.assertGreater(r2028["basePayAnnual"], r2026["basePayAnnual"] * 1.04)
 
-    def test_overseas_location_falls_back_to_metro_average(self) -> None:
+    def test_overseas_location_gets_no_bah(self) -> None:
+        # Overseas there is no BAH (OHA applies, via a duty-station timeline);
+        # no US-average stand-in is paid.
         row = schedule_row(profile_with({"payGrade": "E-6", "serviceEntryYear": 2016,
                                          "dependents": True, "dutyLocationId": "tokyo_jp"}), 2026)
-        self.assertAlmostEqual(row["bahAnnual"], PAY["bah"]["us_metro_average"]["withDependents"]["E-6"] * 12, delta=1)
+        self.assertEqual(row["bahAnnual"], 0)
 
     def test_full_projection_runs_with_custom_profile(self) -> None:
         profile = profile_with({"payGrade": "E-5", "serviceEntryYear": 2020, "serviceEntryMonth": 6,

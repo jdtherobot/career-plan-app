@@ -1,0 +1,439 @@
+{
+  "indicesFile": "dtmo_cola_indices_2026-11-01.xls",
+  "indicesHeader": "Changes Effective 01 November 2026",
+  "indices": {
+    "raf_alconbury_uk": {
+      "country": "United Kingdom",
+      "locality": "Alconbury (E)",
+      "index": 130.0,
+      "effective": "2026-07-01",
+      "note": "Alconbury includes Chicksands, Cottesmore, Leicester, Molesworth, RAF Henlow, and Wyton."
+    }
+  },
+  "spendableIncomeFile": "dtmo_cola_spendable_income_2026-02-01.pdf",
+  "spendableIncomeEffective": "2026-02-01",
+  "spendableIncome": [
+    {
+      "compensationLow": 240000,
+      "compensationHigh": null,
+      "spendableIncome": [
+        61650,
+        65075,
+        68500,
+        71925,
+        75350,
+        78775
+      ]
+    },
+    {
+      "compensationLow": 235000,
+      "compensationHigh": 239999,
+      "spendableIncome": [
+        61020,
+        64410,
+        67800,
+        71190,
+        74580,
+        77970
+      ]
+    },
+    {
+      "compensationLow": 230000,
+      "compensationHigh": 234999,
+      "spendableIncome": [
+        60390,
+        63745,
+        67100,
+        70455,
+        73810,
+        77165
+      ]
+    },
+    {
+      "compensationLow": 225000,
+      "compensationHigh": 229999,
+      "spendableIncome": [
+        59760,
+        63080,
+        66400,
+        69720,
+        73040,
+        76360
+      ]
+    },
+    {
+      "compensationLow": 220000,
+      "compensationHigh": 224999,
+      "spendableIncome": [
+        59040,
+        62320,
+        65600,
+        68880,
+        72160,
+        75440
+      ]
+    },
+    {
+      "compensationLow": 215000,
+      "compensationHigh": 219999,
+      "spendableIncome": [
+        58410,
+        61655,
+        64900,
+        68145,
+        71390,
+        74635
+      ]
+    },
+    {
+      "compensationLow": 210000,
+      "compensationHigh": 214999,
+      "spendableIncome": [
+        57690,
+        60895,
+        64100,
+        67305,
+        70510,
+        73715
+      ]
+    },
+    {
+      "compensationLow": 205000,
+      "compensationHigh": 209999,
+      "spendableIncome": [
+        56970,
+        60135,
+        63300,
+        66465,
+        69630,
+        72795
+      ]
+    },
+    {
+      "compensationLow": 200000,
+      "compensationHigh": 204999,
+      "spendableIncome": [
+        56160,
+        59280,
+        62400,
+        65520,
+        68640,
+        71760
+      ]
+    },
+    {
+      "compensationLow": 195000,
+      "compensationHigh": 199999,
+      "spendableIncome": [
+        55440,
+        58520,
+        61600,
+        64680,
+        67760,
+        70840
+      ]
+    },
+    {
+      "compensationLow": 190000,
+      "compensationHigh": 194999,
+      "spendableIncome": [
+        54720,
+        57760,
+        60800,
+        63840,
+        66880,
+        69920
+      ]
+    },
+    {
+      "compensationLow": 185000,
+      "compensationHigh": 189999,
+      "spendableIncome": [
+        53910,
+        56905,
+        59900,
+        62895,
+        65890,
+        68885
+      ]
+    },
+    {
+      "compensationLow": 180000,
+      "compensationHigh": 184999,
+      "spendableIncome": [
+        53100,
+        56050,
+        59000,
+        61950,
+        64900,
+        67850
+      ]
+    },
+    {
+      "compensationLow": 175000,
+      "compensationHigh": 179999,
+      "spendableIncome": [
+        52290,
+        55195,
+        58100,
+        61005,
+        63910,
+        66815
+      ]
+    },
+    {
+      "compensationLow": 170000,
+      "compensationHigh": 174999,
+      "spendableIncome": [
+        51480,
+        54340,
+        57200,
+        60060,
+        62920,
+        65780
+      ]
+    },
+    {
+      "compensationLow": 165000,
+      "compensationHigh": 169999,
+      "spendableIncome": [
+        50580,
+        53390,
+        56200,
+        59010,
+        61820,
+        64630
+      ]
+    },
+    {
+      "compensationLow": 160000,
+      "compensationHigh": 164999,
+      "spendableIncome": [
+        49770,
+        52535,
+        55300,
+        58065,
+        60830,
+        63595
+      ]
+    },
+    {
+      "compensationLow": 155000,
+      "compensationHigh": 159999,
+      "spendableIncome": [
+        48870,
+        51585,
+        54300,
+        57015,
+        59730,
+        62445
+      ]
+    },
+    {
+      "compensationLow": 150000,
+      "compensationHigh": 154999,
+      "spendableIncome": [
+        47970,
+        50635,
+        53300,
+        55965,
+        58630,
+        61295
+      ]
+    },
+    {
+      "compensationLow": 145000,
+      "compensationHigh": 149999,
+      "spendableIncome": [
+        47070,
+        49685,
+        52300,
+        54915,
+        57530,
+        60145
+      ]
+    },
+    {
+      "compensationLow": 140000,
+      "compensationHigh": 144999,
+      "spendableIncome": [
+        46170,
+        48735,
+        51300,
+        53865,
+        56430,
+        58995
+      ]
+    },
+    {
+      "compensationLow": 135000,
+      "compensationHigh": 139999,
+      "spendableIncome": [
+        45270,
+        47785,
+        50300,
+        52815,
+        55330,
+        57845
+      ]
+    },
+    {
+      "compensationLow": 130000,
+      "compensationHigh": 134999,
+      "spendableIncome": [
+        44280,
+        46740,
+        49200,
+        51660,
+        54120,
+        56580
+      ]
+    },
+    {
+      "compensationLow": 125000,
+      "compensationHigh": 129999,
+      "spendableIncome": [
+        43290,
+        45695,
+        48100,
+        50505,
+        52910,
+        55315
+      ]
+    },
+    {
+      "compensationLow": 120000,
+      "compensationHigh": 124999,
+      "spendableIncome": [
+        42300,
+        44650,
+        47000,
+        49350,
+        51700,
+        54050
+      ]
+    },
+    {
+      "compensationLow": 115000,
+      "compensationHigh": 119999,
+      "spendableIncome": [
+        41310,
+        43605,
+        45900,
+        48195,
+        50490,
+        52785
+      ]
+    },
+    {
+      "compensationLow": 110000,
+      "compensationHigh": 114999,
+      "spendableIncome": [
+        40320,
+        42560,
+        44800,
+        47040,
+        49280,
+        51520
+      ]
+    },
+    {
+      "compensationLow": 105000,
+      "compensationHigh": 109999,
+      "spendableIncome": [
+        39330,
+        41515,
+        43700,
+        45885,
+        48070,
+        50255
+      ]
+    },
+    {
+      "compensationLow": 100000,
+      "compensationHigh": 104999,
+      "spendableIncome": [
+        38250,
+        40375,
+        42500,
+        44625,
+        46750,
+        48875
+      ]
+    },
+    {
+      "compensationLow": 95000,
+      "compensationHigh": 99999,
+      "spendableIncome": [
+        37170,
+        39235,
+        41300,
+        43365,
+        45430,
+        47495
+      ]
+    },
+    {
+      "compensationLow": 90000,
+      "compensationHigh": 94999,
+      "spendableIncome": [
+        36090,
+        38095,
+        40100,
+        42105,
+        44110,
+        46115
+      ]
+    },
+    {
+      "compensationLow": 85000,
+      "compensationHigh": 89999,
+      "spendableIncome": [
+        35010,
+        36955,
+        38900,
+        40845,
+        42790,
+        44735
+      ]
+    },
+    {
+      "compensationLow": 80000,
+      "compensationHigh": 84999,
+      "spendableIncome": [
+        33930,
+        35815,
+        37700,
+        39585,
+        41470,
+        43355
+      ]
+    },
+    {
+      "compensationLow": 75000,
+      "compensationHigh": 79999,
+      "spendableIncome": [
+        32850,
+        34675,
+        36500,
+        38325,
+        40150,
+        41975
+      ]
+    },
+    {
+      "compensationLow": 0,
+      "compensationHigh": 74999,
+      "spendableIncome": [
+        31680,
+        33440,
+        35200,
+        36960,
+        38720,
+        40480
+      ]
+    }
+  ],
+  "annualCompensation": null,
+  "method": "Annual COLA = spendable income x (index - 100) / 100, paid monthly (annual / 12). Spendable income is looked up by annual compensation (DTMO annual compensation table, by grade and years of service) and number of dependents."
+}

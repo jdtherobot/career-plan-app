@@ -50,3 +50,33 @@ class OfficialSourcesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OfficialColaMathTest(unittest.TestCase):
+    def test_cola_uses_dtmo_index_and_spendable_income(self) -> None:
+        from planner_app.allowances import official_cola_monthly
+
+        domains = dict(bootstrap_data()["referenceDomains"])
+        station = next(r for r in domains["overseas_allowances"] if r["id"] == "raf_alconbury_uk")
+        self.assertEqual(station["colaIndex"], 130.0)  # DTMO 26-11-01 indices, GB001
+        # Without DTMO's annual compensation table, COLA is reported missing — never guessed.
+        self.assertIsNone(official_cola_monthly(domains, station, "E-7", 12, False)[0])
+        # With a compensation row, the spendable-income band and index give the COLA:
+        # $101,000 falls in $100,000–$104,999 -> $38,250 (0 dependents) -> x 30% / 12.
+        domains["cola_annual_compensation"] = [{"grade": "E-7", "yos": 12, "annualCompensation": 101000}]
+        monthly, _ = official_cola_monthly(domains, station, "E-7", 12, False)
+        self.assertAlmostEqual(monthly, 38250 * 0.30 / 12, places=2)
+        monthly_dep, _ = official_cola_monthly(domains, station, "E-7", 12, True)
+        self.assertAlmostEqual(monthly_dep, 40375 * 0.30 / 12, places=2)
+
+    def test_import_is_up_to_date(self) -> None:
+        import importlib.util
+        import shutil
+        import subprocess
+        import sys
+
+        if shutil.which("pdftotext") is None or importlib.util.find_spec("xlrd") is None:
+            self.skipTest("import tools (pdftotext, xlrd) not installed")
+        result = subprocess.run([sys.executable, str(ROOT / "scripts" / "import_official_rates.py"), "--check"],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
