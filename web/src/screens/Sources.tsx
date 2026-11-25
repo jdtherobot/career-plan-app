@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useAppState } from "../state/store";
+import { OfficialDocuments } from "../components/OfficialDocuments";
 
 export function Sources() {
   const { bootstrap } = useAppState();
@@ -49,6 +50,10 @@ export function Sources() {
         <h2>Sources</h2>
         <p>Where every reference number comes from. Overridden values keep their original citation.</p>
       </header>
+
+      <OfficialDocuments />
+
+      <p className="section-h">All reference records</p>
 
       <input
         type="text"

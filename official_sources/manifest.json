@@ -1,0 +1,109 @@
+{
+  "note": "Official documents behind the planner's numbers. Files listed here ship with the app (Sources \u2192 Official documents). Re-run scripts/export_web_data.py after adding one.",
+  "documents": [
+    {
+      "id": "dtmo-oha-gb001",
+      "agency": "Defense Travel Management Office (DTMO)",
+      "title": "Overseas Housing Allowance \u2014 United Kingdom, Alconbury (E) GB001",
+      "detail": "OHA calculator result for an E-7 without dependents, pay period 2026-11-16 (allowances and rate of exchange effective 2026-07-01).",
+      "officialUrl": "https://www.travel.dod.mil/Allowances/Overseas-Housing-Allowance/",
+      "effective": "2026-07-01",
+      "retrieved": "2026-11-25",
+      "retrievedBy": "DTMO OHA calculator, captured by the plan owner",
+      "file": "dtmo_oha_GB001_E-7_without_dependents_2026-11-16.png",
+      "sha256": "ddf52a4f5fd03214065611a54528a9645a649c3afc10a95992f2252d8643c5d8",
+      "status": "retrieved",
+      "values": [
+        {
+          "label": "OHA rental allowance (E-7, without dependents)",
+          "value": "\u00a31,627.20 / $2,247.82 per month"
+        },
+        {
+          "label": "Utility / recurring maintenance allowance",
+          "value": "\u00a3623.25 / $860.96 per month"
+        },
+        {
+          "label": "Move-In Housing Allowance (one time)",
+          "value": "\u00a3502.00 / $693.47"
+        },
+        {
+          "label": "Rate of exchange",
+          "value": "0.7239 GBP per USD, effective 2026-07-01"
+        }
+      ],
+      "feeds": [
+        "Assumptions \u2192 OHA by grade: E-7 without dependents \u00b7 RAF Alconbury",
+        "Assumptions \u2192 Overseas stations: rate of exchange"
+      ]
+    },
+    {
+      "id": "va-post911-2026-27",
+      "agency": "U.S. Department of Veterans Affairs",
+      "title": "Post-9/11 GI Bill (Chapter 33) rates, Aug 1 2026 \u2013 Jul 31 2027",
+      "detail": "Text extract of VA's rates page (original HTML checksum recorded inside the file).",
+      "officialUrl": "https://www.va.gov/education/benefit-rates/post-9-11-gi-bill-rates/",
+      "effective": "2026-08-01",
+      "retrieved": "2026-11-25",
+      "retrievedBy": "Downloaded from va.gov",
+      "file": "va_post911_gi_bill_rates_2026-27.txt",
+      "sha256": "aca6319367b0058edd9a2469bb2776b3ee10e9e99a71de9b0fac5cf0357d6711",
+      "status": "retrieved",
+      "values": [
+        {
+          "label": "Private / foreign school tuition & fees cap",
+          "value": "$30,908.34 per academic year"
+        },
+        {
+          "label": "Foreign-school housing allowance (full time)",
+          "value": "$2,396 per month"
+        },
+        {
+          "label": "Online-only housing allowance",
+          "value": "$1,198 per month"
+        },
+        {
+          "label": "Books and supplies",
+          "value": "up to $1,000 per academic year"
+        }
+      ],
+      "feeds": [
+        "GI Bill and VR&E (Post-9/11 rate) on grad-school blocks"
+      ]
+    },
+    {
+      "id": "dtmo-bah-2026",
+      "agency": "Defense Travel Management Office (DTMO)",
+      "title": "2026 Basic Allowance for Housing rate tables",
+      "officialUrl": "https://www.travel.dod.mil/Allowances/Basic-Allowance-for-Housing/",
+      "effective": "2026-01-01",
+      "status": "not_retrieved",
+      "statusNote": "DTMO's site refuses automated downloads, and the Internet Archive isn't reachable from this environment yet. BAH values in use are copies of the DTMO table from third-party sites until this file is attached.",
+      "feeds": [
+        "BAH at stateside duty stations (Beale AFB and other locations)"
+      ]
+    },
+    {
+      "id": "dtmo-cola-gb001",
+      "agency": "Defense Travel Management Office (DTMO)",
+      "title": "OCONUS COLA index and spendable income tables (Alconbury, UK)",
+      "officialUrl": "https://www.travel.dod.mil/Allowances/Overseas-Cost-of-Living-Allowance/",
+      "status": "not_retrieved",
+      "statusNote": "Not yet downloaded (same block as above). Overseas COLA pays $0 and is flagged 'official rate missing' until it is.",
+      "feeds": [
+        "Overseas COLA at RAF Alconbury"
+      ]
+    },
+    {
+      "id": "dfas-pay-2026",
+      "agency": "Defense Finance and Accounting Service (DFAS)",
+      "title": "2026 military basic pay and BAS tables",
+      "officialUrl": "https://www.dfas.mil/MilitaryMembers/payentitlements/Pay-Tables/",
+      "effective": "2026-01-01",
+      "status": "not_retrieved",
+      "statusNote": "DFAS's site refuses automated downloads. Basic pay and BAS in use are copies of the DFAS table from third-party sites until this file is attached.",
+      "feeds": [
+        "Military base pay and BAS"
+      ]
+    }
+  ]
+}

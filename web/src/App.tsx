@@ -97,9 +97,11 @@ function SiteHeader() {
 }
 
 function useHashRoute(): string {
-  const [route, setRoute] = useState(() => window.location.hash.replace("#", "") || "dashboard");
+  // "#sources:doc-id" deep-links within a screen; the route is the part before ":".
+  const read = () => window.location.hash.replace("#", "").split(":")[0] || "dashboard";
+  const [route, setRoute] = useState(read);
   useEffect(() => {
-    const onHash = () => setRoute(window.location.hash.replace("#", "") || "dashboard");
+    const onHash = () => setRoute(read());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);

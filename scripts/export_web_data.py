@@ -29,6 +29,15 @@ parity = {
 }
 (OUT / "parity_fixture.json").write_text(json.dumps(parity, indent=2), encoding="utf-8")
 
+# Official documents ship with the app so anyone can open the tables behind the numbers.
+import shutil  # noqa: E402
+
+SOURCES_OUT = OUT / "sources"
+SOURCES_OUT.mkdir(parents=True, exist_ok=True)
+for doc in sorted((ROOT / "official_sources").glob("*")):
+    if doc.is_file() and doc.name != "manifest.json":
+        shutil.copy2(doc, SOURCES_OUT / doc.name)
+
 zip_path = OUT / "planner_app.zip"
 with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
     for py in sorted((ROOT / "planner_app").glob("*.py")):

@@ -118,7 +118,7 @@ def station_allowances(
                 result["miha"] = (_value(oha, "mihaLocal") or 0.0) / roe * cost_factor
                 result["ohaCapOfficialLocal"] = rent_cap
                 result["projected"] = years_from_data > 0
-                result["source"] = f"DTMO, effective {station.get('ratesEffective')}"
+                result["source"] = f"DTMO, effective {station.get('ratesEffective')}; see Sources → Official documents"
         return result
     if housing != "on_base":
         bah = bah_monthly(pay_data, location_id, grade, dependents)
