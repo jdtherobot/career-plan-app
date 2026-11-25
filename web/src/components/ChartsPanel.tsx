@@ -60,11 +60,13 @@ const BREAKDOWNS: Record<string, BreakdownRow[]> = {
   income: [
     { label: "Military base pay", metric: (r) => r.incomeBreakdown.militaryBasePay },
     { label: "BAH + BAS", metric: (r) => r.incomeBreakdown.militaryBah + r.incomeBreakdown.militaryBas },
+    { label: "OHA + UA + COLA", metric: (r) => (r.incomeBreakdown.militaryOha ?? 0) + (r.incomeBreakdown.militaryUa ?? 0) + (r.incomeBreakdown.militaryCola ?? 0) },
     { label: "Pension", metric: (r) => r.incomeBreakdown.pension },
     { label: "Salary", metric: (r) => r.incomeBreakdown.salaryBase },
     { label: "Stipend", metric: (r) => r.incomeBreakdown.phdStipend },
     { label: "VA disability", metric: (r) => r.incomeBreakdown.vaCompensation },
-    { label: "GI Bill", metric: (r) => r.incomeBreakdown.giBillHousing + r.incomeBreakdown.giBillBooks },
+    { label: "GI Bill / VR&E", metric: (r) => r.incomeBreakdown.giBillHousing + r.incomeBreakdown.giBillBooks + (r.incomeBreakdown.vreSubsistence ?? 0) },
+    { label: "Tuition paid by VA", metric: (r) => r.incomeBreakdown.tuitionPaidByVa ?? 0 },
     { label: "Social Security", metric: (r) => r.incomeBreakdown.socialSecurity ?? 0 },
     { label: "Total", metric: (r) => r.totalIncome },
   ],
@@ -74,7 +76,8 @@ const BREAKDOWNS: Record<string, BreakdownRow[]> = {
     { label: "Housing", metric: (r) => r.expenseBreakdown.housing ?? 0 },
     { label: "Food", metric: (r) => r.expenseBreakdown.food ?? 0 },
     { label: "Transport + utilities", metric: (r) => (r.expenseBreakdown.transportation ?? 0) + (r.expenseBreakdown.utilities ?? 0) },
-    { label: "Other living", metric: (r) => Math.max((r.livingExpenses ?? 0) - (r.expenseBreakdown.housing ?? 0) - (r.expenseBreakdown.food ?? 0) - (r.expenseBreakdown.transportation ?? 0) - (r.expenseBreakdown.utilities ?? 0), 0) },
+    { label: "Tuition & fees", metric: (r) => r.expenseBreakdown.tuitionFees ?? 0 },
+    { label: "Other living", metric: (r) => Math.max(-(r.expenseBreakdown.tuitionFees ?? 0) + (r.livingExpenses ?? 0) - (r.expenseBreakdown.housing ?? 0) - (r.expenseBreakdown.food ?? 0) - (r.expenseBreakdown.transportation ?? 0) - (r.expenseBreakdown.utilities ?? 0), 0) },
     { label: "Total", metric: (r) => r.taxes + r.healthcareCost + r.livingExpenses },
   ],
   savings: [
@@ -303,18 +306,22 @@ function ChartCard({
   const year = scenarios[0]?.projection[idx]?.calendarYear;
   const barEntry = scenarios.find((e) => e.scenarioId === barPathId) ?? scenarios[0];
   const barIndex = Math.max(scenarios.indexOf(barEntry), 0);
-  const barSeries: Series[] = stack && barEntry
-    ? stack.parts.map((part) => ({
-        id: part.id,
-        name: part.name,
-        color: part.color,
-        hatch: part.hatch,
-        points: barEntry.projection.map((row: any) => ({
-          x: row.calendarYear,
-          y: deflate(row, part.metric(row), realDollars),
-        })),
-      }))
-    : [];
+  const partsFor = (entry: any): Series[] =>
+    stack && entry
+      ? stack.parts.map((part) => ({
+          id: part.id,
+          name: part.name,
+          color: part.color,
+          hatch: part.hatch,
+          points: entry.projection.map((row: any) => ({
+            x: row.calendarYear,
+            y: deflate(row, part.metric(row), realDollars),
+          })),
+        }))
+      : [];
+  const barSeries = partsFor(barEntry);
+  /* Every path's bars, so the y-axis stays fixed when switching paths. */
+  const barScaleAcross = stack ? scenarios.map(partsFor) : undefined;
   const chooseView = (next: ChartView) => {
     setView(next);
     writeView(def.id, next);
@@ -381,6 +388,7 @@ function ChartCard({
           {view === "bars" && stack ? (
             <Bars
               series={barSeries}
+              scaleAcross={barScaleAcross}
               height={300}
               yLabel={`${def.title}, ${unit}`}
               totalLabel={stack.totalLabel}

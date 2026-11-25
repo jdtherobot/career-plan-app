@@ -5,6 +5,34 @@
 
 import { useState } from "react";
 import { useAppState, useDispatch, fmtMoney } from "../state/store";
+import { HouseholdCard } from "../components/HouseholdCard";
+import { LinesOverview } from "../components/LinesOverview";
+import { YearDrawer } from "../components/YearDrawer";
+
+/* Which year-by-year line each Finances section / sourced row feeds. Sections
+   the engine doesn't break out (clothing, pets, …) roll into Miscellaneous. */
+const SECTION_LINE: Record<string, string> = {
+  housing: "housing", utilities: "utilities", transportation: "transportation", food: "food",
+  insurance: "insurance", healthcare: "healthcareOutOfPocket", personal: "personal", gifts: "gifts",
+};
+const ITEM_LINE: Record<string, string> = {
+  monthly_base_pay: "basePay", bah_housing: "bah", bas: "bas", oha: "oha", cola: "cola",
+  va_benefits: "va", military_retirement_pay: "pension",
+};
+
+function ByYearButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button className="by-year-btn" onClick={onClick} aria-label={`${label}: year by year`} title="Year by year">
+      <svg viewBox="0 0 16 12" width="16" height="12" aria-hidden>
+        <rect x="1" y="7" width="2.6" height="4" />
+        <rect x="5" y="4" width="2.6" height="7" />
+        <rect x="9" y="5.5" width="2.6" height="5.5" />
+        <rect x="13" y="1" width="2.6" height="10" />
+      </svg>
+      by year
+    </button>
+  );
+}
 
 const BUCKETS: { id: string; label: string; amountKey: string; unit: string }[] = [
   { id: "income", label: "Monthly income", amountKey: "amountMonthly", unit: "/mo" },
@@ -38,6 +66,7 @@ export function Finances() {
   const dispatch = useDispatch();
   const [bucket, setBucket] = useState("expenses");
   const [showAll, setShowAll] = useState<Record<string, boolean>>({});
+  const [openLine, setOpenLine] = useState<string | null>(null);
 
   if (!manualInputs) {
     return (
@@ -94,12 +123,17 @@ export function Finances() {
       <header className="screen-head">
         <h2>Finances</h2>
         <p>
-          Your baseline. <strong>Editable rows are yours</strong> and feed every projection directly.{" "}
-          <strong>Locked rows are computed from reference data</strong> (military pay tables, benefit rules) —
-          edit them at their source, not here.
+          What everything costs and pays, year by year, on each path — calculated from where you are and what
+          you're doing, and editable for any year. Below it, <strong>your baseline</strong>: today's numbers, which
+          set your costs at your current station. <strong>Locked rows</strong> come from reference data (pay tables,
+          benefit rules).
         </p>
       </header>
 
+      <LinesOverview />
+      <HouseholdCard />
+
+      <p className="section-h">Your baseline (today)</p>
       <div className="row" style={{ marginBottom: 14 }}>
         <div className="toggle" role="group" aria-label="Bucket">
           {BUCKETS.map((b) => (
@@ -128,7 +162,15 @@ export function Finances() {
           const hiddenCount = section.items.length - items.length;
           return (
             <section className="card" key={section.id}>
-              <h3>{section.label}</h3>
+              <div className="row between" style={{ marginBottom: 4 }}>
+                <h3 style={{ margin: 0 }}>{section.label}</h3>
+                {bucket === "expenses" && (
+                  <ByYearButton
+                    label={section.label}
+                    onClick={() => setOpenLine(SECTION_LINE[section.id] ?? "miscellaneous")}
+                  />
+                )}
+              </div>
               {items.map((item: any) => {
                 if (isSourced(item)) {
                   const computed = sourcedValue(item);
@@ -151,6 +193,11 @@ export function Finances() {
                       >
                         {computed !== null && row0 ? fmtMoney(computed) + "/mo" : "—"}
                         <br />
+                        {ITEM_LINE[item.id] && (
+                          <>
+                            <ByYearButton label={item.label} onClick={() => setOpenLine(ITEM_LINE[item.id])} />{" "}
+                          </>
+                        )}
                         <a
                           href={meta?.href ?? "#assumptions"}
                           style={{ fontSize: 11, color: "var(--accent)", fontFamily: "var(--font-ui)" }}
@@ -190,6 +237,7 @@ export function Finances() {
           );
         })}
       </div>
+      {openLine && <YearDrawer lineId={openLine} onClose={() => setOpenLine(null)} />}
     </>
   );
 }

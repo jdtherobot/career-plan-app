@@ -21,6 +21,22 @@ LOCATION_LABELS = {
     "santa_clara_ca": "Santa Clara, CA",
     "san_francisco_ca": "San Francisco, CA",
     "us_metro_average": "US metro average",
+    "beale_afb_ca": "Beale AFB, CA (Yuba City / Marysville)",
+    "raf_alconbury_uk": "RAF Alconbury / Molesworth, UK",
+    "sendai_jp": "Sendai, Japan",
+}
+
+# Extra fields for locations registered from research (countryCode drives the
+# overseas-allowance rules; regionType groups the pickers).
+LOCATION_META = {
+    "beale_afb_ca": {"countryCode": "US", "stateCode": "CA", "regionType": "military_base"},
+    "raf_alconbury_uk": {"countryCode": "GB", "regionType": "military_base_overseas"},
+    "sendai_jp": {"countryCode": "JP", "regionType": "campus"},
+    "redmond_wa": {"countryCode": "US", "stateCode": "WA", "regionType": "metro"},
+    "mountain_view_ca": {"countryCode": "US", "stateCode": "CA", "regionType": "metro"},
+    "santa_clara_ca": {"countryCode": "US", "stateCode": "CA", "regionType": "metro"},
+    "san_francisco_ca": {"countryCode": "US", "stateCode": "CA", "regionType": "metro"},
+    "us_metro_average": {"countryCode": "US", "regionType": "metro"},
 }
 
 # Which researched city each employer's compensation applies to. Drives
@@ -147,7 +163,8 @@ def _apply_location_research(merged: dict[str, list[dict[str, Any]]]) -> None:
                 **base,
             })
             if location_id not in known_location_ids:
-                locations.append({"id": location_id, "label": label, "costProfileId": profile_id})
+                locations.append({"id": location_id, "label": label, "costProfileId": profile_id,
+                                  **LOCATION_META.get(location_id, {})})
 
     merged["locations"] = locations
     merged["location_cost_profiles"] = profiles
@@ -185,6 +202,25 @@ def _bah_for(bah_table: dict[str, Any], location_id: str, grade: str, dependents
     return float(rates.get(key, 0.0) or 0.0)
 
 
+def grade_history(service: dict[str, Any]) -> list[tuple[int, int, str]]:
+    """Sorted (year, month, grade) promotions from serviceProfile.gradeHistory."""
+    entries = []
+    for item in service.get("gradeHistory") or []:
+        if not item.get("grade") or item.get("year") in (None, ""):
+            continue
+        entries.append((int(item["year"]), int(item.get("month") or 1), str(item["grade"])))
+    return sorted(entries)
+
+
+def grade_at(history: list[tuple[int, int, str]], default: str, year: int, month: int) -> str:
+    """Grade in effect in a month: the latest promotion on or before it, else the profile grade."""
+    current = default
+    for h_year, h_month, h_grade in history:
+        if (h_year, h_month) <= (year, month):
+            current = h_grade
+    return current
+
+
 def build_service_projection_domains(
     reference_domains: dict[str, list[dict[str, Any]]],
     planner_profile: dict[str, Any],
@@ -215,11 +251,10 @@ def build_service_projection_domains(
         if rule["id"] == "military_raise_default":
             raise_rate = float(rule.get("valuePercent", 0.025))
 
-    brackets = pay.get("basicPayMonthly", {}).get(grade, {})
-    bas_monthly = float(
-        pay.get("basMonthly", {}).get("enlisted" if grade.startswith("E") else "officer", 0.0)
-    )
-    grade_numeric = int("".join(ch for ch in grade if ch.isdigit()) or 0)
+    history = grade_history(service)
+
+    def bas_for(g: str) -> float:
+        return float(pay.get("basMonthly", {}).get("enlisted" if g.startswith("E") else "officer", 0.0))
 
     rows: list[dict[str, Any]] = []
     for offset in range(46):  # covers any active-duty span to 40+ YOS
@@ -227,24 +262,32 @@ def build_service_projection_domains(
         yos = calendar_year - entry_year + (1 if entry_month <= 6 else 0) - 1
         yos = max(yos, 0)
         raise_factor = (1 + raise_rate) ** max(calendar_year - 2026, 0)
-        base_monthly = _bracket_pay(brackets, yos) * raise_factor
-        bah_monthly = _bah_for(pay.get("bah", {}), location_id, grade, dependents) * raise_factor
+        # Month by month so a mid-year promotion is paid from its month.
+        base_sum = bah_sum = bas_sum = 0.0
+        for month in range(1, 13):
+            g = grade_at(history, grade, calendar_year, month)
+            base_sum += _bracket_pay(pay.get("basicPayMonthly", {}).get(g, {}), yos)
+            bah_sum += _bah_for(pay.get("bah", {}), location_id, g, dependents)
+            bas_sum += bas_for(g)
+        year_grade = grade_at(history, grade, calendar_year, 7)
+        grade_numeric = int("".join(ch for ch in year_grade if ch.isdigit()) or 0)
         rows.append(
             {
                 "id": f"svc_proj_{calendar_year}",
-                "label": f"{grade} · {calendar_year} ({yos} YOS)",
+                "label": f"{year_grade} · {calendar_year} ({yos} YOS)",
                 "calendarYear": calendar_year,
                 "yearsOfService": yos,
                 "projectedPayGradeNumeric": grade_numeric,
-                "payGrade": grade,
+                "payGrade": year_grade,
                 "raisePercent": raise_rate if calendar_year > 2026 else 0.0,
-                "basePayAnnual": round(base_monthly * 12, 2),
-                "bahAnnual": round(bah_monthly * 12, 2),
-                "basAnnual": round(bas_monthly * raise_factor * 12, 2),
-                "totalMilitaryCompAnnual": round((base_monthly + bah_monthly + bas_monthly * raise_factor) * 12, 2),
+                "basePayAnnual": round(base_sum * raise_factor, 2),
+                "bahAnnual": round(bah_sum * raise_factor, 2),
+                "basAnnual": round(bas_sum * raise_factor, 2),
+                "totalMilitaryCompAnnual": round((base_sum + bah_sum + bas_sum) * raise_factor, 2),
                 "locationId": location_id,
             }
         )
+    grade_numeric = int("".join(ch for ch in grade if ch.isdigit()) or 0)
 
     hydrated = dict(reference_domains)
     hydrated["military_compensation_projection_view"] = rows
@@ -272,4 +315,189 @@ def merge_v2_reference_domains(reference_domains: dict[str, list[dict[str, Any]]
     if "career_locations" not in merged:
         merged["career_locations"] = CAREER_LOCATIONS
     _apply_location_research(merged)
+    _apply_overseas_research(merged)
+    _apply_state_tax_research(merged)
+    _apply_program_research(merged)
     return merged
+
+
+_DATA_DIR = Path(__file__).resolve().parent
+_json_cache: dict[str, Any] = {}
+
+
+def _load_json(name: str) -> dict[str, Any]:
+    if name not in _json_cache:
+        path = _DATA_DIR / name
+        _json_cache[name] = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    return _json_cache[name]
+
+
+def _apply_overseas_research(merged: dict[str, list[dict[str, Any]]]) -> None:
+    """Overseas duty stations as editable rows: one row per station (currency,
+    official rate of exchange) plus one OHA row and one COLA row per grade and
+    dependency status. Rows without an official DTMO value stay empty
+    ("missing") — they are never filled with an estimate."""
+    if "overseas_allowances" in merged:
+        return
+    data = _load_json("data_overseas_2026.json")
+    stations: list[dict[str, Any]] = []
+    oha_rows: list[dict[str, Any]] = []
+    cola_rows: list[dict[str, Any]] = []
+    for location_id, entry in (data.get("stations") or {}).items():
+        source = (entry.get("sources") or [{}])[0]
+        label = entry.get("label", location_id)
+        stations.append({
+            "id": location_id,
+            "label": label,
+            "dtmoLocality": entry.get("dtmoLocality"),
+            "currency": entry.get("currency", "USD"),
+            "roeLocalPerUsd": float(entry.get("roeLocalPerUsd") or 1.0),
+            "roeEffective": entry.get("roeEffective"),
+            "ratesEffective": entry.get("ratesEffective"),
+            "verificationStatus": "official",
+            "notes": entry.get("notes", ""),
+            "sourceLabel": source.get("title", "DTMO"),
+            "sourceUrl": source.get("url", ""),
+        })
+        for row in entry.get("oha") or []:
+            dep = "with" if row.get("dependents") else "without"
+            oha_rows.append({
+                "id": f"{location_id}:{row['grade']}:{dep}",
+                "label": f"{row['grade']} {dep} dependents · {label}",
+                "locationId": location_id, "grade": row["grade"], "dependents": bool(row.get("dependents")),
+                "rentLocal": row.get("rentLocal"), "uaLocal": row.get("uaLocal"), "mihaLocal": row.get("mihaLocal"),
+                "currency": entry.get("currency", "USD"),
+                "verificationStatus": row.get("status", "missing"),
+                "verifiedOn": row.get("verifiedOn"),
+                "notes": row.get("verifiedBy", "No official DTMO value loaded — enter it from the DTMO OHA calculator."),
+                "sourceLabel": source.get("title", ""), "sourceUrl": source.get("url", ""),
+            })
+        for row in entry.get("cola") or []:
+            dep = "with" if row.get("dependents") else "without"
+            cola_rows.append({
+                "id": f"{location_id}:{row['grade']}:{dep}",
+                "label": f"{row['grade']} {dep} dependents · {label}",
+                "locationId": location_id, "grade": row["grade"], "dependents": bool(row.get("dependents")),
+                "monthlyUsd": row.get("monthlyUsd"),
+                "verificationStatus": row.get("status", "missing"),
+                "notes": entry.get("colaNote", ""),
+                "sourceLabel": "DTMO OCONUS COLA calculator",
+                "sourceUrl": "https://www.travel.dod.mil/Allowances/Overseas-Cost-of-Living-Allowance/",
+            })
+    # Official COLA inputs (scripts/import_official_rates.py): locality index,
+    # spendable income by compensation band, and the annual compensation table.
+    cola = _load_json("data_cola_2026.json")
+    for station in stations:
+        index = (cola.get("indices") or {}).get(station["id"]) or {}
+        station["colaIndex"] = index.get("index")
+        station["colaIndexEffective"] = index.get("effective")
+    spendable_rows = []
+    for band in cola.get("spendableIncome") or []:
+        low, high = band["compensationLow"], band["compensationHigh"]
+        label = f"≥ ${low:,}" if high is None else (f"≤ ${high:,}" if low == 0 else f"${low:,} – ${high:,}")
+        row = {"id": f"band_{low}", "label": f"Annual compensation {label}",
+               "compensationLow": low, "compensationHigh": high,
+               "sourceLabel": "DTMO COLA spendable income table, eff. 2026-02-01", "sourceUrl": "",
+               "verificationStatus": "official"}
+        for deps, income in enumerate(band["spendableIncome"]):
+            row[f"spendable{deps}Dependents"] = income
+        spendable_rows.append(row)
+    merged["overseas_allowances"] = stations
+    merged["oha_rates"] = oha_rows
+    merged["overseas_cola"] = cola_rows
+    merged["cola_spendable_income"] = spendable_rows
+    merged["cola_annual_compensation"] = list(cola.get("annualCompensationRows") or [])
+
+
+def _apply_state_tax_research(merged: dict[str, list[dict[str, Any]]]) -> None:
+    if "state_tax_rates" in merged:
+        return
+    data = _load_json("data_state_tax_2026.json")
+    source = (data.get("sources") or [{}])[0]
+    rows = []
+    for code, entry in sorted((data.get("states") or {}).items()):
+        if code.startswith("_") or not isinstance(entry, dict):
+            continue
+        rows.append({
+            "id": code, "label": code, "type": entry.get("type"),
+            "effectiveRateAt80k": float(entry.get("effectiveRateAt80k") or 0),
+            "effectiveRateAt150k": float(entry.get("effectiveRateAt150k") or 0),
+            "militaryRetiredPayExempt": entry.get("militaryRetiredPayExempt", "no"),
+            "notes": entry.get("notes", ""),
+            "sourceLabel": source.get("title", "State tax research 2026"), "sourceUrl": source.get("url", ""),
+        })
+    merged["state_tax_rates"] = rows
+
+
+_OFFERING_FIELDS = (
+    "institutionId", "institution", "institutionShort", "programName", "department", "level", "country",
+    "schoolType", "durationYearsDefault", "typicalDurationYears", "tuitionAnnual", "tuitionListAnnual",
+    "feesAnnual", "tuitionWaived", "admissionFee", "stipendAnnual", "fundedYears", "fundingSource",
+    "fundingSources", "healthInsuranceAnnual", "vaApprovalStatus", "vaApprovalEvidence", "englishTaught",
+    "url", "confidence", "estimatedFields",
+)
+
+
+def _apply_program_research(merged: dict[str, list[dict[str, Any]]]) -> None:
+    """Add the researched degree offerings to `programs` and point the original
+    workbook programs at their matching offering (same money, old ids keep working)."""
+    data = _load_json("data_programs_2026.json")
+    offerings = data.get("offerings") or []
+    if not offerings:
+        return
+    programs = [dict(p) for p in merged.get("programs", [])]
+    existing = {p["id"] for p in programs}
+    by_id = {o["id"]: o for o in offerings}
+    for legacy_id, offering_id in (data.get("legacyProgramIds") or {}).items():
+        offering = by_id.get(offering_id)
+        for program in programs:
+            if program["id"] == legacy_id and offering:
+                for key in _OFFERING_FIELDS:
+                    if key in offering:
+                        program[key] = offering[key]
+                program["offeringId"] = offering_id
+                program["legacy"] = True
+    for offering in offerings:
+        if offering["id"] in existing:
+            continue
+        source = (offering.get("sources") or [{}])[0] if offering.get("sources") else {}
+        programs.append({
+            **offering,
+            "durationYears": offering.get("durationYearsDefault"),
+            "sourceLabel": source.get("title", "Program research 2026"),
+            "sourceUrl": offering.get("url", ""),
+            "verificationStatus": f"researched_{offering.get('confidence', 'medium')}",
+        })
+    merged["programs"] = programs
+    merged["program_duration_defaults"] = [
+        {"id": f"{country}:{level}", "country": country, "level": level, "years": years}
+        for country, levels in (data.get("defaultDurationsYears") or {}).items()
+        for level, years in levels.items()
+    ]
+
+    gi_records = [dict(g) for g in merged.get("gi_bill_benefits", [])]
+    known = {g["id"] for g in gi_records}
+    rules = _load_json("data_education_benefits_2026.json").get("rules", {})
+    for gi_id, location_id, label in (
+        ("gi_bill_foreign_utokyo", "tokyo_jp", "GI Bill foreign school · The University of Tokyo"),
+        ("gi_bill_foreign_tohoku", "sendai_jp", "GI Bill foreign school · Tohoku University"),
+    ):
+        if gi_id in known:
+            continue
+        gi_records.append({
+            "id": gi_id, "label": label, "locationId": location_id, "deliveryMode": "foreign_school",
+            "monthlyHousingAllowance": float(rules.get("foreignMhaMonthly", 2396.0)),
+            "booksSuppliesAnnual": float(rules.get("booksAnnualCap", 1000.0)),
+            "monthsEligible": 36,
+            "tuitionFeesCapAnnual": float(rules.get("tuitionCapPrivateForeignAnnual", 30908.34)),
+            "vaProgramApproved": 0,
+            "eligibilityReason": "foreign_program_approval_unconfirmed",
+            "verificationStatus": "unconfirmed",
+            "notes": (
+                "Foreign schools must be VA-approved per program, and only the school can request it. No evidence "
+                "of approval was found (Nov 2026), so this defaults to 0. Set it to 1 here, or tick 'assume VA "
+                "approval' on the grad block, to model the benefit as if approved."
+            ),
+            "sourceLabel": "VA foreign programs guidance", "sourceUrl": "https://www.va.gov/education/study-at-foreign-schools/",
+        })
+    merged["gi_bill_benefits"] = gi_records

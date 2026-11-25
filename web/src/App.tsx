@@ -59,11 +59,13 @@ function WaveTrace() {
    and open in the same tab; planner state persists in-browser. The compact spike
    mark (not the sidebar's long waveform) marks this as site-level chrome. */
 const SITE = "https://britt.gg/";
+/* Mirrors SECTION_LINKS in jdtherobot.github.io/src/content/links.ts — keep the
+   labels, order and anchors in step with the main site's nav. (Research Direction
+   is currently hidden there behind SHOW_RESEARCH_SECTION.) */
 const SITE_LINKS: { label: string; href: string }[] = [
   { label: "Background", href: "https://britt.gg/#sec-background" },
-  { label: "Research Direction", href: "https://britt.gg/#sec-research" },
-  { label: "Work", href: "https://britt.gg/#sec-work" },
   { label: "Projects", href: "https://britt.gg/#sec-projects" },
+  { label: "Work", href: "https://britt.gg/#sec-work" },
 ];
 
 function SiteHeader() {
@@ -95,9 +97,11 @@ function SiteHeader() {
 }
 
 function useHashRoute(): string {
-  const [route, setRoute] = useState(() => window.location.hash.replace("#", "") || "dashboard");
+  // "#sources:doc-id" deep-links within a screen; the route is the part before ":".
+  const read = () => window.location.hash.replace("#", "").split(":")[0] || "dashboard";
+  const [route, setRoute] = useState(read);
   useEffect(() => {
-    const onHash = () => setRoute(window.location.hash.replace("#", "") || "dashboard");
+    const onHash = () => setRoute(read());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);

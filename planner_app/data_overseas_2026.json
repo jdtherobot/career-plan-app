@@ -1,0 +1,287 @@
+{
+  "collectedAt": "2026-11-25",
+  "policy": "Military allowances are official DTMO values only. A grade/dependency row without an official value is 'missing' and pays $0 with a warning \u2014 never an estimate.",
+  "stations": {
+    "raf_alconbury_uk": {
+      "label": "RAF Alconbury / Molesworth, UK",
+      "dtmoLocality": "UNITED KINGDOM - ALCONBURY (INCL WYTON) (E) - GB001",
+      "currency": "GBP",
+      "roeLocalPerUsd": 0.7239,
+      "roeEffective": "2026-07-01",
+      "ratesEffective": "2026-07-01",
+      "payPeriod": "2026-11-16",
+      "climateCode": 2,
+      "oha": [
+        {
+          "grade": "E-1",
+          "dependents": false,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-1",
+          "dependents": true,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-2",
+          "dependents": false,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-2",
+          "dependents": true,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-3",
+          "dependents": false,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-3",
+          "dependents": true,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-4",
+          "dependents": false,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-4",
+          "dependents": true,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-5",
+          "dependents": false,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-5",
+          "dependents": true,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-6",
+          "dependents": false,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-6",
+          "dependents": true,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-7",
+          "dependents": false,
+          "rentLocal": 1627.2,
+          "uaLocal": 623.25,
+          "mihaLocal": 502.0,
+          "usdCheck": {
+            "rent": 2247.82,
+            "ua": 860.96,
+            "miha": 693.47
+          },
+          "verifiedOn": "2026-11-25",
+          "verifiedBy": "DTMO OHA calculator lookup supplied by the user (screenshot)",
+          "status": "official"
+        },
+        {
+          "grade": "E-7",
+          "dependents": true,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-8",
+          "dependents": false,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-8",
+          "dependents": true,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-9",
+          "dependents": false,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-9",
+          "dependents": true,
+          "rentLocal": null,
+          "uaLocal": null,
+          "mihaLocal": null,
+          "status": "missing"
+        }
+      ],
+      "cola": [
+        {
+          "grade": "E-1",
+          "dependents": false,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-1",
+          "dependents": true,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-2",
+          "dependents": false,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-2",
+          "dependents": true,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-3",
+          "dependents": false,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-3",
+          "dependents": true,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-4",
+          "dependents": false,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-4",
+          "dependents": true,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-5",
+          "dependents": false,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-5",
+          "dependents": true,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-6",
+          "dependents": false,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-6",
+          "dependents": true,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-7",
+          "dependents": false,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-7",
+          "dependents": true,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-8",
+          "dependents": false,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-8",
+          "dependents": true,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-9",
+          "dependents": false,
+          "monthlyUsd": null,
+          "status": "missing"
+        },
+        {
+          "grade": "E-9",
+          "dependents": true,
+          "monthlyUsd": null,
+          "status": "missing"
+        }
+      ],
+      "colaNote": "OCONUS COLA depends on grade, years of service, dependents and the locality index; values come from the DTMO COLA calculator. None loaded yet.",
+      "notes": "OHA pays actual rent up to the rental allowance; the utility/recurring maintenance allowance is paid on top; MIHA is a one-time move-in payment. Council tax: US Visiting Forces members are exempt (file the exemption). UK does not tax US military pay. Dorms are E-1\u2013E-4 only.",
+      "sources": [
+        {
+          "title": "DTMO Overseas Housing Allowance calculator \u2014 Alconbury (E) GB001, pay period 2026-11-16",
+          "url": "https://www.travel.dod.mil/Allowances/Overseas-Housing-Allowance/"
+        }
+      ]
+    }
+  }
+}

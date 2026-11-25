@@ -1,0 +1,119 @@
+Source: U.S. Department of Veterans Affairs — Post-9/11 GI Bill (Chapter 33) rates
+URL: https://www.va.gov/education/benefit-rates/post-9-11-gi-bill-rates/
+Retrieved: 2026-11-25 (text extract of the page; original HTML SHA-256 e136c758963fd17f135367782af7d4cab757557dac1018542c155f3d032d5b0c)
+
+Post-9/11 GI Bill rates
+Get the current Post-9/11 GI Bill (Chapter 33) rates for August 1, 2026, to July 31, 2027. And learn about how we determine how much of the full benefit rate you can get.
+How much of the full benefit rate you can get
+We base your award of benefits on how long you served on active duty and certain other factors.
+Eligibility for 100% of Post-9/11 GI Bill benefits
+You’re eligible for 100% of the full benefit if you meet at least 1 of these requirements:
+You served on active duty for a total of at least 1,095 days (at least 36 months),  or
+You served on active duty and received a Purple Heart on or after September 11, 2001,  or
+You served on active duty for at least 30 continuous days (without a break), and we discharged you because of a service-connected disability
+Eligibility for a percentage of benefits if you served less than 36 months
+If you served on active duty for less than 1,095 days (36 months), you’re eligible for only part of the Post-9/11 GI Bill benefit. We base the percentage you’re eligible for on the total amount of time you served on active duty (with or without breaks in service). We call this your “eligibility tier.”
+Find the percentage of the full benefit you’re eligible for:
+910 to 1,094 days (30 to 35 months):  90% of the full benefit
+730 to 909 days (24 to 29 months):  80% of the full benefit
+545 to 729 days (18 to 23 months):  70% of the full benefit
+180 to 544 days (6 to 17 months):  60% of the full benefit
+90 to 179 days (90 days to 5 months):  50% of the full benefit
+The rates listed on this page are for 100% percent of the full benefit. If you’re eligible for a percentage of the full benefit, multiply the rates on this page by your percentage. This will give you the amount of your yearly payment.
+Full rates for school and training programs
+Effective August 1, 2026, to July 31, 2027
+Tuition and fees
+We’ll send your tuition and fees directly to your school or training program.
+The amounts listed here are the maximum amounts we’ll pay this academic year for each type of school or training program. If you’re eligible for a percentage of the full benefit, multiply the amount by your percentage. This will give you the maximum amount we’ll pay this academic year.
+Find out the full rate based on what type of school you’re attending:
+Public institution of higher learning  (like a state university or community college): We’ll pay the net tuition and mandatory fees. You may be able to get in-state tuition rates at a public school even if you haven’t lived in the state where the school is located.
+Learn more about in-state tuition rates
+Private institution of higher learning:  We’ll pay the net tuition and mandatory fees  up to $30,908.34 .
+Foreign institution of higher learning (a college or university, whether public or private, in a country outside the U.S.):   We’ll pay the net tuition and mandatory fees up to $30,908.34 in U.S. dollars.
+Non-college degree programs (specific training programs like HVAC repair, truck driving, EMT, or beautician school): We’ll pay the net tuition and mandatory fees  up to $30,908.34 .
+Flight training (a non-degree certificate or rating program): We’ll pay the net tuition and mandatory fees up to $17,661.89 .
+Correspondence school (usually courses provided by mail that you complete at your own pace): We’ll pay the net tuition and mandatory fees up to $15,012.59 .
+Co-op training (a full-time program that alternates between classroom training and work experience at a business): We’ll pay the net in-state tuition and mandatory fees at a public school. You may be able to get in-state tuition rates at a public school even if you haven’t lived in the state where the school is located. We’ll pay the net tuition and mandatory fees  up to $30,908.34 at a private school.
+Monthly housing allowance
+You may be eligible for money to help pay for your housing while you’re studying. If you’re eligible for monthly housing allowance (MHA), we’ll pay you at the end of each month.
+You’re not eligible for an MHA payment if any of these are true:
+You’re on active duty, or
+You’re a spouse using transferred benefits while the Veteran is on active duty, or
+You’re in school half time or less than half time, or
+You’re taking correspondence training or flight training, or
+You’re on break from school
+If you’re taking in-person courses in the U.S.
+We base your MHA on the monthly military Basic Allowance for Housing (BAH) rates for an E-5 with dependents. This is called the resident MHA. We use the 2026 rates to calculate the MHA you get between August 1, 2026, and July 31, 2027.
+Find BAH rates by zip code on the Defense Travel Management Office website
+We start with the BAH rate, and then we pay you a percentage of that rate (called a “prorated payment”) based on these additional 3 factors:
+The percentage of Post-9/11 GI Bill benefits you’re eligible for (your eligibility tier). We determine your eligibility tier based on how long you served on active duty and certain other factors.
+How much school you’re attending (your rate of pursuit).  We determine your rate of pursuit based on how many credits you’re taking each term or how many clock hours you’re scheduled to attend each week. For example, if you’re taking 9 credits in a standard-length term and your school considers 12 credits to be full time, your rate of pursuit is 80% (9 divided by 12, rounded to the nearest tenth). To be eligible for MHA, your rate of pursuit must be more than 50%.
+The location where you physically attend most of your classes. We call this “location-based housing allowance.”
+If you’re taking online-only courses or you’re at a foreign school
+We’ll pay you a percentage of the MHA (called a “prorated payment”) based on these 2 factors:
+The percentage of Post-9/11 GI Bill benefits you’re eligible for (your eligibility tier). We determine your eligibility tier based on how long you served on active duty and certain other factors.
+How much school you’re attending (your rate of pursuit).  We determine your rate of pursuit based on how many credits you’re taking each term or how many clock hours you’re scheduled to attend each week. For example, if you’re taking 9 credits in a standard-length term and your school considers 12 credits to be full time, your rate of pursuit is 80% (9 divided by 12, rounded to the nearest tenth). To be eligible for MHA, your rate of pursuit must be more than 50%.
+MHA for online learning
+We base your monthly housing allowance on half the national average for MHA .
+We’ll pay you up to $1,198 . This is the maximum amount we’ll pay you each month.
+Note:  If you take at least 1 class in person while taking other online learning classes, you may be eligible for the higher resident MHA.
+MHA for foreign institutions of higher learning
+We base your monthly housing allowance on the national average for MHA .
+We’ll pay you up to $2,396  (equal to the national average for MHA). This is the maximum amount we’ll pay you each month.
+Money for books and supplies
+We’ll give you up to $1,000 each academic year to help pay for your books and supplies for each program you’re enrolled in. If you’re enrolled in more than 1 of the programs listed here in the same academic year, you may be eligible to get up to $1,000 for each program:
+A college or university
+A non-college-degree school
+An apprenticeship or on-the-job training program
+VET TEC 2.0 (high-tech program)
+If you’re enrolled in a college or university , you may be able to get up to $41.67 per credit hour, for up to 24 credits per year, prorated by the percentage of benefits you’re eligible for. We’ll pay you at the start of each term or enrollment period.
+If you’re enrolled in a non-college-degree school, apprenticeship, or on-the-job training program , you may be able to get up to $83 per month, prorated by the percentage of benefits you’re eligible for. We’ll pay you at the start of each school year.
+Note: If you’re using Post-9/11 GI Bill benefits for flight training or correspondence training, you can’t get money for books and supplies.
+Money to help you move from a rural area
+If you need to relocate from a highly rural area so you can attend school, we may give you a one-time payment of  $500  to help with your moving expenses.
+You may be eligible for this Post-9/11 GI Bill rural grant if the description listed here is true for you.
+This must be true:
+You live in a county with no more than 6 people per square mile, as determined by the most recent U.S. census.
+And 1 of these must be true:
+You need to physically relocate at least 500 miles away from your home to attend school,  or
+You need to travel by air to physically attend school because you don’t have the option to travel by car, train, bus, or other ground transportation
+Added payments
+If your college or university tuition costs more than the maximum payment , you may be eligible for added payments through the Yellow Ribbon Program.
+Learn about the Yellow Ribbon Program
+If you’re struggling with your coursework , you may be eligible for up to $100 per month, up to $1,200 total , for tutorial assistance.
+Learn more about tutorial assistance
+If you’re enrolled in a school or professional training program , you may be eligible to earn extra money through a part-time job related to VA work.
+Learn more about Work Study
+Benefit payments for on-the-job training and apprenticeships
+Effective August 1, 2026, to July 31, 2027
+Monthly payments for living expenses
+You may be eligible for money to help you pay for living expenses while you’re training. We base your payment on the Defense Department’s monthly Basic Allowance for Housing (BAH) rates for an E-5 with dependents, using the zip code where your training takes place. We use the 2026 rates to calculate the monthly payment you get between August 1, 2026, and July 31, 2027.
+Find BAH rates by zip code on the Defense Travel Management Office website
+We start with the BAH rate, and then we take into account these additional 3 factors to calculate your monthly payment:
+How far along you are in training. As you progress in your training program, your payments (and entitlement charged to your GI Bill) decrease every 6 months. We’ll pay you a percentage of the full BAH rate based on how many months you’ve been training in your program:
+Months 1 to 6: 100% of the full BAH rate
+Months 7 to 12: 80% of the full BAH rate
+Months 13 to 18: 60% of the full BAH rate
+Months 19 to 24: 40% of the full BAH rate
+2 years and beyond: 20% of the full BAH rate
+The percentage of Post-9/11 GI Bill benefits you’re eligible for (your eligibility tier). We’ll pay you a percentage of the BAH rate (called a “prorated payment”) based on how long you served on active duty and certain other factors.
+How many hours you work in your training program during a month.  We’ll reduce your payment for any month that you work less than 120 hours or don’t work the full month.
+Note: You’ll receive your monthly payment after your employer submits your training hours for the month.
+Money for books and supplies
+We’ll pay you up to $1,000 each academic year for books and supplies. This is true for both types of schools listed here, so you may be eligible for more than 1 payment of up to $1,000:
+A private or foreign college or university
+A non-college-degree school
+You may be able to get up to $83 per month prorated by the percentage of benefits you’re eligible for. We pay this money to you at the start of your benefit award period, and at the start of each academic year while you’re in your training program.
+Benefit payments for test fees and prep courses
+Effective August 1, 2026, to July 31, 2027
+Licensing and certification test fees and prep courses
+For test fees: We’ll pay  up to $2,000  for qualifying licensing and certification test fees. We’ll charge your entitlement at the rate of 1 month for every $2,578.64 in fees we pay for licensing and certification tests.
+For prep courses: We’ll charge your entitlement at the rate of 1 month for every $2,508.33 in fees we pay for prep courses that help you get ready for a licensing or certification test.
+Learn more about licensing and certification tests and prep courses
+National tests
+There’s no limit on how much we’ll reimburse you for national test fees. We’ll charge your entitlement at the rate of 1 month for every $2,578.64 in fees we pay for national tests.
+Learn more about national tests
+How to contact us if you have questions
+You can ask us a question online through Ask VA.
+Contact us through Ask VA
+Or call us at   (TTY: 711). We’re here Monday through Friday, 8:00 a.m. to 7:00 p.m. ET.

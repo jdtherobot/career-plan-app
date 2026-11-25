@@ -224,7 +224,7 @@ export function ReportView({ generatedAt }: { generatedAt: string }) {
       ))}
 
       {scenarios.map((entry) => (
-        <CompositionPanel key={entry.scenarioId} entry={entry} />
+        <CompositionPanel key={entry.scenarioId} entry={entry} allEntries={scenarios} />
       ))}
 
       <footer className="report-footer">

@@ -1,0 +1,334 @@
+{
+  "collectedAt": "2026-11-25",
+  "rules": {
+    "effectiveAcademicYear": "2026-27",
+    "giEntitlementMonths": 36,
+    "vreEntitlementMonths": 48,
+    "vreCombinedCapMonths": 48,
+    "tuitionCapPrivateForeignAnnual": 30908.34,
+    "foreignMhaMonthly": 2396.0,
+    "onlineMhaMonthly": 1198.0,
+    "booksAnnualCap": 1000.0,
+    "booksPerCredit": 41.67,
+    "vreCh31FullTimeMonthly": {
+      "noDependents": 837.23,
+      "oneDependent": 1038.49,
+      "twoDependents": 1223.79,
+      "eachAdditional": 89.18
+    },
+    "vreSubsistenceDefault": "p911_rate",
+    "notes": [
+      "GI Bill months used count against VR&E's 48; VR&E months do not reduce the GI Bill's 36 (since Apr 2021).",
+      "VR&E pays tuition, fees, books and required equipment in full, directly to the school/vendor.",
+      "VR&E subsistence: the Post-9/11 rate (school-ZIP E-5 w/dep BAH; national average for foreign schools) when Post-9/11 eligible, otherwise the Ch. 31 table.",
+      "No break pay: housing/subsistence is paid only while enrolled. The planner assumes full-time, year-round enrollment for the block's months.",
+      "A funded PhD with a full tuition waiver: VA pays $0 tuition (no net charge) but housing and books still pay. Stipends are taxable; VA payments are tax-free."
+    ],
+    "officialSources": [
+      {
+        "title": "VA \u2014 Post-9/11 GI Bill rates, Aug 1 2026 \u2013 Jul 31 2027",
+        "url": "https://www.va.gov/education/benefit-rates/post-9-11-gi-bill-rates/",
+        "fetched": "2026-11-25",
+        "values": {
+          "tuitionCapPrivateForeign": 30908.34,
+          "foreignMha": 2396,
+          "onlineMha": 1198,
+          "booksAnnualCap": 1000
+        }
+      }
+    ],
+    "vreCh31Note": "VA's published Ch. 31 table page is frozen at Oct 2012; current Ch. 31 amounts come from secondary sources and are used only if the Post-9/11-rate option doesn't apply. The planner pays VR&E at the Post-9/11 rate (official), not adjusted for dependents (38 CFR 21.260)."
+  },
+  "research": {
+    "collectedAt": "2026-11-25",
+    "methodNote": "WebFetch was blocked for va.gov, benefits.va.gov, military.com and newsweek.com in this session, so every value comes from search-engine summaries of those pages and of secondary sources. The figures agree across sources, but none was read directly on the VA rate table. Check the high-dollar numbers against va.gov before you rely on them for final decisions.",
+    "postNineEleven": {
+      "academicYearDefinition": "Aug 1 - Jul 31; rates change each Aug 1",
+      "eligibilityTierForRetiree": "100% (36+ months aggregate active duty after 9/10/2001, or retired). A 20-year retiree gets 100% tier and 36 months.",
+      "tuition": {
+        "publicInState": "Net in-state tuition and mandatory fees paid in full, directly to the school (at the 100% tier).",
+        "tuitionCapPrivateForeign": {
+          "2025-26": 29920.95,
+          "2026-27": 30908.34
+        },
+        "capNotes": "This is a national maximum per academic year for private and foreign schools, and it covers net tuition and fees after school-provided waivers and scholarships aimed at tuition. Rate of pursuit does not reduce the tuition payment; it is paid at the eligibility percentage. If a PhD program waives all tuition, VA pays nothing toward tuition, because there is no net charge.",
+        "yellowRibbon": "Requires 100% Post-9/11 eligibility (active-duty members included since Aug 1 2022), enrollment in a degree program (certificates do not qualify), and a school/program that participates and still has open slots. The school chooses a contribution above the cap and VA matches it dollar for dollar. Agreements are set per school, program and degree level, so graduate-program slots and amounts differ. Some foreign schools take part; check the VA Yellow Ribbon search tool. Under a full tuition waiver it does not matter."
+      },
+      "mha": {
+        "basis": "DoD BAH for an E-5 with dependents at the ZIP code of the campus where the student attends most classes. Multiplied by rate of pursuit, rounded to the nearest 10%. At the 100% tier there is no further reduction.",
+        "minRateOfPursuit": "greater than 0.50 (exactly 50% or less = no MHA)",
+        "rateOfPursuitRounding": "nearest 10%",
+        "onlineMhaMonthly": {
+          "2025-26": 1169.0,
+          "2026-27": 1261.0
+        },
+        "onlineNotes": "The online rate is half the national-average E-5 w/dep BAH, at full-time rate of pursuit. Taking at least one in-person class while the rest are online qualifies for the ZIP-based rate.",
+        "foreignMhaMonthly": {
+          "2025-26": 2338.0,
+          "2026-27": 2522.0
+        },
+        "foreignNotes": "The foreign-school rate equals the full national-average E-5 w/dep BAH, multiplied by rate of pursuit. It does not depend on the local cost of living (for example, Tokyo or London).",
+        "nationalAverageBah": {
+          "2025-26": 2338.0,
+          "2026-27": 2522.0
+        },
+        "breakPay": "None since Aug 1 2011. MHA is paid only for days actually enrolled and is prorated in the months a term starts or ends. Breaks between terms and summers with no enrollment earn $0. Summer pays only if the student is enrolled above 50% rate of pursuit for that summer term. Exception: breaks ordered by an Executive Order or an emergency. Entitlement is not charged during breaks.",
+        "paidTo": "student, monthly in arrears"
+      },
+      "books": {
+        "booksPerCredit": 41.67,
+        "booksAnnualCap": 1000,
+        "notes": "Paid by credit hour up to 24 credits a year ($1,000), multiplied by the eligibility percentage. Paid to the student. Graduate dissertation/research credits that the school certifies count as credits."
+      },
+      "entitlementMonths": 36,
+      "entitlementCharging": "Entitlement is charged by rate of pursuit: a full-time month uses one month, and 60% uses 0.6 month. Days between terms are not charged. If entitlement runs out partway through a term, VA pays through the end of that term (38 USC 3312).",
+      "timeLimit": "None (Forever GI Bill) for anyone whose last discharge is on or after Jan 1 2013.",
+      "fundedPhdInteraction": {
+        "mhaWithTuitionWaiver": "Yes. MHA and books are still paid if the student is enrolled above 50% rate of pursuit at a VA-approved program, even when tuition is waived. VA then pays $0 tuition, and entitlement is still charged at the rate of pursuit.",
+        "stipendOrAssistantship": "VA does not reduce MHA because of a stipend or assistantship. The only offset is on the tuition side: VA pays net tuition after waivers and scholarships designated for tuition (38 USC 3313). Graduate schools often count assistantship holders and approved dissertation-status students as full-time on fewer credits.",
+        "researchDissertationHours": "VA uses the training time the school certifies, based on the school's own definition of full-time for graduate students. Dissertation or research credits on the transcript count, and reduced-load full-time status (common for ABD students) is generally honored when the school's published policy sets it. A 'continuous registration' status with 1-3 credits, without such a definition, can fall at or below 50% and lose MHA. Check with the school certifying official (SCO).",
+        "entitlementPlanning": "36 months covers roughly four 9-month academic years if summers are unpaid. A 5-6 year PhD would exhaust Ch33 MHA around year 4 unless summers are skipped. It runs out sooner if summer terms are certified."
+      },
+      "foreignSchools": {
+        "approval": "The specific program at the foreign school must be approved for GI Bill use (check the GI Bill Comparison Tool / WEAMS). Degree-granting institutions of higher learning only.",
+        "tuitionPayment": "Current VA/school fact sheets say VA pays tuition directly to the foreign school, up to the private/foreign cap. An older 2013 VA fact sheet described other arrangements, so confirm with the school. VA does not pay airfare or study-abroad fees charged by a home school.",
+        "mha": "Foreign rate (national-average BAH) times rate of pursuit.",
+        "fxRiskNote": "Planner should convert the GBP/JPY tuition into USD at the cap, and model any amount above $30,908 (2026-27) as out-of-pocket unless it is waived or covered by Yellow Ribbon."
+      }
+    },
+    "vre": {
+      "eligibility": "Service-connected rating of at least 20% (memorandum rating of 20%+ also qualifies) plus an employment handicap. A 10% rating requires a SERIOUS employment handicap. Discharge other than dishonorable. At 30%, this veteran meets the 20% threshold, so an employment handicap must still be found.",
+      "periodOfEligibility": "For veterans discharged on or after Jan 1 2013, the 12-year basic period of eligibility does not apply and there is no time limit. For those discharged before that date, the period is 12 years from the later of separation or first notice of a compensable rating, extendable when a serious employment handicap is found (38 USC 3103).",
+      "entitlementMonths": 48,
+      "combinedCapMonths": 48,
+      "fortyEightMonthRule": "38 USC 3695 / 38 CFR 21.78/21.4020 limit combined use of Ch31 with other VA education programs to 48 months. Since Apr 1 2021, VA no longer counts Ch31 months against the 48-month cap on GI Bill programs (Ch33 and others). GI Bill months still count toward the 48-month cap for Ch31. Ch31 can also be extended beyond 48 months for a serious employment handicap. In practice: Ch33 alone gives 36 months. Ch31 then gives up to 48 minus months of GI Bill already used. Doing Ch31 first, then Ch33, may allow up to 48 Ch31 months plus 36 Ch33 months. One school-level secondary source disputed this, so medium confidence.",
+      "paysFullTuition": true,
+      "whatVrePays": "Tuition, mandatory fees, books, supplies and required equipment (for example a laptop or software when the rehab plan requires it), paid by VA directly to the school or vendor. There is no national tuition cap like Ch33's, but VA counselors steer veterans to cost-effective options. It also pays a monthly subsistence allowance.",
+      "subsistenceFy2026": {
+        "effective": "2025-10-01 to 2026-09-30",
+        "fullTime": {
+          "noDependents": 812.84,
+          "oneDependent": 1008.24,
+          "twoDependents": 1188.15,
+          "eachAdditional": 86.58
+        },
+        "maxAnyCategory": 3439.23,
+        "notes": "Standard Ch31 rates for full-time institutional training (2.5% COLA). Three-quarter-time and half-time rates are proportionally lower and were not collected. The $3,439.23 'maximum monthly rate' on the VA FY26 page probably refers to the P911/BAH-based cap and is not a standard-table figure. Unverified."
+      },
+      "subsistenceFy2027": {
+        "effective": "2026-10-01 to 2027-09-30",
+        "fullTime": {
+          "noDependents": 837.23,
+          "oneDependent": 1038.49,
+          "twoDependents": 1223.79,
+          "eachAdditional": 89.18
+        },
+        "notes": "From secondary sources only (consistent with a ~3.0% increase). Not confirmed on benefits.va.gov."
+      },
+      "p911RateOption": "A Ch31 participant who is also eligible for Ch33 may elect (VA Form 28-0987) the P911 subsistence rate instead of the standard rate: E-5 with-dependents BAH for the training ZIP code (not reduced by the Ch33 tier percentage). For foreign institutions and schools without a ZIP code, the rate is the national-average BAH at full-time ($2,338 for AY2025-26, $2,522 for AY2026-27 under the Ch33 table), with 3/4 and 1/2 of that for 3/4- and 1/2-time. For training that is entirely distance/online, it is 1/2 of the national average at full-time, 3/8 at 3/4-time and 1/4 at 1/2-time. Mixed online and local training uses the local ZIP rate. Unlike Ch33 MHA, half-time training still earns a reduced P911 subsistence payment. Standard Ch31 rates add amounts for dependents; the P911 rate does not.",
+      "p911RateUsesCh33Entitlement": false,
+      "consumesCh33": false,
+      "consumesCh33Explanation": "Ch31 months, including months paid at the P911 subsistence rate, are charged to Ch31 entitlement, not to Ch33's 36 months. The P911 rate requires Ch33 eligibility. Sources disagree on whether that means having unused Ch33 entitlement remaining, so confirm this before modelling Ch33-first then VR&E-with-P911. Since Apr 2021, Ch31 use does not count against the 48-month cap on GI Bill programs.",
+      "breakPay": "Under 38 CFR 21.270/21.332, Ch31 subsistence can continue through an interval between consecutive terms that does not exceed one full calendar month (about 30 days), when the veteran is enrolled in the term before and after. Longer breaks, such as summer, are generally unpaid unless the veteran is enrolled. A 2011 interim rule narrowed interval pay, and the current text was not read directly. Medium-low confidence; model it as paying short winter/spring breaks and not paying summer unless enrolled.",
+      "gradDegreeNotes": "VR&E can fund graduate degrees, including doctorates, when the counselor finds the degree necessary to reach a suitable employment goal (for example, the job requires an MS or PhD). VR&E is an employment program, not an education entitlement. The plan is negotiated, and graduate study often needs extra justification or long-term-services review. PhD approval is not typical by default. It is easier when the target occupation (professor, research scientist, licensed psychologist) requires the doctorate, and if the veteran already holds a degree that is suitable for employment, VA may decline. Budget for the possibility of approval for a master's only.",
+      "foreignSchoolNotes": "Under 38 CFR 21.130, VA may approve training outside the US only in limited cases, chiefly when the training is not reasonably available in the US or requiring US training would cause personal hardship, and only at approved institutions. Approval is discretionary and uncommon. Do not assume VR&E will fund a UK or Japan PhD.",
+      "sequencingStrategy": "Common strategy: use VR&E first (no tuition cap, pays books and equipment, and does not burn Ch33 months). Elect the P911 subsistence rate to get BAH-level pay, then use Post-9/11 afterward, or keep it for later study or transfer (transfer is only possible while serving). Using Ch33 first is allowed, but each Ch33 month used reduces available Ch31 months under the 48-month cap. VR&E requires an employment-handicap finding and counselor approval, so it is not guaranteed."
+    },
+    "interactions": "Tax: VA education benefits (Ch33 tuition, MHA and books; Ch31 tuition and subsistence) are tax-free under 38 USC 5301 and IRS Pub 970. Tuition paid by VA cannot also be claimed for the AOTC/LLC. A PhD stipend used for living costs is taxable income, and so are research/teaching assistantship stipends (W-2 wages). Tuition waivers and scholarships used for qualified tuition are tax-free. Fellowship stipends often have no withholding, so estimated tax payments may be needed. VA does not reduce MHA or subsistence for stipend income. VA pays only net tuition after institutional waivers. VA disability compensation and military retired pay continue alongside education benefits with no offset; retired pay is taxable and VA compensation is not. VA rules do not allow combining Ch31 and Ch33 payments for the same enrollment period. Abroad: a US citizen's stipend from a UK or Japanese university may be foreign earned income eligible for the FEIE, or may face local tax. That is outside this research scope.",
+    "retireeNotes": "A 20+ year High-3 retiree keeps full Post-9/11 eligibility (100% tier, 36 months, no expiration for post-2013 separation). Post-9/11 can only be transferred to dependents while on active duty and it requires an additional service commitment, so a decision to transfer must be made before retirement. VR&E eligibility is unaffected by retirement status and depends on the service-connected rating (30% here). Retired pay and VA compensation are not reduced by Ch33 or Ch31 benefits. Rudisill v. McDonough (2024) lets members with multiple qualifying service periods reach up to 48 months across Montgomery GI Bill and Post-9/11; it applies only if the member also had MGIB eligibility.",
+    "plannerModellingRecommendations": [
+      "Ch33 tuition payment = min(net tuition after waivers, cap[AY]) for private/foreign; full net in-state tuition for public. Cap: 2025-26 $29,920.95; 2026-27 $30,908.34. Out-of-pocket = net tuition - VA payment - Yellow Ribbon (school + VA match).",
+      "Ch33 MHA per month = BAH_E5_withDeps(schoolZIP) x roundToNearest10%(rateOfPursuit), only if rateOfPursuit > 0.5; foreign = national avg ($2,338 AY25-26; $2,522 AY26-27) x RoP; online-only = half national avg ($1,169; $1,261).",
+      "Pay MHA only for months or days enrolled. Zero break pay: summer = $0 unless a summer term is certified above 50%.",
+      "Books = min($41.67 x credits, $1,000) per academic year.",
+      "Ch33 entitlement 36 months, decremented by RoP x enrolled months. When it runs out mid-term, pay through the end of that term.",
+      "A funded PhD with a full tuition waiver gets $0 VA tuition but still MHA and books. Treat the stipend as taxable income, with no VA offset.",
+      "Index Ch33 rates each Aug 1 (assume about 3% a year; the 2026-27 tuition cap rose 3.3% and national-average BAH about 7.9%).",
+      "VR&E: model as an optional scenario requiring approval (flag uncertain for PhD; low probability for foreign schools). If approved, tuition, fees, books and equipment are paid in full with no cap.",
+      "VR&E subsistence = max(standard Ch31 rate, P911 rate) at the veteran's election. P911 rate = local E-5 w/dep BAH (or the foreign / half-online national-average rate) x training-time fraction (1, 3/4, 1/2). Standard FY26 full-time: $812.84 / $1,008.24 / $1,188.15 / +$86.58 per extra dependent. FY27 (Oct 1 2026): $837.23 / $1,038.49 / $1,223.79 / +$89.18. Index on Oct 1 by COLA.",
+      "Entitlement ledger: ch33Remaining (36). ch31Available = 48 - ch33MonthsUsed, unless VA extends it for a serious employment handicap. Ch31 use does not decrement ch33Remaining. Sequencing option VR&E first, then Ch33 can yield up to 48 + 36 months.",
+      "VR&E break pay: continue subsistence for intervals of one calendar month or less between consecutive enrolled terms. Do not pay through summer unless enrolled (medium-low confidence).",
+      "Never stack Ch31 and Ch33 payments for the same period.",
+      "All VA education payments are non-taxable. Exclude them from taxable income, and from AOTC/LLC qualified expenses."
+    ],
+    "sources": [
+      {
+        "title": "VA Post-9/11 GI Bill rates (current, 2026-27)",
+        "url": "https://www.va.gov/education/benefit-rates/post-9-11-gi-bill-rates/",
+        "usedFor": "postNineEleven.tuition.tuitionCapPrivateForeign; mha.onlineMhaMonthly; mha.foreignMhaMonthly (seen via search summaries only; direct fetch blocked)"
+      },
+      {
+        "title": "VA Post-9/11 GI Bill past rates 2025-2026",
+        "url": "https://www.va.gov/education/benefit-rates/post-9-11-gi-bill-rates/past-rates-2025-2026/",
+        "usedFor": "tuitionCapPrivateForeign 2025-26 = 29920.95; onlineMhaMonthly 2025-26 = 1169; foreignMhaMonthly 2025-26 = 2338"
+      },
+      {
+        "title": "VA transferred Post-9/11 rates (shows foreign = national avg $2,522)",
+        "url": "https://www.va.gov/family-and-caregiver-benefits/education-and-careers/transferred-gi-bill-benefits/rates/",
+        "usedFor": "foreignMhaMonthly 2026-27 = 2522"
+      },
+      {
+        "title": "Military.com - 2026-2027 Post-9/11 GI Bill rates",
+        "url": "https://365.military.com/education/gi-bill/gi-bill-rates.html",
+        "usedFor": "tuitionCapPrivateForeign 2026-27 = 30908.34; foreign 2522; online 1261; 3.3% increase"
+      },
+      {
+        "title": "DAV - Back to School with the GI Bill (2026 rates)",
+        "url": "https://www.disabledveterans.org/back-to-school-with-the-gi-bill/",
+        "usedFor": "onlineMhaMonthly 2026-27 = 1261"
+      },
+      {
+        "title": "Syracuse University - Yellow Ribbon",
+        "url": "https://veterans.syracuse.edu/news/yellow-ribbon",
+        "usedFor": "tuition cap 2026-27 = 30908.34 confirmation; Yellow Ribbon mechanics"
+      },
+      {
+        "title": "VA Yellow Ribbon Program",
+        "url": "https://www.va.gov/education/about-gi-bill-benefits/post-9-11/yellow-ribbon-program/",
+        "usedFor": "yellowRibbon eligibility (100%, degree-seeking, active duty since Aug 2022)"
+      },
+      {
+        "title": "VA - Study at foreign schools",
+        "url": "https://www.va.gov/education/about-gi-bill-benefits/how-to-use-benefits/study-at-foreign-schools/",
+        "usedFor": "foreignSchools.approval"
+      },
+      {
+        "title": "University of Houston - Post-9/11 Study Abroad fact sheet",
+        "url": "https://www.uh.edu/learningabroad/student-resources/_files/post_911_study_abroad_fact_sheet.pdf",
+        "usedFor": "foreignSchools.tuitionPayment"
+      },
+      {
+        "title": "LSUS - Rate of pursuit guides",
+        "url": "https://www.lsus.edu/military-and-veterans/rate-of-pursuit-guides",
+        "usedFor": "minRateOfPursuit >50%; RoP does not affect tuition; graduate dissertation/assistantship full-time definitions"
+      },
+      {
+        "title": "ArmyStudyGuide - Does Post-9/11 still pay break pay",
+        "url": "https://armystudyguide.com/education/blog/does-the-post-911-gi-bill-still-pay-break-pay.html",
+        "usedFor": "mha.breakPay (eliminated Aug 1 2011)"
+      },
+      {
+        "title": "UMass Lowell - GI Bill changes",
+        "url": "https://www.uml.edu/student-services/Veterans/Benefits-Tuition/gi-bill-changes.aspx",
+        "usedFor": "breakPay, entitlement preserved"
+      },
+      {
+        "title": "38 USC 3313 (Cornell LII)",
+        "url": "https://www.law.cornell.edu/uscode/text/38/3313",
+        "usedFor": "tuition net of waivers; MHA formulas; books $1,000 (books 41.67/credit from general knowledge, consistent with $1,000/24 credits)"
+      },
+      {
+        "title": "VA VR&E FY2026 subsistence rates",
+        "url": "https://www.benefits.va.gov/vocrehab/vrerates26.asp",
+        "usedFor": "subsistenceFy2026.maxAnyCategory = 3439.23; effective 10/1/2025"
+      },
+      {
+        "title": "VA VR&E subsistence allowance rates",
+        "url": "https://www.benefits.va.gov/vocrehab/subsistence_allowance_rates.asp",
+        "usedFor": "FY26 standard table existence; P911/BAH option"
+      },
+      {
+        "title": "Military Transition Toolkit - VR&E pay chart 2026",
+        "url": "https://www.militarytransitiontoolkit.com/vre/pay-chart",
+        "usedFor": "subsistenceFy2026.fullTime 812.84/1008.24/1188.15/86.58; 2.5% COLA"
+      },
+      {
+        "title": "WVCOFCSRA - VR&E Chapter 31 benefits",
+        "url": "https://www.wvcofcsra.org/updates/vre-chapter-31-benefits-eligibility-tracks/",
+        "usedFor": "subsistenceFy2026 and subsistenceFy2027 (837.23/1038.49/1223.79/89.18)"
+      },
+      {
+        "title": "VA Claims Insider - 2026 Chapter 31 pay chart",
+        "url": "https://vaclaimsinsider.com/2026-va-chapter-31-pay-chart/",
+        "usedFor": "FY26 COLA 2.5% cross-check"
+      },
+      {
+        "title": "Archived VA letter - Calculating P911 Subsistence Allowance / Post911SA18",
+        "url": "https://webharvest.gov/congress115th/20181203182517/https://www.benefits.va.gov/VOCREHAB/docs/Post911SA18.pdf",
+        "usedFor": "p911RateOption fractions (foreign = national avg; distance = 1/2, 3/8, 1/4)"
+      },
+      {
+        "title": "38 CFR 21.260 (Cornell LII)",
+        "url": "https://www.law.cornell.edu/cfr/text/38/21.260",
+        "usedFor": "p911RateOption legal basis"
+      },
+      {
+        "title": "38 CFR 21.270 (Cornell LII) / DAV summary",
+        "url": "https://www.law.cornell.edu/cfr/text/38/21.270",
+        "usedFor": "vre.breakPay"
+      },
+      {
+        "title": "38 CFR 21.130 - courses outside the US",
+        "url": "https://www.law.cornell.edu/cfr/text/38/21.130",
+        "usedFor": "vre.foreignSchoolNotes"
+      },
+      {
+        "title": "38 USC 3103 (period of eligibility)",
+        "url": "https://www.govinfo.gov/link/uscode/38/3103",
+        "usedFor": "vre.periodOfEligibility"
+      },
+      {
+        "title": "San Mateo County VR&E fact sheet (2022)",
+        "url": "https://smcgov.org/media/143573/download",
+        "usedFor": "no 12-year limit if discharged on/after Jan 1 2013"
+      },
+      {
+        "title": "MyArmyBenefits - VR&E",
+        "url": "https://myarmybenefits.us.army.mil/Benefit-Library/Federal-Benefits/Veteran-Readiness-and-Employment-(VRandE)?serv=128",
+        "usedFor": "eligibility 20%/10% serious employment handicap; pre-2013 12-year rule"
+      },
+      {
+        "title": "38 USC 3695 (Cornell LII)",
+        "url": "https://www.law.cornell.edu/uscode/text/38/3695",
+        "usedFor": "combinedCapMonths = 48"
+      },
+      {
+        "title": "38 CFR 21.78",
+        "url": "https://www.law.cornell.edu/cfr/text/38/21.78",
+        "usedFor": "Ch31 48-month combined limit and extensions"
+      },
+      {
+        "title": "JMU - Chapter 33 / VR&E 48-month change Apr 1 2021",
+        "url": "https://www.jmu.edu/registrar/veterans/chapter-33/vetstepstoapply.shtml",
+        "usedFor": "fortyEightMonthRule (Ch31 no longer counts against GI Bill 48-month cap)"
+      },
+      {
+        "title": "GGU - 5 things about the 48-month rule",
+        "url": "https://military.ggu.edu/blog/things-you-need-to-know-about-48-month-rule",
+        "usedFor": "fortyEightMonthRule counterpoint; P911 subsistence"
+      },
+      {
+        "title": "IRS Topic 421 / Publication 970",
+        "url": "https://www.irs.gov/taxtopics/tc421",
+        "usedFor": "interactions: stipend taxability, qualified scholarship"
+      }
+    ],
+    "confidence": {
+      "postNineEleven.tuition.tuitionCapPrivateForeign.2025-26": "high",
+      "postNineEleven.tuition.tuitionCapPrivateForeign.2026-27": "high",
+      "postNineEleven.mha.onlineMhaMonthly": "high",
+      "postNineEleven.mha.foreignMhaMonthly": "high",
+      "postNineEleven.mha.minRateOfPursuit": "high",
+      "postNineEleven.mha.breakPay": "high",
+      "postNineEleven.books": "high",
+      "postNineEleven.entitlementMonths": "high",
+      "postNineEleven.fundedPhdInteraction.mhaWithTuitionWaiver": "high",
+      "postNineEleven.fundedPhdInteraction.researchDissertationHours": "medium",
+      "postNineEleven.foreignSchools.tuitionPayment": "medium",
+      "postNineEleven.tuition.yellowRibbon": "high",
+      "vre.subsistenceFy2026": "medium-high",
+      "vre.subsistenceFy2027": "medium",
+      "vre.subsistenceFy2026.maxAnyCategory": "low (meaning unclear)",
+      "vre.p911RateOption": "medium-high",
+      "vre.consumesCh33": "medium-high",
+      "vre.fortyEightMonthRule": "medium",
+      "vre.periodOfEligibility": "high",
+      "vre.eligibility": "high",
+      "vre.breakPay": "medium-low",
+      "vre.gradDegreeNotes": "medium",
+      "vre.foreignSchoolNotes": "medium",
+      "interactions.tax": "high",
+      "retireeNotes": "high"
+    }
+  }
+}

@@ -19,11 +19,16 @@ const COLUMN_SETS: Record<string, { key: string; label: string }[]> = {
   Income: [
     { key: "phaseLabel", label: "Phase" },
     { key: "incomeBreakdown.militaryBasePay", label: "Mil pay" },
+    { key: "incomeBreakdown.militaryBah", label: "BAH" },
+    { key: "incomeBreakdown.militaryOha", label: "OHA" },
+    { key: "incomeBreakdown.militaryCola", label: "COLA" },
     { key: "incomeBreakdown.pension", label: "Pension" },
     { key: "incomeBreakdown.salaryBase", label: "Salary" },
     { key: "incomeBreakdown.phdStipend", label: "Stipend" },
     { key: "incomeBreakdown.vaCompensation", label: "VA" },
     { key: "incomeBreakdown.giBillHousing", label: "GI Bill" },
+    { key: "incomeBreakdown.vreSubsistence", label: "VR&E" },
+    { key: "incomeBreakdown.tuitionPaidByVa", label: "VA tuition" },
     { key: "incomeBreakdown.socialSecurity", label: "Soc Sec" },
   ],
   Expenses: [
@@ -34,6 +39,7 @@ const COLUMN_SETS: Record<string, { key: string; label: string }[]> = {
     { key: "expenseBreakdown.insurance", label: "Insurance" },
     { key: "expenseBreakdown.healthcareOutOfPocket", label: "Health OOP" },
     { key: "healthcareCost", label: "Healthcare" },
+    { key: "expenseBreakdown.tuitionFees", label: "Tuition" },
     { key: "taxes", label: "Taxes" },
     { key: "livingExpenses", label: "Living total" },
   ],
@@ -179,7 +185,7 @@ export function Explorer() {
         </table>
       </div>
 
-      <CompositionPanel entry={active} />
+      <CompositionPanel entry={active} allEntries={scenarios} />
     </>
   );
 }

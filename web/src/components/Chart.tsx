@@ -33,10 +33,14 @@ export function LineChart({
   yLabel,
   onHoverIndex,
   tipLabel,
+  scaleAcross,
 }: {
   series: Series[];
   height?: number;
   yLabel: string;
+  /* Series sets for every path this chart can switch between; the y-axis is
+     sized to fit all of them so it stays put when the path changes. */
+  scaleAcross?: Series[][];
   /* Reports the snapped x-index on crosshair move (null on leave) so outside
      panels can stay in lock-step with the tooltip. */
   onHoverIndex?: (index: number | null) => void;
@@ -50,7 +54,7 @@ export function LineChart({
 
   const { xs, scaleX, scaleY, ticks, yMin } = useMemo(() => {
     const xs = series[0]?.points.map((p) => p.x) ?? [];
-    const allY = series.flatMap((s) => s.points.map((p) => p.y));
+    const allY = [series, ...(scaleAcross ?? [])].flatMap((set) => set.flatMap((s) => s.points.map((p) => p.y)));
     const rawMax = Math.max(...allY, 1);
     const rawMin = Math.min(...allY, 0);
     const magnitude = 10 ** Math.floor(Math.log10(Math.max(rawMax, -rawMin, 1)));
@@ -64,7 +68,7 @@ export function LineChart({
       height - pad.bottom - ((y - yMin) / (yMax - yMin || 1)) * (height - pad.top - pad.bottom);
     const ticks = [...new Set([yMin, 0, yMax * 0.5, yMax])];
     return { xs, yMax, yMin, scaleX, scaleY, ticks };
-  }, [series, height]);
+  }, [series, scaleAcross, height]);
 
   if (!series.length || !xs.length) return <p className="notice">No data yet.</p>;
 
@@ -222,11 +226,14 @@ export function StackedArea({
   height = 280,
   yLabel,
   tipLabel,
+  scaleAcross,
 }: {
   series: Series[]; // bottom-first stacking order; identical x arrays
   height?: number;
   yLabel: string;
   tipLabel?: (index: number) => string;
+  /* Series sets for every path this chart can switch between (shared y-axis). */
+  scaleAcross?: Series[][];
 }) {
   const [hover, setHover] = useState<{ i: number; px: number; py: number } | null>(null);
   const width = 900;
@@ -243,7 +250,10 @@ export function StackedArea({
       });
       return cum;
     });
-    const rawMax = Math.max(...totals, 1);
+    const otherTotals = (scaleAcross ?? []).flatMap((set) =>
+      (set[0]?.points ?? []).map((_, i) => set.reduce((sum, s) => sum + Math.max(s.points[i]?.y ?? 0, 0), 0)),
+    );
+    const rawMax = Math.max(...totals, ...otherTotals, 1);
     const magnitude = 10 ** Math.floor(Math.log10(rawMax));
     const yMax = Math.ceil(rawMax / magnitude) * magnitude;
     const xMin = xs[0] ?? 0;
@@ -251,7 +261,7 @@ export function StackedArea({
     const sx = (x: number) => pad.left + ((x - xMin) / Math.max(xMax - xMin, 1)) * (width - pad.left - pad.right);
     const sy = (y: number) => height - pad.bottom - (y / yMax) * (height - pad.top - pad.bottom);
     return { xs, stacked, yMax, sx, sy };
-  }, [series, height]);
+  }, [series, scaleAcross, height]);
 
   if (!series.length || !model.xs.length) return <p className="notice">No data yet.</p>;
   const { xs, stacked, yMax, sx, sy } = model;
@@ -327,6 +337,7 @@ export function Bars({
   onHoverIndex,
   tipLabel,
   totalLabel = "Total",
+  scaleAcross,
 }: {
   series: Series[]; // stacking order: first series sits nearest zero
   height?: number;
@@ -335,6 +346,8 @@ export function Bars({
   onHoverIndex?: (index: number | null) => void;
   tipLabel?: (index: number) => string;
   totalLabel?: string;
+  /* Series sets for every path this chart can switch between (shared y-axis). */
+  scaleAcross?: Series[][];
 }) {
   const [hover, setHover] = useState<{ i: number; px: number; py: number } | null>(null);
   /* Year window: late-career totals can dwarf the early years, so the bars
@@ -350,12 +363,22 @@ export function Bars({
     () => (first20 && canWindow ? series.map((s) => ({ ...s, points: s.points.slice(0, 20) })) : series),
     [series, first20, canWindow],
   );
+  const shownAcross = useMemo(
+    () =>
+      (scaleAcross ?? []).map((set) =>
+        first20 && canWindow ? set.map((s) => ({ ...s, points: s.points.slice(0, 20) })) : set,
+      ),
+    [scaleAcross, first20, canWindow],
+  );
 
   const model = useMemo(() => {
     const series = shown;
     const xs = series[0]?.points.map((p) => p.x) ?? [];
-    const totalsPos = xs.map((_, i) => series.reduce((s, sr) => s + Math.max(sr.points[i]?.y ?? 0, 0), 0));
-    const totalsNeg = xs.map((_, i) => series.reduce((s, sr) => s + Math.min(sr.points[i]?.y ?? 0, 0), 0));
+    const stackTotals = (set: Series[], pick: (v: number) => number) =>
+      (set[0]?.points ?? []).map((_, i) => set.reduce((s, sr) => s + pick(sr.points[i]?.y ?? 0), 0));
+    const sets = [series, ...shownAcross];
+    const totalsPos = sets.flatMap((set) => stackTotals(set, (v) => Math.max(v, 0)));
+    const totalsNeg = sets.flatMap((set) => stackTotals(set, (v) => Math.min(v, 0)));
     const rawMax = Math.max(...totalsPos, 0);
     const rawMin = Math.min(...totalsNeg, 0);
     const magnitude = 10 ** Math.floor(Math.log10(Math.max(rawMax, -rawMin, 1)));
@@ -367,7 +390,7 @@ export function Bars({
     const sy = (y: number) => height - pad.bottom - ((y - yMin) / span) * (height - pad.top - pad.bottom);
     const bw = Math.max(slot - 3, 2);
     return { xs, yMax, yMin, sx, sy, bw, slot };
-  }, [shown, height]);
+  }, [shown, shownAcross, height]);
 
   if (!series.length || !model.xs.length) return <p className="notice">No data yet.</p>;
   const { xs, yMax, yMin, sx, sy, bw, slot } = model;

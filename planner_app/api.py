@@ -9,6 +9,8 @@ drift between what was computed and what is displayed.
 
 from __future__ import annotations
 
+from .lines import LINE_DEFS
+
 import copy
 import hashlib
 import json
@@ -46,6 +48,17 @@ def default_payload() -> dict[str, Any]:
     }
 
 
+def _official_sources() -> list[dict[str, Any]]:
+    """Official documents behind the numbers (official_sources/manifest.json)."""
+    import json
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parent.parent / "official_sources" / "manifest.json"
+    if not path.exists():
+        return []
+    return json.loads(path.read_text(encoding="utf-8")).get("documents", [])
+
+
 def bootstrap_data() -> dict[str, Any]:
     """Everything the frontend needs to render before any computation."""
     domains = merge_v2_reference_domains(
@@ -56,6 +69,8 @@ def bootstrap_data() -> dict[str, Any]:
         "referenceDomains": domains,
         "referenceTables": REFERENCE_TABLES,
         "defaults": default_payload(),
+        "lineDefs": LINE_DEFS,
+        "officialSources": _official_sources(),
     }
 
 

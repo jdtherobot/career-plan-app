@@ -20,12 +20,18 @@ const wd = (r: any) => r.withdrawals ?? {};
    pay and allowances, pension, salary, stipend, VA, GI Bill, Social Security. */
 export const INCOME_PARTS: StackPart[] = [
   { id: "milPay", name: "Military base pay", color: C[0], metric: (r) => ib(r).militaryBasePay ?? 0 },
-  { id: "allowances", name: "BAH + BAS", color: C[1], metric: (r) => (ib(r).militaryBah ?? 0) + (ib(r).militaryBas ?? 0) },
+  {
+    id: "allowances", name: "Allowances (BAH/OHA/BAS/COLA)", color: C[1],
+    metric: (r) => (ib(r).militaryBah ?? 0) + (ib(r).militaryBas ?? 0) + (ib(r).militaryOha ?? 0) + (ib(r).militaryUa ?? 0) + (ib(r).militaryCola ?? 0) + (ib(r).militaryMiha ?? 0),
+  },
   { id: "pension", name: "Military pension", color: C[2], metric: (r) => ib(r).pension ?? 0 },
   { id: "salary", name: "Civilian salary", color: C[3], metric: (r) => ib(r).salaryBase ?? 0 },
   { id: "stipend", name: "Grad stipend", color: C[4], metric: (r) => ib(r).phdStipend ?? 0 },
   { id: "va", name: "VA disability", color: C[5], metric: (r) => ib(r).vaCompensation ?? 0 },
-  { id: "gi", name: "GI Bill housing + books", color: C[6], metric: (r) => (ib(r).giBillHousing ?? 0) + (ib(r).giBillBooks ?? 0) },
+  {
+    id: "gi", name: "VA education (housing, books, tuition)", color: C[6],
+    metric: (r) => (ib(r).giBillHousing ?? 0) + (ib(r).giBillBooks ?? 0) + (ib(r).vreSubsistence ?? 0) + (ib(r).tuitionPaidByVa ?? 0),
+  },
   { id: "ss", name: "Social Security", color: C[7], metric: (r) => ib(r).socialSecurity ?? 0 },
 ];
 
@@ -44,7 +50,7 @@ export const SPENDING_PARTS: StackPart[] = [
   { id: "food", name: "Food", color: C[3], metric: (r) => r.expenseBreakdown?.food ?? 0 },
   { id: "transport", name: "Transport + utilities", color: C[4], metric: (r) => (r.expenseBreakdown?.transportation ?? 0) + (r.expenseBreakdown?.utilities ?? 0) },
   {
-    id: "other", name: "Other living", color: C[5],
+    id: "other", name: "Other living + school", color: C[5],
     metric: (r) => Math.max((r.livingExpenses ?? 0) - (r.expenseBreakdown?.housing ?? 0) - (r.expenseBreakdown?.food ?? 0) - (r.expenseBreakdown?.transportation ?? 0) - (r.expenseBreakdown?.utilities ?? 0), 0),
   },
 ];

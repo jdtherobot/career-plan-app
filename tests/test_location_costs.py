@@ -30,12 +30,15 @@ def find_year(rows, year):
 
 
 class ResearchDataTest(unittest.TestCase):
-    def test_all_15_locations_loaded_with_full_categories(self) -> None:
-        self.assertEqual(len(RESEARCH), 15)
+    def test_all_locations_loaded_with_full_categories(self) -> None:
+        # 15 original + Beale AFB, RAF Alconbury, Sendai.
+        self.assertEqual(len(RESEARCH), 18)
         for loc_id, data in RESEARCH.items():
             self.assertGreater(data["housingMonthly"], 0, loc_id)
             self.assertGreater(data["foodMonthly"], 0, loc_id)
-            self.assertGreaterEqual(len(data["sources"]), 2, loc_id)
+            # Derived estimates (low confidence) cite the profile they scale from.
+            minimum = 1 if data.get("confidence") == "low" else 2
+            self.assertGreaterEqual(len(data["sources"]), minimum, loc_id)
 
     def test_merged_domains_contain_new_employer_locations(self) -> None:
         domains = merge_v2_reference_domains(hydrate_military_reference_domains(REFERENCE_DOMAINS, PLANNER_PROFILE))

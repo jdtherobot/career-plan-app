@@ -19,6 +19,8 @@ from typing import Any
 BLOCK_TYPES = ("tech_career", "research_career", "grad_school", "gap", "retire")
 WORK_BLOCK_TYPES = ("tech_career", "research_career")
 EXIT_TYPES = ("military_retirement", "separation")
+HOUSING_MODES = ("off_base", "on_base")
+EDUCATION_BENEFITS = ("gi_bill", "vre", "none")
 MIN_RETIREMENT_SERVICE_YEARS = 20
 BASE_MONTH = 1  # projections start in January of the base year
 
@@ -49,6 +51,36 @@ class ServiceExit:
 
 
 @dataclass
+class Station:
+    """One duty station during active duty. Stations run back-to-back from the
+    projection start; the last one (or one without a duration) runs to the
+    service exit. Housing decides which allowance applies (BAH/OHA vs quarters)."""
+
+    id: str
+    location_id: str
+    duration_months: int | None = None
+    housing: str = "off_base"
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Station":
+        duration = data.get("durationMonths")
+        return cls(
+            id=str(data.get("id", "")),
+            location_id=str(data.get("locationId", "")),
+            duration_months=int(duration) if duration not in (None, "") else None,
+            housing=data.get("housing") or "off_base",
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "locationId": self.location_id,
+            "durationMonths": self.duration_months,
+            "housing": self.housing,
+        }
+
+
+@dataclass
 class Block:
     id: str
     type: str
@@ -56,6 +88,8 @@ class Block:
     career_profile_id: str | None = None
     program_id: str | None = None
     location_id: str | None = None
+    benefit: str | None = None  # grad school: "gi_bill" | "vre" | "none" (None = scenario default)
+    funding_source_id: str | None = None  # optional outside funding (e.g. MEXT) for grad school
     overrides: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -69,7 +103,9 @@ class Block:
             duration_months=int(duration) if duration is not None else None,
             career_profile_id=data.get("careerProfileId"),
             program_id=data.get("programId"),
-            location_id=data.get("locationId"),
+            location_id=data.get("locationId") or None,
+            benefit=data.get("benefit") or None,
+            funding_source_id=data.get("fundingSourceId") or None,
             overrides=dict(data.get("overrides", {})),
         )
 
@@ -81,6 +117,8 @@ class Block:
             "careerProfileId": self.career_profile_id,
             "programId": self.program_id,
             "locationId": self.location_id,
+            "benefit": self.benefit,
+            "fundingSourceId": self.funding_source_id,
             "overrides": self.overrides,
         }
 
@@ -133,6 +171,9 @@ class ScenarioV2:
     use_va: bool = True
     use_gi_bill: bool = True
     overrides: dict[str, Any] = field(default_factory=dict)
+    stations: list[Station] = field(default_factory=list)
+    # {lineId: {"<calendar year>": monthly amount}} — the user's year-by-year edits.
+    line_overrides: dict[str, dict[str, float]] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ScenarioV2":
@@ -151,6 +192,8 @@ class ScenarioV2:
             use_va=bool(data.get("useVa", True)),
             use_gi_bill=bool(data.get("useGiBill", True)),
             overrides=dict(data.get("overrides", {})),
+            stations=[Station.from_dict(item) for item in data.get("stations") or []],
+            line_overrides=_clean_line_overrides(data.get("lineOverrides")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -169,7 +212,27 @@ class ScenarioV2:
             "useVa": self.use_va,
             "useGiBill": self.use_gi_bill,
             "overrides": self.overrides,
+            "stations": [station.to_dict() for station in self.stations],
+            "lineOverrides": self.line_overrides,
         }
+
+
+def _clean_line_overrides(raw: Any) -> dict[str, dict[str, float]]:
+    """Keep only numeric {line: {year: monthly}} entries; blanks mean 'calculated'."""
+    cleaned: dict[str, dict[str, float]] = {}
+    if not isinstance(raw, dict):
+        return cleaned
+    for line_id, by_year in raw.items():
+        if not isinstance(by_year, dict):
+            continue
+        years = {
+            str(year): float(value)
+            for year, value in by_year.items()
+            if isinstance(value, (int, float)) and not isinstance(value, bool)
+        }
+        if years:
+            cleaned[str(line_id)] = years
+    return cleaned
 
 
 @dataclass
@@ -185,6 +248,10 @@ class ResolvedBlock:
     career_profile_id: str | None = None
     program_id: str | None = None
     location_id: str | None = None
+    benefit: str | None = None
+    funding_source_id: str | None = None
+    housing: str | None = None  # active-duty station housing mode
+    station_index: int | None = None  # 0 = the current duty station
     overrides: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -236,6 +303,26 @@ def validate_scenario(profile: dict[str, Any], scenario: ScenarioV2) -> list[str
                 f"only {served:.1f} completed by {exit.year}-{exit.month:02d}."
             )
 
+    # Duty stations: each needs a location; all but the last need a duration.
+    station_cursor = 0
+    for position, station in enumerate(scenario.stations):
+        label = f"Station {position + 1}"
+        if not station.location_id:
+            errors.append(f"{label} needs a location.")
+        if station.housing not in HOUSING_MODES:
+            errors.append(f"{label} housing must be one of {HOUSING_MODES}.")
+        is_last_station = position == len(scenario.stations) - 1
+        if station.duration_months is None:
+            if not is_last_station:
+                errors.append(f"{label} needs a duration (only the last station may run to separation).")
+            continue
+        if station.duration_months <= 0:
+            errors.append(f"{label} needs a positive duration.")
+            continue
+        if station_cursor > exit_abs:
+            errors.append(f"{label} starts after your last month of service — remove it or shorten an earlier station.")
+        station_cursor += station.duration_months
+
     retire_indexes = [i for i, block in enumerate(scenario.blocks) if block.type == "retire"]
     if len(retire_indexes) > 1:
         errors.append("A path may contain at most one retire block.")
@@ -250,6 +337,8 @@ def validate_scenario(profile: dict[str, Any], scenario: ScenarioV2) -> list[str
             errors.append(f"{block.type} block '{block.id or position}' needs a company/employer selection.")
         if block.type == "grad_school" and not block.program_id:
             errors.append(f"Grad-school block '{block.id or position}' needs a school selection.")
+        if block.benefit is not None and block.benefit not in EDUCATION_BENEFITS:
+            errors.append(f"Block '{block.id or position}' benefit must be one of {EDUCATION_BENEFITS}.")
         if not is_terminal:
             if block.duration_months is None or block.duration_months <= 0:
                 errors.append(f"Block '{block.id or position}' needs a positive duration in whole months.")
@@ -298,7 +387,7 @@ def resolve_timeline(profile: dict[str, Any], scenario: ScenarioV2) -> list[Reso
     resolved: list[ResolvedBlock] = []
 
     active_type = "active_duty_retire" if exit.type == "military_retirement" else "active_duty_separate"
-    resolved.append(_make_resolved("active_duty", active_type, 0, exit_abs, base_year))
+    resolved.extend(_resolve_stations(scenario, active_type, exit_abs, base_year))
 
     cursor = exit_abs + 1
     last_index = len(scenario.blocks) - 1
@@ -320,6 +409,8 @@ def resolve_timeline(profile: dict[str, Any], scenario: ScenarioV2) -> list[Reso
                 overrides=block.overrides,
             )
         )
+        resolved[-1].benefit = block.benefit
+        resolved[-1].funding_source_id = block.funding_source_id
         cursor = end + 1
 
     # Timeline ends before the horizon: the remaining years are retirement.
@@ -327,6 +418,39 @@ def resolve_timeline(profile: dict[str, Any], scenario: ScenarioV2) -> list[Reso
         resolved.append(_make_resolved("implicit_retire", "retire", cursor, horizon - 1, base_year))
 
     return resolved
+
+
+def _resolve_stations(scenario: ScenarioV2, active_type: str, exit_abs: int, base_year: int) -> list[ResolvedBlock]:
+    """Active duty as one block per duty station (or a single block when the path
+    has no station timeline). The last station always runs to the exit month."""
+    stations = [station for station in scenario.stations if station.location_id]
+    if not stations:
+        return [_make_resolved("active_duty", active_type, 0, exit_abs, base_year)]
+    blocks: list[ResolvedBlock] = []
+    cursor = 0
+    for position, station in enumerate(stations):
+        if cursor > exit_abs:
+            break
+        is_last = position == len(stations) - 1
+        if is_last or station.duration_months is None:
+            end = exit_abs
+        else:
+            end = min(cursor + int(station.duration_months) - 1, exit_abs)
+        block = _make_resolved(
+            f"active_duty:{station.id or position + 1}",
+            active_type,
+            cursor,
+            end,
+            base_year,
+            location_id=station.location_id,
+        )
+        block.housing = station.housing
+        block.station_index = position
+        blocks.append(block)
+        cursor = end + 1
+        if is_last or station.duration_months is None:
+            break
+    return blocks
 
 
 def _make_resolved(

@@ -81,6 +81,7 @@ class YearProjection:
     unfunded_spending: float = 0.0
     real_dollar_factor: float = 0.0
     segments_meta: list[dict[str, Any]] = field(default_factory=list)
+    lines: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         total_income = self.gross_income + self.tax_free_income
@@ -127,6 +128,7 @@ class YearProjection:
             "unfundedSpending": round(self.unfunded_spending, 2),
             "realDollarFactor": round(self.real_dollar_factor, 6),
             "segments": self.segments_meta,
+            "lines": self.lines,
         }
 
 
