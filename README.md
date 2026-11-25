@@ -131,7 +131,7 @@ bypass all three.
 python3 -m unittest discover -s tests
 ```
 
-129 tests, all Python `unittest` — legacy golden-master fixtures, schema and
+132 tests, all Python `unittest` — legacy golden-master fixtures, schema and
 migration, exporters, location costs, service profile, single-file template, and
 financial invariants (no negative balances, cash-flow identity on accumulation
 years, GI Bill ≤ 36 months, benefits only after eligibility, deterministic

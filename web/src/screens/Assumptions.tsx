@@ -28,6 +28,7 @@ const DOMAIN_GROUPS: { title: string; note: string; domains: { id: string; label
     note: "Military, VA, and benefit rules.",
     domains: [
       { id: "va_disability", label: "VA disability rates", fields: ["monthly", "annual"] },
+      { id: "gi_bill_benefits", label: "GI Bill benefits (incl. foreign schools)", fields: ["monthlyHousingAllowance", "booksSuppliesAnnual", "tuitionFeesCapAnnual", "vaProgramApproved"] },
       { id: "benefit_rules", label: "Benefit rules", fields: ["valuePercent", "valueNumber"] },
       { id: "v2_benefit_rules", label: "Lifecycle rules", fields: ["valuePercent", "valueNumber"] },
     ],
@@ -151,6 +152,8 @@ export function Assumptions() {
                               const display =
                                 raw === null || raw === undefined
                                   ? "—"
+                                  : field === "vaProgramApproved"
+                                    ? (Number(raw) >= 1 ? "Yes (1)" : "No (0)")
                                   : typeof raw === "number" && Math.abs(raw) < 1
                                     ? `${(raw * 100).toFixed(1)}%`
                                     : typeof raw === "number"

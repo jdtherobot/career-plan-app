@@ -10,6 +10,21 @@ export interface Series {
   name: string;
   color: string;
   points: { x: number; y: number }[];
+  /* Hatched fill — secondary encoding when a stack reuses a hue (e.g. the
+     outflow half of a net-cash-flow bar). */
+  hatch?: boolean;
+}
+
+/* Year ticks: every fifth calendar year plus both ends, dropping any that
+   would crowd its neighbour. */
+function yearTicks(xs: number[]): number[] {
+  if (!xs.length) return [];
+  const ticks: number[] = [xs[0]];
+  for (const x of xs.slice(1, -1)) if (x % 5 === 0 && x - ticks[ticks.length - 1] >= 4) ticks.push(x);
+  const last = xs[xs.length - 1];
+  if (last - ticks[ticks.length - 1] >= 3) ticks.push(last);
+  else if (ticks.length > 1) ticks[ticks.length - 1] = last;
+  return ticks;
 }
 
 export function LineChart({
@@ -17,6 +32,7 @@ export function LineChart({
   height = 300,
   yLabel,
   onHoverIndex,
+  tipLabel,
 }: {
   series: Series[];
   height?: number;
@@ -24,6 +40,8 @@ export function LineChart({
   /* Reports the snapped x-index on crosshair move (null on leave) so outside
      panels can stay in lock-step with the tooltip. */
   onHoverIndex?: (index: number | null) => void;
+  /* Optional second tooltip line for an x-index (e.g. age · phase). */
+  tipLabel?: (index: number) => string;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<{ xIndex: number; px: number; py: number } | null>(null);
@@ -167,6 +185,7 @@ export function LineChart({
       {hover && hoverX !== null && (
         <div className="chart-tip" style={{ left: hover.px, top: Math.max(hover.py - 8, 40) }}>
           <div style={{ fontWeight: 600, marginBottom: 2 }}>{hoverX}</div>
+          {tipLabel && <div style={{ color: "var(--ink-3)", marginBottom: 2 }}>{tipLabel(hover.xIndex)}</div>}
           {series.map((s) => (
             <div key={s.id}>
               <span style={{ color: s.color }}>●</span> {s.name}:{" "}
@@ -202,10 +221,12 @@ export function StackedArea({
   series,
   height = 280,
   yLabel,
+  tipLabel,
 }: {
   series: Series[]; // bottom-first stacking order; identical x arrays
   height?: number;
   yLabel: string;
+  tipLabel?: (index: number) => string;
 }) {
   const [hover, setHover] = useState<{ i: number; px: number; py: number } | null>(null);
   const width = 900;
@@ -271,6 +292,7 @@ export function StackedArea({
       {hover && (
         <div className="chart-tip" style={{ left: hover.px, top: Math.max(hover.py - 8, 40) }}>
           <div style={{ fontWeight: 600, marginBottom: 2 }}>{xs[hover.i]}</div>
+          {tipLabel && <div style={{ color: "var(--ink-3)", marginBottom: 2 }}>{tipLabel(hover.i)}</div>}
           {[...series].reverse().map((s) => {
             const v = s.points[hover.i]?.y ?? 0;
             return Math.abs(v) < 0.5 ? null : (
@@ -292,59 +314,102 @@ export function StackedArea({
   );
 }
 
-/* ---------- bars (single or stacked; supports negatives for net CF) ---------- */
+/* ---------- bars: one bar per year, stacked by category ----------
+   Positive values stack up from zero, negative values stack down from zero,
+   each in its own series colour (a lone series may paint negatives with
+   `negativeColor`). Hover shows every non-zero part plus the bar's total. */
 
 export function Bars({
   series,
   height = 260,
   yLabel,
   negativeColor,
+  onHoverIndex,
+  tipLabel,
+  totalLabel = "Total",
 }: {
-  series: Series[]; // stacked if >1 (positives only); single series may go negative
+  series: Series[]; // stacking order: first series sits nearest zero
   height?: number;
   yLabel: string;
   negativeColor?: string;
+  onHoverIndex?: (index: number | null) => void;
+  tipLabel?: (index: number) => string;
+  totalLabel?: string;
 }) {
   const [hover, setHover] = useState<{ i: number; px: number; py: number } | null>(null);
+  /* Year window: late-career totals can dwarf the early years, so the bars
+     can be limited to the first 20 years to read school-era benefits. */
+  const [first20, setFirst20] = useState(false);
   const width = 900;
   const pad = { left: 62, right: 20, top: 14, bottom: 26 };
+  const single = series.length === 1;
+  const patternBase = useMemo(() => `hatch-${Math.random().toString(36).slice(2, 8)}`, []);
+  const fullLength = series[0]?.points.length ?? 0;
+  const canWindow = fullLength > 24;
+  const shown = useMemo(
+    () => (first20 && canWindow ? series.map((s) => ({ ...s, points: s.points.slice(0, 20) })) : series),
+    [series, first20, canWindow],
+  );
 
   const model = useMemo(() => {
+    const series = shown;
     const xs = series[0]?.points.map((p) => p.x) ?? [];
     const totalsPos = xs.map((_, i) => series.reduce((s, sr) => s + Math.max(sr.points[i]?.y ?? 0, 0), 0));
     const totalsNeg = xs.map((_, i) => series.reduce((s, sr) => s + Math.min(sr.points[i]?.y ?? 0, 0), 0));
-    const rawMax = Math.max(...totalsPos, 1);
+    const rawMax = Math.max(...totalsPos, 0);
     const rawMin = Math.min(...totalsNeg, 0);
     const magnitude = 10 ** Math.floor(Math.log10(Math.max(rawMax, -rawMin, 1)));
-    const yMax = Math.ceil(rawMax / magnitude) * magnitude;
+    const yMax = rawMax > 0 ? Math.ceil(rawMax / magnitude) * magnitude : 0;
     const yMin = rawMin < 0 ? -Math.ceil(-rawMin / magnitude) * magnitude : 0;
-    const xMin = xs[0] ?? 0;
-    const xMax = xs[xs.length - 1] ?? 1;
-    const sx = (x: number) => pad.left + ((x - xMin) / Math.max(xMax - xMin, 1)) * (width - pad.left - pad.right);
-    const sy = (y: number) => {
-      const span = yMax - yMin || 1;
-      return height - pad.bottom - ((y - yMin) / span) * (height - pad.top - pad.bottom);
-    };
-    const bw = Math.max(((width - pad.left - pad.right) / Math.max(xs.length, 1)) - 2, 2);
-    return { xs, yMax, yMin, sx, sy, bw };
-  }, [series, height]);
+    const span = yMax - yMin || 1;
+    const slot = (width - pad.left - pad.right) / Math.max(xs.length, 1);
+    const sx = (i: number) => pad.left + slot * (i + 0.5);
+    const sy = (y: number) => height - pad.bottom - ((y - yMin) / span) * (height - pad.top - pad.bottom);
+    const bw = Math.max(slot - 3, 2);
+    return { xs, yMax, yMin, sx, sy, bw, slot };
+  }, [shown, height]);
 
   if (!series.length || !model.xs.length) return <p className="notice">No data yet.</p>;
-  const { xs, yMax, yMin, sx, sy, bw } = model;
+  const { xs, yMax, yMin, sx, sy, bw, slot } = model;
+  const visible = shown.filter((s) => s.points.some((p) => Math.abs(p.y) >= 0.5));
+
+  const fillFor = (s: Series, si: number, v: number) => {
+    if (single && v < 0 && negativeColor) return negativeColor;
+    return s.hatch ? `url(#${patternBase}-${si})` : s.color;
+  };
 
   function onMove(e: React.MouseEvent<SVGSVGElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * width;
-    let best = 0, bd = Infinity;
-    xs.forEach((x, i) => { const d = Math.abs(sx(x) - px); if (d < bd) { bd = d; best = i; } });
-    setHover({ i: best, px: (sx(xs[best]) / width) * rect.width, py: e.clientY - rect.top });
+    const i = Math.min(Math.max(Math.floor((px - pad.left) / slot), 0), xs.length - 1);
+    setHover({ i, px: (sx(i) / width) * rect.width, py: e.clientY - rect.top });
+    onHoverIndex?.(i);
   }
+
+  const yTicks = [yMin, yMin / 2, 0, yMax / 2, yMax].filter((v, i, a) => a.indexOf(v) === i);
+  const ticks = yearTicks(xs);
 
   return (
     <div className="chart-wrap">
+      {canWindow && (
+        <div className="toggle" role="group" aria-label="Years shown" style={{ marginBottom: 6 }}>
+          <button className={!first20 ? "on" : ""} aria-pressed={!first20} onClick={() => setFirst20(false)}>All years</button>
+          <button className={first20 ? "on" : ""} aria-pressed={first20} onClick={() => setFirst20(true)}>First 20 years</button>
+        </div>
+      )}
       <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "auto", display: "block" }}
-        onMouseMove={onMove} onMouseLeave={() => setHover(null)} role="img" aria-label={yLabel}>
-        {[yMin, 0, yMax * 0.5, yMax].filter((v, i, a) => a.indexOf(v) === i).map((t) => (
+        onMouseMove={onMove}
+        onMouseLeave={() => { setHover(null); onHoverIndex?.(null); }}
+        role="img" aria-label={`${yLabel}, stacked by ${visible.map((s) => s.name).join(", ")}`}>
+        <defs>
+          {shown.map((s, si) => s.hatch ? (
+            <pattern key={s.id} id={`${patternBase}-${si}`} width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <rect width={6} height={6} fill={s.color} opacity={0.35} />
+              <line x1={0} y1={0} x2={0} y2={6} stroke={s.color} strokeWidth={3} />
+            </pattern>
+          ) : null)}
+        </defs>
+        {yTicks.map((t) => (
           <g key={t}>
             <line x1={pad.left} x2={width - pad.right} y1={sy(t)} y2={sy(t)} stroke={t === 0 ? "var(--ink-3)" : "var(--line-2)"} strokeWidth={1} />
             <text x={pad.left - 8} y={sy(t) + 3.5} textAnchor="end" fontSize={10.5} fontFamily="var(--font-mono)" fill="var(--ink-3)">
@@ -352,40 +417,60 @@ export function Bars({
             </text>
           </g>
         ))}
+        {hover && (
+          <rect x={sx(hover.i) - slot / 2} y={pad.top} width={slot} height={height - pad.top - pad.bottom} fill="var(--ink-3)" opacity={0.12} />
+        )}
         {xs.map((x, i) => {
           let cumPos = 0;
+          let cumNeg = 0;
           return (
             <g key={x}>
-              {series.map((s) => {
+              {shown.map((s, si) => {
                 const v = s.points[i]?.y ?? 0;
-                if (v >= 0) {
-                  const y0 = cumPos; cumPos += v;
-                  return <rect key={s.id} x={sx(x) - bw / 2} y={sy(cumPos)} width={bw} height={Math.max(sy(y0) - sy(cumPos), 0)} fill={s.color} rx={1} />;
-                }
-                return <rect key={s.id} x={sx(x) - bw / 2} y={sy(0)} width={bw} height={Math.max(sy(v) - sy(0), 0)} fill={negativeColor ?? "#A3382D"} rx={1} />;
+                if (Math.abs(v) < 0.5) return null;
+                let top: number, bottom: number;
+                if (v > 0) { bottom = cumPos; cumPos += v; top = cumPos; }
+                else { top = cumNeg; cumNeg += v; bottom = cumNeg; }
+                return (
+                  <rect key={s.id} x={sx(i) - bw / 2} y={sy(top)} width={bw}
+                    height={Math.max(sy(bottom) - sy(top), 0)} fill={fillFor(s, si, v)}
+                    stroke="var(--card)" strokeWidth={0.75} />
+                );
               })}
             </g>
           );
         })}
-        {[xs[0], xs[Math.floor(xs.length / 2)], xs[xs.length - 1]].map((x) => (
-          <text key={x} x={sx(x)} y={height - 8} textAnchor="middle" fontSize={10.5} fontFamily="var(--font-mono)" fill="var(--ink-3)">{x}</text>
+        {ticks.map((x) => (
+          <text key={x} x={sx(xs.indexOf(x))} y={height - 8} textAnchor="middle" fontSize={10.5} fontFamily="var(--font-mono)" fill="var(--ink-3)">{x}</text>
         ))}
       </svg>
       {hover && (
         <div className="chart-tip" style={{ left: hover.px, top: Math.max(hover.py - 8, 40) }}>
           <div style={{ fontWeight: 600, marginBottom: 2 }}>{xs[hover.i]}</div>
-          {series.map((s) => {
+          {tipLabel && <div style={{ color: "var(--ink-3)", marginBottom: 2 }}>{tipLabel(hover.i)}</div>}
+          {shown.map((s) => {
             const v = s.points[hover.i]?.y ?? 0;
             return Math.abs(v) < 0.5 ? null : (
-              <div key={s.id}><span style={{ color: v < 0 ? (negativeColor ?? "#A3382D") : s.color }}>■</span> {s.name}: {fmtMoney(v, true)}</div>
+              <div key={s.id}>
+                <span style={{ color: single && v < 0 && negativeColor ? negativeColor : s.color }}>{s.hatch ? "▨" : "■"}</span> {s.name}: {fmtMoney(v, true)}
+              </div>
             );
           })}
+          {!single && (
+            <div style={{ borderTop: "1px solid var(--line)", marginTop: 3, paddingTop: 3, fontWeight: 600 }}>
+              {totalLabel}: {fmtMoney(shown.reduce((sum, s) => sum + (s.points[hover.i]?.y ?? 0), 0), true)}
+            </div>
+          )}
         </div>
       )}
       <div className="legend">
-        {series.map((s) => (
+        {visible.map((s) => (
           <span key={s.id}>
-            <span style={{ width: 10, height: 10, borderRadius: 2, background: s.color, display: "inline-block" }} />
+            <span style={{
+              width: 10, height: 10, borderRadius: 2, display: "inline-block",
+              background: s.hatch ? `repeating-linear-gradient(45deg, ${s.color} 0 2px, transparent 2px 4px)` : s.color,
+              border: s.hatch ? `1px solid ${s.color}` : undefined,
+            }} />
             {s.name}
           </span>
         ))}

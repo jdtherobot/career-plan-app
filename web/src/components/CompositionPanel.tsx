@@ -1,123 +1,134 @@
 /* Composition charts for ONE path — the stacked/multi-part views that can't
    overlay multiple paths. Lives at the bottom of the Explorer, driven by the
-   path selected there. */
+   path selected there. Every chart can switch between its line/area view and
+   a stacked bar per year; a category keeps its colour in both. */
 
-import { useAppState, CAT_COLORS, NEGATIVE_COLORS } from "../state/store";
+import { useState, type ReactNode } from "react";
+import { useAppState, NEGATIVE_COLORS, STACK_COLORS } from "../state/store";
 import { Bars, LineChart, StackedArea, type Series } from "./Chart";
+import {
+  ACCOUNT_PARTS,
+  INCOME_PARTS,
+  OUTFLOW_PARTS,
+  RETIREMENT_INCOME_PARTS,
+  SAVINGS_PARTS,
+  SPENDING_PARTS,
+  phaseLabel,
+  type StackPart,
+} from "./stacks";
 
 function deflate(row: any, value: number, real: boolean): number {
   return real ? value * (row.realDollarFactor ?? 1) : value;
 }
 
+type View = "line" | "bars";
+
+function ViewToggle({ view, onChange, lineLabel, label }: { view: View; onChange: (v: View) => void; lineLabel: string; label: string }) {
+  return (
+    <div className="toggle" role="group" aria-label={`${label} view`}>
+      <button className={view === "line" ? "on" : ""} aria-pressed={view === "line"} onClick={() => onChange("line")}>
+        {lineLabel}
+      </button>
+      <button className={view === "bars" ? "on" : ""} aria-pressed={view === "bars"} onClick={() => onChange("bars")}>
+        Bars
+      </button>
+    </div>
+  );
+}
+
 export function CompositionPanel({ entry }: { entry: any }) {
   const { theme, realDollars } = useAppState();
-  const cat = CAT_COLORS[theme];
   const unit = realDollars ? "real 2026$" : "nominal";
+  const [views, setViews] = useState<Record<string, View>>({});
+  const tip = (i: number) => phaseLabel(entry.projection[i]);
 
-  const series = (defs: { id: string; name: string; color: string; metric: (row: any) => number }[]): Series[] =>
-    defs.map((d) => ({
+  const series = (parts: StackPart[]): Series[] =>
+    parts.map((d) => ({
       id: d.id,
       name: d.name,
       color: d.color,
+      hatch: d.hatch,
       points: entry.projection.map((row: any) => ({
         x: row.calendarYear,
         y: deflate(row, d.metric(row), realDollars),
       })),
     }));
 
-  const sections = [
+  const sections: {
+    id: string;
+    title: string;
+    sub: string;
+    lineLabel: string;
+    defaultView: View;
+    line: () => ReactNode;
+    bars: () => ReactNode;
+  }[] = [
     {
+      id: "inc_vs_exp",
       title: "Income vs expenses",
-      sub: "Total income against total expenses for this path",
-      node: (
+      sub: "Total income against total outflows for this path",
+      lineLabel: "Lines",
+      defaultView: "line",
+      line: () => (
         <LineChart
           series={series([
-            { id: "inc", name: "Total income", color: cat[2], metric: (r) => r.totalIncome },
-            { id: "out", name: "Total expenses", color: cat[0], metric: (r) => r.taxes + r.healthcareCost + r.livingExpenses },
+            { id: "inc", name: "Total income", color: STACK_COLORS[2], metric: (r) => r.totalIncome },
+            { id: "out", name: "Total expenses", color: STACK_COLORS[0], metric: (r) => r.taxes + r.healthcareCost + r.livingExpenses },
           ])}
           yLabel={`Per year, ${unit}`}
+          tipLabel={tip}
         />
+      ),
+      bars: () => (
+        <Bars series={series([...INCOME_PARTS, ...OUTFLOW_PARTS])} yLabel={`Per year, ${unit}`} totalLabel="Net cash flow" tipLabel={tip} height={300} />
       ),
     },
     {
+      id: "income",
       title: "Income composition",
       sub: "Where the money comes from each year",
-      node: (
-        <StackedArea
-          series={series([
-            { id: "mil", name: "Military pay", color: cat[5], metric: (r) => r.incomeBreakdown.militaryBasePay + r.incomeBreakdown.militaryBah + r.incomeBreakdown.militaryBas },
-            { id: "pension", name: "Pension", color: cat[0], metric: (r) => r.incomeBreakdown.pension },
-            { id: "salary", name: "Salary", color: cat[4], metric: (r) => r.incomeBreakdown.salaryBase },
-            { id: "stipend", name: "Stipend", color: cat[3], metric: (r) => r.incomeBreakdown.phdStipend },
-            { id: "va", name: "VA + GI Bill", color: cat[2], metric: (r) => r.incomeBreakdown.vaCompensation + r.incomeBreakdown.giBillHousing + r.incomeBreakdown.giBillBooks },
-            { id: "ss", name: "Social Security", color: cat[1], metric: (r) => r.incomeBreakdown.socialSecurity ?? 0 },
-          ])}
-          yLabel={`Income/yr, ${unit}`}
-        />
-      ),
+      lineLabel: "Area",
+      defaultView: "line",
+      line: () => <StackedArea series={series(INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} tipLabel={tip} />,
+      bars: () => <Bars series={series(INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} totalLabel="Total income" tipLabel={tip} height={280} />,
     },
     {
+      id: "expenses",
       title: "Expense composition",
       sub: "Living costs, healthcare, and taxes",
-      node: (
-        <StackedArea
-          series={series([
-            { id: "housing", name: "Housing", color: cat[0], metric: (r) => r.expenseBreakdown.housing ?? 0 },
-            { id: "food", name: "Food", color: cat[2], metric: (r) => r.expenseBreakdown.food ?? 0 },
-            { id: "transport", name: "Transport + utilities", color: cat[3], metric: (r) => (r.expenseBreakdown.transportation ?? 0) + (r.expenseBreakdown.utilities ?? 0) },
-            { id: "other", name: "Other living", color: cat[5], metric: (r) => Math.max((r.livingExpenses ?? 0) - (r.expenseBreakdown.housing ?? 0) - (r.expenseBreakdown.food ?? 0) - (r.expenseBreakdown.transportation ?? 0) - (r.expenseBreakdown.utilities ?? 0), 0) },
-            { id: "health", name: "Healthcare", color: cat[1], metric: (r) => r.healthcareCost },
-            { id: "taxes", name: "Taxes", color: cat[4], metric: (r) => r.taxes },
-          ])}
-          yLabel={`Expenses/yr, ${unit}`}
-        />
-      ),
+      lineLabel: "Area",
+      defaultView: "line",
+      line: () => <StackedArea series={series(SPENDING_PARTS)} yLabel={`Expenses/yr, ${unit}`} tipLabel={tip} />,
+      bars: () => <Bars series={series(SPENDING_PARTS)} yLabel={`Expenses/yr, ${unit}`} totalLabel="Total expenses" tipLabel={tip} height={280} />,
     },
     {
+      id: "accounts",
       title: "Savings by account",
       sub: "TSP · Roth IRA · brokerage · 401(k) · cash",
-      node: (
-        <StackedArea
-          series={series([
-            { id: "cash", name: "Cash", color: cat[0], metric: (r) => r.accountBalances?.cash ?? 0 },
-            { id: "brokerage", name: "Brokerage", color: cat[1], metric: (r) => r.accountBalances?.brokerage ?? 0 },
-            { id: "tsp", name: "TSP (Roth)", color: cat[2], metric: (r) => r.accountBalances?.tspRoth ?? 0 },
-            { id: "roth", name: "Roth IRA", color: cat[3], metric: (r) => r.accountBalances?.rothIra ?? 0 },
-            { id: "401k", name: "Trad 401(k)", color: cat[4], metric: (r) => r.accountBalances?.trad401k ?? 0 },
-          ])}
-          yLabel={`Balances, ${unit}`}
-        />
-      ),
+      lineLabel: "Area",
+      defaultView: "line",
+      line: () => <StackedArea series={series(ACCOUNT_PARTS)} yLabel={`Balances, ${unit}`} tipLabel={tip} />,
+      bars: () => <Bars series={series(ACCOUNT_PARTS)} yLabel={`Balances, ${unit}`} totalLabel="Total" tipLabel={tip} height={280} />,
     },
     {
+      id: "saved",
       title: "Savings put away",
       sub: "Contributions + employer match + surplus invested",
-      node: (
-        <Bars
-          series={series([
-            { id: "contrib", name: "Retirement contributions", color: cat[2], metric: (r) => r.retirementSavings },
-            { id: "match", name: "Employer match", color: cat[4], metric: (r) => r.employerMatch ?? 0 },
-            { id: "surplus", name: "Surplus invested", color: cat[1], metric: (r) => r.positiveSurplusInvested },
-          ])}
-          yLabel={`Saved/yr, ${unit}`}
-          negativeColor={NEGATIVE_COLORS[theme]}
-        />
+      lineLabel: "Area",
+      defaultView: "bars",
+      line: () => <StackedArea series={series(SAVINGS_PARTS)} yLabel={`Saved/yr, ${unit}`} tipLabel={tip} />,
+      bars: () => (
+        <Bars series={series(SAVINGS_PARTS)} yLabel={`Saved/yr, ${unit}`} totalLabel="Total saved" negativeColor={NEGATIVE_COLORS[theme]} tipLabel={tip} height={280} />
       ),
     },
     {
+      id: "retirement",
       title: "Retirement income sources",
-      sub: "Pension, Social Security, VA, account withdrawals",
-      node: (
-        <StackedArea
-          series={series([
-            { id: "pension", name: "Pension", color: cat[0], metric: (r) => r.retirementIncome?.pension ?? 0 },
-            { id: "ss", name: "Social Security", color: cat[4], metric: (r) => r.retirementIncome?.socialSecurity ?? 0 },
-            { id: "va", name: "VA", color: cat[2], metric: (r) => r.retirementIncome?.vaCompensation ?? 0 },
-            { id: "wd", name: "Account withdrawals", color: cat[1], metric: (r) => (r.withdrawals?.brokerage ?? 0) + (r.withdrawals?.trad401k ?? 0) + (r.withdrawals?.tspRoth ?? 0) + (r.withdrawals?.rothIra ?? 0) + (r.withdrawals?.cash ?? 0) },
-          ])}
-          yLabel={`Income/yr, ${unit}`}
-        />
-      ),
+      sub: "Pension, account withdrawals, VA, Social Security",
+      lineLabel: "Area",
+      defaultView: "line",
+      line: () => <StackedArea series={series(RETIREMENT_INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} tipLabel={tip} />,
+      bars: () => <Bars series={series(RETIREMENT_INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} totalLabel="Total" tipLabel={tip} height={280} />,
     },
   ];
 
@@ -125,16 +136,28 @@ export function CompositionPanel({ entry }: { entry: any }) {
     <section style={{ marginTop: 24 }}>
       <p className="section-h">Path composition · {entry.scenarioName}</p>
       <p className="notice" style={{ margin: "0 0 12px" }}>
-        These views break one path into its parts — switch paths above and they follow.
+        These views break one path into its parts — switch paths above and they follow. Use Bars to see each
+        category year by year.
       </p>
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))" }}>
-        {sections.map((section) => (
-          <section className="card" key={section.title}>
-            <h3>{section.title}</h3>
-            <p className="sub">{section.sub}</p>
-            {section.node}
-          </section>
-        ))}
+        {sections.map((section) => {
+          const view = views[section.id] ?? section.defaultView;
+          return (
+            <section className="card" key={section.id}>
+              <div className="row between">
+                <h3 style={{ margin: 0 }}>{section.title}</h3>
+                <ViewToggle
+                  view={view}
+                  label={section.title}
+                  lineLabel={section.lineLabel}
+                  onChange={(v) => setViews({ ...views, [section.id]: v })}
+                />
+              </div>
+              <p className="sub">{section.sub}</p>
+              {view === "bars" ? section.bars() : section.line()}
+            </section>
+          );
+        })}
       </div>
     </section>
   );
