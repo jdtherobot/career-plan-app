@@ -303,18 +303,22 @@ function ChartCard({
   const year = scenarios[0]?.projection[idx]?.calendarYear;
   const barEntry = scenarios.find((e) => e.scenarioId === barPathId) ?? scenarios[0];
   const barIndex = Math.max(scenarios.indexOf(barEntry), 0);
-  const barSeries: Series[] = stack && barEntry
-    ? stack.parts.map((part) => ({
-        id: part.id,
-        name: part.name,
-        color: part.color,
-        hatch: part.hatch,
-        points: barEntry.projection.map((row: any) => ({
-          x: row.calendarYear,
-          y: deflate(row, part.metric(row), realDollars),
-        })),
-      }))
-    : [];
+  const partsFor = (entry: any): Series[] =>
+    stack && entry
+      ? stack.parts.map((part) => ({
+          id: part.id,
+          name: part.name,
+          color: part.color,
+          hatch: part.hatch,
+          points: entry.projection.map((row: any) => ({
+            x: row.calendarYear,
+            y: deflate(row, part.metric(row), realDollars),
+          })),
+        }))
+      : [];
+  const barSeries = partsFor(barEntry);
+  /* Every path's bars, so the y-axis stays fixed when switching paths. */
+  const barScaleAcross = stack ? scenarios.map(partsFor) : undefined;
   const chooseView = (next: ChartView) => {
     setView(next);
     writeView(def.id, next);
@@ -381,6 +385,7 @@ function ChartCard({
           {view === "bars" && stack ? (
             <Bars
               series={barSeries}
+              scaleAcross={barScaleAcross}
               height={300}
               yLabel={`${def.title}, ${unit}`}
               totalLabel={stack.totalLabel}

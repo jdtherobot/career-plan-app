@@ -23,6 +23,11 @@ function deflate(row: any, value: number, real: boolean): number {
 
 type View = "line" | "bars";
 
+const INC_VS_EXP_PARTS: StackPart[] = [
+  { id: "inc", name: "Total income", color: STACK_COLORS[2], metric: (r) => r.totalIncome },
+  { id: "out", name: "Total expenses", color: STACK_COLORS[0], metric: (r) => r.taxes + r.healthcareCost + r.livingExpenses },
+];
+
 function ViewToggle({ view, onChange, lineLabel, label }: { view: View; onChange: (v: View) => void; lineLabel: string; label: string }) {
   return (
     <div className="toggle" role="group" aria-label={`${label} view`}>
@@ -36,23 +41,28 @@ function ViewToggle({ view, onChange, lineLabel, label }: { view: View; onChange
   );
 }
 
-export function CompositionPanel({ entry }: { entry: any }) {
+export function CompositionPanel({ entry, allEntries }: { entry: any; allEntries?: any[] }) {
   const { theme, realDollars } = useAppState();
   const unit = realDollars ? "real 2026$" : "nominal";
   const [views, setViews] = useState<Record<string, View>>({});
   const tip = (i: number) => phaseLabel(entry.projection[i]);
 
-  const series = (parts: StackPart[]): Series[] =>
+  const seriesFor = (e: any, parts: StackPart[]): Series[] =>
     parts.map((d) => ({
       id: d.id,
       name: d.name,
       color: d.color,
       hatch: d.hatch,
-      points: entry.projection.map((row: any) => ({
+      points: e.projection.map((row: any) => ({
         x: row.calendarYear,
         y: deflate(row, d.metric(row), realDollars),
       })),
     }));
+  const series = (parts: StackPart[]): Series[] => seriesFor(entry, parts);
+  /* The same parts for every path, so each chart's y-axis stays fixed when
+     switching paths. */
+  const across = (parts: StackPart[]): Series[][] | undefined =>
+    allEntries && allEntries.length > 1 ? allEntries.map((e) => seriesFor(e, parts)) : undefined;
 
   const sections: {
     id: string;
@@ -71,16 +81,14 @@ export function CompositionPanel({ entry }: { entry: any }) {
       defaultView: "line",
       line: () => (
         <LineChart
-          series={series([
-            { id: "inc", name: "Total income", color: STACK_COLORS[2], metric: (r) => r.totalIncome },
-            { id: "out", name: "Total expenses", color: STACK_COLORS[0], metric: (r) => r.taxes + r.healthcareCost + r.livingExpenses },
-          ])}
+          series={series(INC_VS_EXP_PARTS)}
+          scaleAcross={across(INC_VS_EXP_PARTS)}
           yLabel={`Per year, ${unit}`}
           tipLabel={tip}
         />
       ),
       bars: () => (
-        <Bars series={series([...INCOME_PARTS, ...OUTFLOW_PARTS])} yLabel={`Per year, ${unit}`} totalLabel="Net cash flow" tipLabel={tip} height={300} />
+        <Bars series={series([...INCOME_PARTS, ...OUTFLOW_PARTS])} scaleAcross={across([...INCOME_PARTS, ...OUTFLOW_PARTS])} yLabel={`Per year, ${unit}`} totalLabel="Net cash flow" tipLabel={tip} height={300} />
       ),
     },
     {
@@ -89,8 +97,8 @@ export function CompositionPanel({ entry }: { entry: any }) {
       sub: "Where the money comes from each year",
       lineLabel: "Area",
       defaultView: "line",
-      line: () => <StackedArea series={series(INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} tipLabel={tip} />,
-      bars: () => <Bars series={series(INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} totalLabel="Total income" tipLabel={tip} height={280} />,
+      line: () => <StackedArea series={series(INCOME_PARTS)} scaleAcross={across(INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} tipLabel={tip} />,
+      bars: () => <Bars series={series(INCOME_PARTS)} scaleAcross={across(INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} totalLabel="Total income" tipLabel={tip} height={280} />,
     },
     {
       id: "expenses",
@@ -98,8 +106,8 @@ export function CompositionPanel({ entry }: { entry: any }) {
       sub: "Living costs, healthcare, and taxes",
       lineLabel: "Area",
       defaultView: "line",
-      line: () => <StackedArea series={series(SPENDING_PARTS)} yLabel={`Expenses/yr, ${unit}`} tipLabel={tip} />,
-      bars: () => <Bars series={series(SPENDING_PARTS)} yLabel={`Expenses/yr, ${unit}`} totalLabel="Total expenses" tipLabel={tip} height={280} />,
+      line: () => <StackedArea series={series(SPENDING_PARTS)} scaleAcross={across(SPENDING_PARTS)} yLabel={`Expenses/yr, ${unit}`} tipLabel={tip} />,
+      bars: () => <Bars series={series(SPENDING_PARTS)} scaleAcross={across(SPENDING_PARTS)} yLabel={`Expenses/yr, ${unit}`} totalLabel="Total expenses" tipLabel={tip} height={280} />,
     },
     {
       id: "accounts",
@@ -107,8 +115,8 @@ export function CompositionPanel({ entry }: { entry: any }) {
       sub: "TSP · Roth IRA · brokerage · 401(k) · cash",
       lineLabel: "Area",
       defaultView: "line",
-      line: () => <StackedArea series={series(ACCOUNT_PARTS)} yLabel={`Balances, ${unit}`} tipLabel={tip} />,
-      bars: () => <Bars series={series(ACCOUNT_PARTS)} yLabel={`Balances, ${unit}`} totalLabel="Total" tipLabel={tip} height={280} />,
+      line: () => <StackedArea series={series(ACCOUNT_PARTS)} scaleAcross={across(ACCOUNT_PARTS)} yLabel={`Balances, ${unit}`} tipLabel={tip} />,
+      bars: () => <Bars series={series(ACCOUNT_PARTS)} scaleAcross={across(ACCOUNT_PARTS)} yLabel={`Balances, ${unit}`} totalLabel="Total" tipLabel={tip} height={280} />,
     },
     {
       id: "saved",
@@ -116,9 +124,9 @@ export function CompositionPanel({ entry }: { entry: any }) {
       sub: "Contributions + employer match + surplus invested",
       lineLabel: "Area",
       defaultView: "bars",
-      line: () => <StackedArea series={series(SAVINGS_PARTS)} yLabel={`Saved/yr, ${unit}`} tipLabel={tip} />,
+      line: () => <StackedArea series={series(SAVINGS_PARTS)} scaleAcross={across(SAVINGS_PARTS)} yLabel={`Saved/yr, ${unit}`} tipLabel={tip} />,
       bars: () => (
-        <Bars series={series(SAVINGS_PARTS)} yLabel={`Saved/yr, ${unit}`} totalLabel="Total saved" negativeColor={NEGATIVE_COLORS[theme]} tipLabel={tip} height={280} />
+        <Bars series={series(SAVINGS_PARTS)} scaleAcross={across(SAVINGS_PARTS)} yLabel={`Saved/yr, ${unit}`} totalLabel="Total saved" negativeColor={NEGATIVE_COLORS[theme]} tipLabel={tip} height={280} />
       ),
     },
     {
@@ -127,8 +135,8 @@ export function CompositionPanel({ entry }: { entry: any }) {
       sub: "Pension, account withdrawals, VA, Social Security",
       lineLabel: "Area",
       defaultView: "line",
-      line: () => <StackedArea series={series(RETIREMENT_INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} tipLabel={tip} />,
-      bars: () => <Bars series={series(RETIREMENT_INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} totalLabel="Total" tipLabel={tip} height={280} />,
+      line: () => <StackedArea series={series(RETIREMENT_INCOME_PARTS)} scaleAcross={across(RETIREMENT_INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} tipLabel={tip} />,
+      bars: () => <Bars series={series(RETIREMENT_INCOME_PARTS)} scaleAcross={across(RETIREMENT_INCOME_PARTS)} yLabel={`Income/yr, ${unit}`} totalLabel="Total" tipLabel={tip} height={280} />,
     },
   ];
 

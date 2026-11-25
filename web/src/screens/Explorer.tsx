@@ -179,7 +179,7 @@ export function Explorer() {
         </table>
       </div>
 
-      <CompositionPanel entry={active} />
+      <CompositionPanel entry={active} allEntries={scenarios} />
     </>
   );
 }
