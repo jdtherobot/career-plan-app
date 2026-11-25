@@ -43,49 +43,30 @@ def is_overseas(location: dict[str, Any] | None, location_id: str | None) -> boo
     return country not in ("US", "USA")
 
 
-def _grade_rate(table: dict[str, Any] | None, grade: str) -> float | None:
-    """Rate for a grade, falling back to the nearest listed grade of the same type."""
-    if not table:
-        return None
-    if grade in table and table[grade] is not None:
-        return float(table[grade])
-    prefix = grade.split("-")[0]
-    try:
-        number = int("".join(ch for ch in grade.split("-")[-1] if ch.isdigit()) or 0)
-    except ValueError:
-        number = 0
-    candidates = []
-    for key, value in table.items():
-        if value is None or not key.startswith(prefix + "-"):
-            continue
-        digits = "".join(ch for ch in key.split("-")[-1] if ch.isdigit())
-        if digits:
-            candidates.append((abs(int(digits) - number), float(value)))
-    if candidates:
-        return min(candidates)[1]
+def official_row(domains: dict, domain: str, location_id: str | None, grade: str, dependents: bool) -> dict[str, Any] | None:
+    """The exact grade + dependency row — no nearest-grade substitution."""
+    for row in domains.get(domain, []):
+        if row.get("locationId") == location_id and row.get("grade") == grade and bool(row.get("dependents")) == dependents:
+            return row
     return None
 
 
-def bah_monthly(pay_data: dict[str, Any], location_id: str | None, grade: str, dependents: bool) -> tuple[float, bool]:
-    """(BAH monthly in the data year, is_estimate). Unknown CONUS locations use
-    the US metro average and are flagged as an estimate."""
-    table = pay_data.get("bah", {}) or {}
-    entry = table.get(location_id or "")
-    estimate = False
+def _value(row: dict[str, Any] | None, field: str) -> float | None:
+    if not row:
+        return None
+    value = row.get(field)
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def bah_monthly(pay_data: dict[str, Any], location_id: str | None, grade: str, dependents: bool) -> float | None:
+    """BAH for the exact MHA/grade/dependency status, or None when no rate is loaded.
+    No fallback to another location or grade: a missing rate is reported, not guessed."""
+    entry = (pay_data.get("bah", {}) or {}).get(location_id or "")
     if not entry:
-        entry = table.get("us_metro_average") or {}
-        estimate = True
-    rates = entry.get("withDependents" if dependents else "withoutDependents", {}) if entry else {}
-    rate = _grade_rate(rates, grade if grade in rates else ("O-7" if grade.startswith("O-") and grade not in rates else grade))
-    return float(rate or 0.0), estimate
-
-
-def _grade_rows(domains: dict, domain: str, location_id: str, field: str) -> dict[str, float]:
-    return {
-        row["grade"]: float(row.get(field) or 0)
-        for row in domains.get(domain, [])
-        if row.get("locationId") == location_id and row.get(field) is not None
-    }
+        return None
+    rates = entry.get("withDependents" if dependents else "withoutDependents", {}) or {}
+    value = rates.get(grade)
+    return float(value) if value is not None else None
 
 
 def station_allowances(
@@ -100,36 +81,50 @@ def station_allowances(
     raise_rate: float,
     cost_growth: float,
 ) -> dict[str, Any]:
-    """Monthly allowances for one station (all USD, escalated to the year)."""
+    """Monthly allowances for one station (USD). Official rates apply in their
+    data year; later years are projected forward at the military raise (BAH,
+    COLA) or the location's cost growth (OHA, UA). Anything without an
+    official rate is listed in `missing` and pays $0."""
     raise_factor = (1 + raise_rate) ** max(years_from_data, 0)
     cost_factor = (1 + cost_growth) ** max(years_from_data, 0)
+    dep_text = "with dependents" if dependents else "without dependents"
     result: dict[str, Any] = {
-        "overseas": False, "bah": 0.0, "ohaCap": 0.0, "ua": 0.0, "cola": 0.0,
-        "onBase": housing == "on_base", "estimate": False, "notes": [],
+        "overseas": False, "bah": 0.0, "ohaCap": 0.0, "ua": 0.0, "cola": 0.0, "miha": 0.0,
+        "onBase": housing == "on_base", "missing": [], "notes": [], "currency": "USD", "roe": 1.0,
     }
     station = next((row for row in domains.get("overseas_allowances", []) if row.get("id") == location_id), None)
     if station or is_overseas(location, location_id):
         result["overseas"] = True
+        place = (location or {}).get("label") or location_id
         if not station:
-            result["estimate"] = True
-            result["notes"].append("No researched OHA/COLA data for this location — allowances are $0. Add them in Assumptions.")
+            result["missing"].append(f"No official OHA/COLA rates are loaded for {place}.")
             return result
-        fx = float(station.get("usdPerLocal") or 1.0)
-        dep = "withDependents" if dependents else "withoutDependents"
-        cola = _grade_rate(_grade_rows(domains, "overseas_cola", location_id, f"{dep}Usd"), grade)
-        result["cola"] = float(cola or 0.0) * raise_factor
+        roe = float(station.get("roeLocalPerUsd") or 1.0)  # local currency per USD
+        result["currency"] = station.get("currency", "USD")
+        result["roe"] = roe
+        cola = _value(official_row(domains, "overseas_cola", location_id, grade, dependents), "monthlyUsd")
+        if cola is None:
+            result["missing"].append(f"COLA for {grade} {dep_text} at {station.get('dtmoLocality') or place}")
+        else:
+            result["cola"] = cola * raise_factor
         if housing != "on_base":
-            ceiling = _grade_rate(_grade_rows(domains, "oha_rent_ceilings", location_id, f"{dep}Local"), grade)
-            ua_field = "uaWithDependentsLocal" if dependents else "uaWithoutDependentsLocal"
-            result["ohaCap"] = float(ceiling or 0.0) * fx * cost_factor
-            result["ua"] = float(station.get(ua_field) or 0.0) * fx * cost_factor
-        if station.get("verificationStatus") not in (None, "verified"):
-            result["estimate"] = True
+            oha = official_row(domains, "oha_rates", location_id, grade, dependents)
+            rent_cap = _value(oha, "rentLocal")
+            if rent_cap is None:
+                result["missing"].append(f"OHA for {grade} {dep_text} at {station.get('dtmoLocality') or place}")
+            else:
+                result["ohaCap"] = rent_cap / roe * cost_factor
+                result["ua"] = (_value(oha, "uaLocal") or 0.0) / roe * cost_factor
+                result["miha"] = (_value(oha, "mihaLocal") or 0.0) / roe * cost_factor
+                result["ohaCapOfficialLocal"] = rent_cap
+                result["projected"] = years_from_data > 0
+                result["source"] = f"DTMO, effective {station.get('ratesEffective')}"
         return result
     if housing != "on_base":
-        bah, estimate = bah_monthly(pay_data, location_id, grade, dependents)
-        result["bah"] = bah * raise_factor
-        result["estimate"] = estimate
-        if estimate:
-            result["notes"].append("No BAH entry for this location — using the US metro average.")
+        bah = bah_monthly(pay_data, location_id, grade, dependents)
+        if bah is None:
+            place = (location or {}).get("label") or location_id
+            result["missing"].append(f"BAH for {grade} {dep_text} at {place}")
+        else:
+            result["bah"] = bah * raise_factor
     return result

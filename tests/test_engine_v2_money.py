@@ -121,10 +121,10 @@ class ForeignSchoolGiBillTest(unittest.TestCase):
 
     def test_approved_foreign_program_pays_flat_foreign_rate(self) -> None:
         rows, _ = project(_with_grad_program("scenario_path_c", "CAM-CS-PHD"))
-        full_years = [row for row in rows if row["incomeBreakdown"]["giBillHousing"] >= 2522.0 * 12 - 1]
+        full_years = [row for row in rows if row["incomeBreakdown"]["giBillHousing"] >= 2396.0 * 12 - 1]
         self.assertTrue(full_years)
-        self.assertAlmostEqual(full_years[0]["incomeBreakdown"]["giBillHousing"], 2522.0 * 12, delta=1)
-        total_months = sum(row["incomeBreakdown"]["giBillHousing"] for row in rows) / 2522.0
+        self.assertAlmostEqual(full_years[0]["incomeBreakdown"]["giBillHousing"], 2396.0 * 12, delta=1)
+        total_months = sum(row["incomeBreakdown"]["giBillHousing"] for row in rows) / 2396.0
         self.assertAlmostEqual(total_months, 36, delta=0.01)
 
 

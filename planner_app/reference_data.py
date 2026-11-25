@@ -1450,7 +1450,7 @@ def _build_va_disability() -> list[dict[str, Any]]:
 
 
 # Post-9/11 GI Bill foreign-school rates, academic year Aug 1 2026 - Jul 31 2027.
-FOREIGN_SCHOOL_MHA_2026_27 = 2522.0
+FOREIGN_SCHOOL_MHA_2026_27 = 2396.0  # va.gov Post-9/11 rates page, fetched 2026-11-25
 FOREIGN_SCHOOL_TUITION_CAP_2026_27 = 30908.34
 FOREIGN_SCHOOL_SOURCE_URL = "https://www.va.gov/education/about-gi-bill-benefits/how-to-use-benefits/study-at-foreign-schools/"
 
@@ -1542,7 +1542,7 @@ def _build_gi_bill_benefits() -> list[dict[str, Any]]:
             "sourceUrl": FOREIGN_SCHOOL_SOURCE_URL,
             "verificationStatus": "researched_2026_11_12",
             "notes": (
-                "Foreign schools get a flat housing rate ($2,522/mo full-time, 2026-27), not a location rate; "
+                "Foreign schools get a flat housing rate ($2,396/mo full-time, 2026-27), not a location rate; "
                 "tuition and fees are paid up to $30,908.34/yr and books up to $1,000/yr. The program must be "
                 "VA-approved, and only the school can request approval (federal.approvals@va.gov). Science Tokyo "
                 "was not on VA's approved list as of Sep 2026, so vaProgramApproved = 0: the GI Bill pays nothing "
@@ -1567,7 +1567,7 @@ def _build_gi_bill_benefits() -> list[dict[str, Any]]:
             "verificationStatus": "researched_2026_11_12",
             "notes": (
                 "Cambridge processes VA benefits and VA caps payments at foreign schools. Flat foreign-school "
-                "housing rate ($2,522/mo full-time, 2026-27), tuition and fees up to $30,908.34/yr, books up to "
+                "housing rate ($2,396/mo full-time, 2026-27), tuition and fees up to $30,908.34/yr, books up to "
                 "$1,000/yr. Approval of the specific CS PhD program still needs confirming in VA's GI Bill "
                 "Comparison Tool; set vaProgramApproved to 0 if it is not approved."
             ),

@@ -333,57 +333,60 @@ def _load_json(name: str) -> dict[str, Any]:
 
 
 def _apply_overseas_research(merged: dict[str, list[dict[str, Any]]]) -> None:
-    """Overseas duty stations as editable rows: one allowance row per station,
-    plus per-grade OHA rent ceilings and COLA amounts."""
+    """Overseas duty stations as editable rows: one row per station (currency,
+    official rate of exchange) plus one OHA row and one COLA row per grade and
+    dependency status. Rows without an official DTMO value stay empty
+    ("missing") — they are never filled with an estimate."""
     if "overseas_allowances" in merged:
         return
     data = _load_json("data_overseas_2026.json")
-    allowances: list[dict[str, Any]] = []
-    ceilings: list[dict[str, Any]] = []
-    colas: list[dict[str, Any]] = []
+    stations: list[dict[str, Any]] = []
+    oha_rows: list[dict[str, Any]] = []
+    cola_rows: list[dict[str, Any]] = []
     for location_id, entry in (data.get("stations") or {}).items():
         source = (entry.get("sources") or [{}])[0]
-        ua = entry.get("utilityAllowanceLocal") or {}
-        allowances.append({
+        label = entry.get("label", location_id)
+        stations.append({
             "id": location_id,
-            "label": entry.get("label", location_id),
+            "label": label,
+            "dtmoLocality": entry.get("dtmoLocality"),
             "currency": entry.get("currency", "USD"),
-            "usdPerLocal": float(entry.get("usdPerLocal") or 1.0),
-            "colaIndex": entry.get("colaIndex"),
-            "uaWithDependentsLocal": float(ua.get("withDependents") or 0),
-            "uaWithoutDependentsLocal": float(ua.get("withoutDependents") or 0),
-            "ohaLocality": entry.get("ohaLocality"),
-            "verificationStatus": entry.get("verificationStatus", "estimate"),
+            "roeLocalPerUsd": float(entry.get("roeLocalPerUsd") or 1.0),
+            "roeEffective": entry.get("roeEffective"),
+            "ratesEffective": entry.get("ratesEffective"),
+            "verificationStatus": "official",
             "notes": entry.get("notes", ""),
-            "sourceLabel": source.get("title", "Overseas allowance research"),
+            "sourceLabel": source.get("title", "DTMO"),
             "sourceUrl": source.get("url", ""),
         })
-        estimated = set(entry.get("ohaEstimatedGrades") or [])
-        oha = entry.get("ohaRentCeilingLocal") or {}
-        for grade, value in (oha.get("withDependents") or {}).items():
-            ceilings.append({
-                "id": f"{location_id}:{grade}", "label": f"{grade} · {entry.get('label', location_id)}",
-                "locationId": location_id, "grade": grade,
-                "withDependentsLocal": float(value or 0),
-                "withoutDependentsLocal": float((oha.get("withoutDependents") or {}).get(grade) or 0),
+        for row in entry.get("oha") or []:
+            dep = "with" if row.get("dependents") else "without"
+            oha_rows.append({
+                "id": f"{location_id}:{row['grade']}:{dep}",
+                "label": f"{row['grade']} {dep} dependents · {label}",
+                "locationId": location_id, "grade": row["grade"], "dependents": bool(row.get("dependents")),
+                "rentLocal": row.get("rentLocal"), "uaLocal": row.get("uaLocal"), "mihaLocal": row.get("mihaLocal"),
                 "currency": entry.get("currency", "USD"),
-                "verificationStatus": "estimate" if grade in estimated else "researched",
+                "verificationStatus": row.get("status", "missing"),
+                "verifiedOn": row.get("verifiedOn"),
+                "notes": row.get("verifiedBy", "No official DTMO value loaded — enter it from the DTMO OHA calculator."),
                 "sourceLabel": source.get("title", ""), "sourceUrl": source.get("url", ""),
             })
-        cola = entry.get("colaMonthlyUsd") or {}
-        for grade, value in (cola.get("withDependents") or {}).items():
-            colas.append({
-                "id": f"{location_id}:{grade}", "label": f"{grade} · {entry.get('label', location_id)}",
-                "locationId": location_id, "grade": grade,
-                "withDependentsUsd": float(value or 0),
-                "withoutDependentsUsd": float((cola.get("withoutDependents") or {}).get(grade) or 0),
-                "verificationStatus": "estimate",
-                "notes": f"Estimated from COLA index {entry.get('colaIndex')} x an estimated spendable income.",
-                "sourceLabel": source.get("title", ""), "sourceUrl": source.get("url", ""),
+        for row in entry.get("cola") or []:
+            dep = "with" if row.get("dependents") else "without"
+            cola_rows.append({
+                "id": f"{location_id}:{row['grade']}:{dep}",
+                "label": f"{row['grade']} {dep} dependents · {label}",
+                "locationId": location_id, "grade": row["grade"], "dependents": bool(row.get("dependents")),
+                "monthlyUsd": row.get("monthlyUsd"),
+                "verificationStatus": row.get("status", "missing"),
+                "notes": entry.get("colaNote", ""),
+                "sourceLabel": "DTMO OCONUS COLA calculator",
+                "sourceUrl": "https://www.travel.dod.mil/Allowances/Overseas-Cost-of-Living-Allowance/",
             })
-    merged["overseas_allowances"] = allowances
-    merged["oha_rent_ceilings"] = ceilings
-    merged["overseas_cola"] = colas
+    merged["overseas_allowances"] = stations
+    merged["oha_rates"] = oha_rows
+    merged["overseas_cola"] = cola_rows
 
 
 def _apply_state_tax_research(merged: dict[str, list[dict[str, Any]]]) -> None:
@@ -463,7 +466,7 @@ def _apply_program_research(merged: dict[str, list[dict[str, Any]]]) -> None:
             continue
         gi_records.append({
             "id": gi_id, "label": label, "locationId": location_id, "deliveryMode": "foreign_school",
-            "monthlyHousingAllowance": float(rules.get("foreignMhaMonthly", 2522.0)),
+            "monthlyHousingAllowance": float(rules.get("foreignMhaMonthly", 2396.0)),
             "booksSuppliesAnnual": float(rules.get("booksAnnualCap", 1000.0)),
             "monthsEligible": 36,
             "tuitionFeesCapAnnual": float(rules.get("tuitionCapPrivateForeignAnnual", 30908.34)),

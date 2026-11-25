@@ -6,8 +6,8 @@
     "vreEntitlementMonths": 48,
     "vreCombinedCapMonths": 48,
     "tuitionCapPrivateForeignAnnual": 30908.34,
-    "foreignMhaMonthly": 2522.0,
-    "onlineMhaMonthly": 1261.0,
+    "foreignMhaMonthly": 2396.0,
+    "onlineMhaMonthly": 1198.0,
     "booksAnnualCap": 1000.0,
     "booksPerCredit": 41.67,
     "vreCh31FullTimeMonthly": {
@@ -23,7 +23,21 @@
       "VR&E subsistence: the Post-9/11 rate (school-ZIP E-5 w/dep BAH; national average for foreign schools) when Post-9/11 eligible, otherwise the Ch. 31 table.",
       "No break pay: housing/subsistence is paid only while enrolled. The planner assumes full-time, year-round enrollment for the block's months.",
       "A funded PhD with a full tuition waiver: VA pays $0 tuition (no net charge) but housing and books still pay. Stipends are taxable; VA payments are tax-free."
-    ]
+    ],
+    "officialSources": [
+      {
+        "title": "VA \u2014 Post-9/11 GI Bill rates, Aug 1 2026 \u2013 Jul 31 2027",
+        "url": "https://www.va.gov/education/benefit-rates/post-9-11-gi-bill-rates/",
+        "fetched": "2026-11-25",
+        "values": {
+          "tuitionCapPrivateForeign": 30908.34,
+          "foreignMha": 2396,
+          "onlineMha": 1198,
+          "booksAnnualCap": 1000
+        }
+      }
+    ],
+    "vreCh31Note": "VA's published Ch. 31 table page is frozen at Oct 2012; current Ch. 31 amounts come from secondary sources and are used only if the Post-9/11-rate option doesn't apply. The planner pays VR&E at the Post-9/11 rate (official), not adjusted for dependents (38 CFR 21.260)."
   },
   "research": {
     "collectedAt": "2026-11-25",

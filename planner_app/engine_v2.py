@@ -542,9 +542,13 @@ def project_scenario_v2(
                         calendar_year - pay_data_year, military_raise, expense_growth,
                     )
                     if allowance["bah"] > 0:
-                        line = year_lines.add("bah", allowance["bah"] * months, months)
-                        if allowance["estimate"]:
-                            line.status = line.status or "estimate"
+                        year_lines.add("bah", allowance["bah"] * months, months)
+                    for missing in allowance["missing"]:
+                        target = "bah" if missing.startswith("BAH") else "cola" if missing.startswith("COLA") else "oha"
+                        line = year_lines.get(target)
+                        line.status = "missing_official_rate"
+                        line.note(f"{missing}: no official DTMO rate is loaded, so it pays $0 here. "
+                                  "Enter the DTMO figure in Assumptions.")
                     if allowance["cola"] > 0:
                         year_lines.add("cola", allowance["cola"] * months, months)
                     if allowance["ua"] > 0:
@@ -659,10 +663,28 @@ def project_scenario_v2(
                     housing_line.note(
                         f"Rent is above the OHA cap (${cap:,.0f}/mo) — you pay the difference."
                     )
-                year_lines.get("oha").note(
-                    f"OHA reimburses actual rent up to ${cap:,.0f}/mo; you keep nothing above rent.")
+                if cap > 0:
+                    cur = allowance["currency"]
+                    official = allowance["ohaCapOfficialLocal"]
+                    if allowance["projected"]:
+                        year_lines.get("oha").note(
+                            f"OHA reimburses actual rent up to the DTMO rental allowance: {cur} {official:,.2f}/mo "
+                            f"({allowance.get('source', 'DTMO')}), projected to {cur} {cap * allowance['roe']:,.0f} "
+                            f"(${cap:,.0f}) for {calendar_year} as local rents rise. You keep nothing above rent.")
+                    else:
+                        year_lines.get("oha").note(
+                            f"OHA reimburses actual rent up to the DTMO rental allowance: {cur} {official:,.2f} "
+                            f"(${cap:,.0f})/mo ({allowance.get('source', 'DTMO')}). You keep nothing above rent.")
                 if allowance["ua"] > 0:
                     year_lines.get("utilities").note("Offset by the OHA utility allowance.")
+                # MIHA: one-time move-in allowance in the first month at the station,
+                # matched by the move-in costs it reimburses.
+                if allowance["miha"] > 0 and seg.block_start_month_index // 12 == year_index:
+                    year_lines.add("miha", allowance["miha"], 1).note(
+                        "One-time Move-In Housing Allowance (DTMO) in your first month.")
+                    move_in = year_lines.add("moveIn", allowance["miha"], 1)
+                    move_in.status = "covered"
+                    move_in.note("Move-in costs (fees, appliances, hookups) reimbursed by MIHA — nets to $0.")
 
             # Contributions for this segment.
             policy = _domain_lookup(domains, "investment_policies", _contribution_policy_id(seg.activity_type)) or {}
@@ -699,7 +721,7 @@ def project_scenario_v2(
         healthcare = 0.0
         income_breakdown: dict[str, Any] = {
             "militaryBasePay": 0.0, "militaryBah": 0.0, "militaryBas": 0.0, "militaryOha": 0.0,
-            "militaryUa": 0.0, "militaryCola": 0.0, "pension": 0.0,
+            "militaryUa": 0.0, "militaryCola": 0.0, "militaryMiha": 0.0, "pension": 0.0,
             "salaryBase": 0.0, "phdStipend": 0.0, "vaCompensation": 0.0,
             "giBillHousing": 0.0, "giBillBooks": 0.0, "vreSubsistence": 0.0, "tuitionPaidByVa": 0.0,
             "socialSecurity": 0.0, **placeholders,

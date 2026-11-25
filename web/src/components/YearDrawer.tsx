@@ -11,7 +11,7 @@ const STATUS_LABEL: Record<string, { label: string; tone: string; title: string 
   covered: { label: "covered", tone: "ok", title: "Paid for by an allowance or benefit — nets to $0" },
   partial: { label: "partly covered", tone: "warn", title: "An allowance or benefit pays part of this" },
   quarters: { label: "gov't quarters", tone: "ok", title: "Provided while living on base" },
-  estimate: { label: "estimate", tone: "warn", title: "Based on estimated reference data" },
+  missing_official_rate: { label: "official rate missing", tone: "bad", title: "No official DTMO rate is loaded — pays $0 until you enter it in Assumptions" },
 };
 
 function whereLabel(row: any): string {

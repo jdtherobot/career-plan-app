@@ -56,7 +56,9 @@ class StationTimelineTest(unittest.TestCase):
         self.assertEqual(line(rows[2028], "bah"), 0.0)
         self.assertGreater(line(rows[2028], "oha"), 0)
         self.assertGreater(line(rows[2028], "ua"), 0)
-        self.assertGreater(line(rows[2028], "cola"), 0)
+        # No official COLA loaded: flagged, never estimated.
+        self.assertEqual(line(rows[2028], "cola"), 0.0)
+        self.assertEqual(rows[2028]["lines"]["cola"]["status"], "missing_official_rate")
 
     def test_oha_nets_to_zero_against_rent_under_the_cap(self) -> None:
         rows = rows_of(payload(ALCONBURY))
@@ -103,6 +105,41 @@ class StationTimelineTest(unittest.TestCase):
         ]
         result = compute(payload(stations, exit_year=2028))
         self.assertFalse(result["ok"])
+
+
+class OfficialDtmoRatesTest(unittest.TestCase):
+    """Golden values: DTMO OHA calculator, GB001 Alconbury, E-7 without
+    dependents, pay period 2026-11-16 (rates and ROE effective 2026-07-01)."""
+
+    ROE = 0.7239  # GBP per USD
+
+    def test_e7_without_dependents_matches_dtmo(self) -> None:
+        stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
+        rows = rows_of(payload(stations, exit_year=2027))
+        ua_monthly = rows[2026]["lines"]["ua"]["value"] / rows[2026]["lines"]["ua"]["months"]
+        self.assertAlmostEqual(ua_monthly, 623.25 / self.ROE, delta=0.01)  # $860.96 per DTMO
+        oha_note = " ".join(rows[2026]["lines"]["oha"]["notes"])
+        self.assertIn("GBP 1,627.20", oha_note)
+        self.assertIn("$2,248", oha_note)  # DTMO shows $2,247.82
+        # MIHA once, in the first month at the station, netted by move-in costs.
+        self.assertAlmostEqual(rows[2026]["lines"]["miha"]["value"], 502.00 / self.ROE, delta=0.01)  # $693.47
+        self.assertAlmostEqual(rows[2026]["lines"]["moveIn"]["value"], rows[2026]["lines"]["miha"]["value"], delta=0.01)
+        self.assertNotIn("miha", rows[2027]["lines"])
+
+    def test_grade_without_official_rate_is_flagged_not_estimated(self) -> None:
+        stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
+        p = payload(stations, exit_year=2027)
+        p["plannerProfile"]["serviceProfile"]["dependents"] = True  # E-7 WITH dependents: not loaded yet
+        rows = rows_of(p)
+        self.assertEqual(rows[2026]["lines"]["oha"]["value"], 0.0)
+        self.assertEqual(rows[2026]["lines"]["oha"]["status"], "missing_official_rate")
+        self.assertNotIn("ua", rows[2026]["lines"])
+
+    def test_no_bah_fallback_to_other_locations_or_grades(self) -> None:
+        from planner_app.allowances import bah_monthly
+        self.assertIsNone(bah_monthly(PAY, "nowhere_base", "E-7", False))
+        self.assertIsNone(bah_monthly(PAY, "beale_afb_ca", "O-3", False))  # Beale table holds E-5..E-8 only
+        self.assertEqual(bah_monthly(PAY, "beale_afb_ca", "E-7", False), PAY["bah"]["beale_afb_ca"]["withoutDependents"]["E-7"])
 
 
 class PromotionAndResidencyTest(unittest.TestCase):

@@ -367,7 +367,7 @@ class ReferenceDataTests(unittest.TestCase):
         for record_id in ("gi_bill_foreign_science_tokyo", "gi_bill_foreign_cambridge_uk"):
             record = records[record_id]
             self.assertEqual(record["deliveryMode"], "foreign_school")
-            self.assertEqual(record["monthlyHousingAllowance"], 2522.0)
+            self.assertEqual(record["monthlyHousingAllowance"], 2396.0)
             self.assertEqual(record["booksSuppliesAnnual"], 1000.0)
             self.assertEqual(record["tuitionFeesCapAnnual"], 30908.34)
         self.assertEqual(records["gi_bill_foreign_science_tokyo"]["vaProgramApproved"], 0)

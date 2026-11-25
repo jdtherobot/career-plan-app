@@ -22,7 +22,7 @@ export const INCOME_PARTS: StackPart[] = [
   { id: "milPay", name: "Military base pay", color: C[0], metric: (r) => ib(r).militaryBasePay ?? 0 },
   {
     id: "allowances", name: "Allowances (BAH/OHA/BAS/COLA)", color: C[1],
-    metric: (r) => (ib(r).militaryBah ?? 0) + (ib(r).militaryBas ?? 0) + (ib(r).militaryOha ?? 0) + (ib(r).militaryUa ?? 0) + (ib(r).militaryCola ?? 0),
+    metric: (r) => (ib(r).militaryBah ?? 0) + (ib(r).militaryBas ?? 0) + (ib(r).militaryOha ?? 0) + (ib(r).militaryUa ?? 0) + (ib(r).militaryCola ?? 0) + (ib(r).militaryMiha ?? 0),
   },
   { id: "pension", name: "Military pension", color: C[2], metric: (r) => ib(r).pension ?? 0 },
   { id: "salary", name: "Civilian salary", color: C[3], metric: (r) => ib(r).salaryBase ?? 0 },

@@ -29,6 +29,8 @@ LINE_DEFS: list[dict[str, Any]] = [
     {"id": "cola", "label": "Overseas COLA", "kind": "income", "group": "Military pay", "breakdown": "militaryCola",
      "help": "Overseas cost-of-living allowance; varies with grade, years of service, dependents and the exchange rate."},
     {"id": "bas", "label": "BAS (food)", "kind": "income", "group": "Military pay", "breakdown": "militaryBas"},
+    {"id": "miha", "label": "MIHA (move-in allowance)", "kind": "income", "group": "Military pay", "breakdown": "militaryMiha",
+     "help": "One-time Overseas Move-In Housing Allowance, paid when you set up off-base housing overseas."},
     # --- After service -----------------------------------------------------
     {"id": "pension", "label": "Military pension", "kind": "income", "group": "Retirement & VA", "taxable": True, "breakdown": "pension"},
     {"id": "va", "label": "VA disability", "kind": "income", "group": "Retirement & VA", "breakdown": "vaCompensation"},
@@ -52,6 +54,8 @@ LINE_DEFS: list[dict[str, Any]] = [
     {"id": "gifts", "label": "Gifts", "kind": "expense", "group": "Living", "breakdown": "gifts"},
     {"id": "miscellaneous", "label": "Miscellaneous", "kind": "expense", "group": "Living", "breakdown": "miscellaneous"},
     {"id": "tuitionFees", "label": "Tuition & fees", "kind": "expense", "group": "School", "breakdown": "tuitionFees"},
+    {"id": "moveIn", "label": "Move-in costs (overseas)", "kind": "expense", "group": "Living", "breakdown": "moveIn",
+     "help": "One-time costs of setting up overseas housing; MIHA reimburses them."},
     {"id": "healthcare", "label": "Health coverage (premiums)", "kind": "expense", "group": "Health", "breakdown": "healthcareProgramCost"},
 ]
 

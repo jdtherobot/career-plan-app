@@ -71,25 +71,29 @@ export function StationTimeline({ scenario, scenarios, profile, locations, entry
 
   /* What a station pays, read back from the computed projection (first year
      the station covers fully, else its first year). */
-  function stationSummary(index: number): { text: string; estimate: boolean } | null {
+  function stationSummary(index: number): { text: string; missing: string[]; source?: string } | null {
     if (!entry || implicit) return null;
     const id = `active_duty:${stations[index].id}`;
     const rows = entry.projection.filter((r: any) => (r.segments ?? []).some((s: any) => s.blockId === id));
     if (!rows.length) return null;
     const row = rows.find((r: any) => (r.segments ?? []).some((s: any) => s.blockId === id && s.months === 12)) ?? rows[0];
+    const missing = ["bah", "oha", "cola"]
+      .filter((k) => row.lines?.[k]?.status === "missing_official_rate")
+      .map((k) => k.toUpperCase());
     const bah = lineMonthly(row, "bah");
-    const oha = lineMonthly(row, "oha");
     const ua = lineMonthly(row, "ua");
     const cola = lineMonthly(row, "cola");
-    const estimate = ["bah", "oha", "cola"].some((k) => row.lines?.[k]?.status === "estimate");
-    if (stations[index].housing === "on_base") {
-      return { text: cola ? `Gov't quarters · COLA ${fmtMoney(cola)}/mo` : "Gov't quarters · no housing allowance", estimate };
-    }
-    if (oha || ua || cola) {
-      return { text: `OHA ${fmtMoney(oha)}/mo (= rent) · UA ${fmtMoney(ua)} · COLA ${fmtMoney(cola)}`, estimate: true };
-    }
-    if (bah) return { text: `BAH ${fmtMoney(bah)}/mo`, estimate };
-    return null;
+    const ohaNote: string = (row.lines?.oha?.notes ?? []).find((n: string) => n.startsWith("OHA reimburses")) ?? "";
+    const cap = ohaNote.match(/rental allowance: ([A-Z]{3} [\d,.]+)/)?.[1];
+    const source = ohaNote.match(/\((DTMO[^)]*)\)/)?.[1];
+    const parts: string[] = [];
+    if (stations[index].housing === "on_base") parts.push("Gov't quarters");
+    if (bah) parts.push(`BAH ${fmtMoney(bah)}/mo`);
+    if (cap) parts.push(`OHA rent cap ${cap}/mo`);
+    const projected = ohaNote.includes("projected");
+    if (ua) parts.push(`UA ${fmtMoney(ua)}`);
+    if (cola) parts.push(`COLA ${fmtMoney(cola)}`);
+    return { text: parts.join(" · "), missing, source: source && projected ? `${source}; later years projected with local rents` : source };
   }
 
   const others = scenarios.filter((s) => s.id !== scenario.id);
@@ -236,10 +240,15 @@ export function StationTimeline({ scenario, scenarios, profile, locations, entry
                 {r.clipped ? "starts after you leave — shorten an earlier station" : `${monthLabel(r.start, baseYear)} – ${monthLabel(r.end, baseYear)}`}
               </span>
               {overseas && <span className="tag">Overseas</span>}
-              {summary && (
-                <span className="station-pay">
+              {summary && summary.text && (
+                <span className="station-pay" title={summary.source}>
                   {summary.text}
-                  {summary.estimate && <span className="override-badge" title="Some of these allowances are estimates — check them in Assumptions">est.</span>}
+                  {summary.source && <span className="notice"> — {summary.source}</span>}
+                </span>
+              )}
+              {summary && summary.missing.length > 0 && (
+                <span className="missing-chip" title="No official DTMO rate is loaded for this grade / dependency status, so it pays $0. Enter the DTMO figure in Assumptions → Duty stations.">
+                  Official rate missing: {summary.missing.join(", ")}
                 </span>
               )}
               {implicit && <span className="notice">Same station for this whole path. Add a PCS to build a timeline.</span>}

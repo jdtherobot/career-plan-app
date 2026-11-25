@@ -601,18 +601,18 @@
       ]
     },
     "raf_alconbury_uk": {
-      "housingMonthly": 1381,
-      "utilitiesMonthly": 263,
-      "transportationMonthly": 237,
-      "foodMonthly": 394,
-      "insuranceMonthly": 118,
+      "housingMonthly": 1451,
+      "utilitiesMonthly": 276,
+      "transportationMonthly": 249,
+      "foodMonthly": 414,
+      "insuranceMonthly": 124,
       "healthcareOutOfPocketMonthly": 20,
-      "personalMonthly": 158,
-      "entertainmentMonthly": 197,
-      "miscellaneousMonthly": 145,
+      "personalMonthly": 166,
+      "entertainmentMonthly": 207,
+      "miscellaneousMonthly": 152,
       "annualGrowthRate": 0.03,
       "confidence": "medium",
-      "notes": "Huntingdon / St Neots area, GBP converted at $1.315/\u00a3. Rent assumes a 2-bed (\u00a31050; 1-bed ~\u00a3850). Council tax $0 (Visiting Forces exemption). Car fuel ~165p/L; TV licence \u00a3180/yr in personal. US Visiting Forces members are EXEMPT from council tax under the Visiting Forces Act 1952 / NATO SOFA. The exemption is not automatic: submit the exemption form through the Housing Office/legal office",
+      "notes": "Huntingdon / St Neots area, GBP converted at $1.3814/\u00a3 (DTMO ROE 0.7239, effective 2026-07-01). Rent assumes a 2-bed (\u00a31050; 1-bed ~\u00a3850). Council tax $0 (Visiting Forces exemption). Car fuel ~165p/L; TV licence \u00a3180/yr in personal. US Visiting Forces members are EXEMPT from council tax under the Visiting Forces Act 1952 / NATO SOFA. The exemption is not automatic: submit the exemption form through the Housing Office/legal office",
       "sources": [
         {
           "title": "Zumper Yuba City rent",

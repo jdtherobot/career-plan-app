@@ -25,11 +25,11 @@ const DOMAIN_GROUPS: { title: string; note: string; domains: { id: string; label
   },
   {
     title: "Duty stations & overseas allowances",
-    note: "OHA reimburses rent up to the ceiling (local currency); UA and COLA are paid on top. Rows marked estimate came from partial research — replace them with DTMO calculator figures when you have them.",
+    note: "Official DTMO values only. OHA pays rent up to the rental allowance; UA is paid on top; MIHA once on arrival. Rows marked 'missing' pay $0 until you enter the figure from the DTMO OHA / COLA calculator — the planner never estimates them.",
     domains: [
-      { id: "overseas_allowances", label: "Overseas stations", fields: ["usdPerLocal", "uaWithDependentsLocal", "uaWithoutDependentsLocal", "colaIndex"] },
-      { id: "oha_rent_ceilings", label: "OHA rent ceilings (local currency / mo)", fields: ["withDependentsLocal", "withoutDependentsLocal", "verificationStatus"] },
-      { id: "overseas_cola", label: "Overseas COLA (USD / mo)", fields: ["withDependentsUsd", "withoutDependentsUsd", "verificationStatus"] },
+      { id: "overseas_allowances", label: "Overseas stations (DTMO rate of exchange)", fields: ["roeLocalPerUsd", "roeEffective", "ratesEffective"] },
+      { id: "oha_rates", label: "OHA by grade (local currency / mo)", fields: ["rentLocal", "uaLocal", "mihaLocal", "verificationStatus"] },
+      { id: "overseas_cola", label: "Overseas COLA by grade (USD / mo)", fields: ["monthlyUsd", "verificationStatus"] },
     ],
   },
   {
