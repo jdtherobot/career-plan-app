@@ -329,7 +329,16 @@ def _profile_cost(profile: dict, calendar_year: int, family: bool, people: int) 
     else:
         base = float(profile.get("annualCost", 0) or 0)
     cost_year = int(profile.get("costYear", 2026) or 2026)
-    return base * (1 + float(profile.get("inflationRate", 0) or 0)) ** max(calendar_year - cost_year, 0)
+    near = float(profile.get("inflationRate", 0) or 0)
+    long_rate = profile.get("longRunInflationRate")
+    long_from = profile.get("longRunFromYear")
+    if isinstance(long_rate, (int, float)) and isinstance(long_from, (int, float)):
+        # Near-term rate until the switch year, then the long-run rate.
+        switch = int(long_from)
+        near_years = max(min(calendar_year, switch - 1) - cost_year, 0)
+        long_years = max(calendar_year - max(switch - 1, cost_year), 0)
+        return base * (1 + near) ** near_years * (1 + float(long_rate)) ** long_years
+    return base * (1 + near) ** max(calendar_year - cost_year, 0)
 
 
 def _segment_healthcare(segment: YearSegment, domains: dict, age: int, calendar_year: int = 2026,
@@ -761,7 +770,21 @@ def project_scenario_v2(
             seg_health, _health_id = _segment_healthcare(seg, domains, age, calendar_year, bool(dependents))
             if seg.activity_type == "grad_school" and seg_health == 0 and program and not funded_this_year:
                 seg_health = float(program.get("healthInsuranceAnnual", 0) or 0)
-            year_lines.add("healthcare", seg_health * f, months)
+            health_line = year_lines.add("healthcare", seg_health * f, months)
+            who = "you and your spouse" if dependents else "you"
+            per_person = seg_health / (2 if dependents else 1) / 12 if seg_health else 0.0
+            health_note = {
+                "active_duty_covered": "Active duty: TRICARE Prime at no cost.",
+                "tricare_select_retiree": f"Military retiree: TRICARE Select Group A {'family' if dependents else 'individual'} enrollment fee (rises with the retiree COLA).",
+                "tricare_for_life": f"TRICARE For Life: no TRICARE premium, but Medicare Part B is required for {who} (${per_person:,.0f}/mo each this year). "
+                                    "Spouse assumed to reach 65 the same year as you.",
+                "medicare_baseline": f"Medicare at 65 for {who}: Part B + Medigap Plan G + Part D (estimate for the supplements).",
+                "civilian_employer_plan": f"Employer plan, your share of the premium ({'family' if dependents else 'single'} coverage).",
+                "marketplace_gap_year": f"No employer plan: unsubsidized marketplace premium ({'family' if dependents else 'single'}, estimate).",
+                "university_funded_healthcare": "Grad school: covered by the program while funded.",
+            }.get(_health_id)
+            if health_note:
+                health_line.note(health_note)
 
             # Living expenses for this segment's location. The current duty
             # station uses your own Finance numbers; later stations and

@@ -169,15 +169,15 @@ class MedicareTest(unittest.TestCase):
         rows, _ = project(MIGRATED["scenario_path_b"])
         pre = find_year(rows, 2054)   # age 64 — employer plan, worker share (single)
         post = find_year(rows, 2055)  # age 65 — Part B + Medigap + Part D
-        self.assertAlmostEqual(pre["healthcareCost"], 1440 * 1.05 ** (2054 - 2025), delta=1)
-        self.assertAlmostEqual(post["healthcareCost"], 202.90 * 12 * 1.06 ** (2055 - 2026) + 2465 * 1.05 ** (2055 - 2026), delta=1)
+        self.assertAlmostEqual(pre["healthcareCost"], 1440 * 1.05 ** (2036 - 2025) * 1.043 ** (2054 - 2036), delta=1)
+        self.assertAlmostEqual(post["healthcareCost"], 202.90 * 12 * 1.06 ** 10 * 1.043 ** (2055 - 2036) + 2465 * 1.05 ** 10 * 1.043 ** (2055 - 2036), delta=1)
 
     def test_military_retiree_tricare_then_tricare_for_life(self) -> None:
         rows, _ = project(MIGRATED["scenario_path_a"])
         # Under 65: Group A TRICARE Select enrollment fee (single), a few hundred dollars.
         self.assertLess(find_year(rows, 2054)["healthcareCost"], 1_000)
         # 65+: TRICARE For Life — Part B premium only, no Medigap.
-        self.assertAlmostEqual(find_year(rows, 2056)["healthcareCost"], self.PART_B_2026 * 1.06 ** 30, delta=1)
+        self.assertAlmostEqual(find_year(rows, 2056)["healthcareCost"], self.PART_B_2026 * 1.06 ** 10 * 1.043 ** (2056 - 2036), delta=1)  # 6% to 2036, then 4.3%
         separated, _ = project(MIGRATED["scenario_path_b"])
         # Separated pays the same Part B plus Medigap and Part D.
         self.assertLess(find_year(rows, 2056)["healthcareCost"], find_year(separated, 2056)["healthcareCost"])
@@ -189,7 +189,7 @@ class MedicareTest(unittest.TestCase):
         single, _ = project(MIGRATED["scenario_path_b"])
         family, _ = project_scenario_v2(MIGRATED["scenario_path_b"], profile, REFERENCE_TABLES, MANUAL_CASHFLOW_SEED, REFERENCE_DOMAINS)
         self.assertAlmostEqual(find_year(family, 2033)["healthcareCost"], find_year(single, 2033)["healthcareCost"], delta=1)
-        self.assertAlmostEqual(find_year(family, 2040)["healthcareCost"], 6850 * 1.05 ** (2040 - 2025), delta=1)
+        self.assertAlmostEqual(find_year(family, 2040)["healthcareCost"], 6850 * 1.05 ** (2036 - 2025) * 1.043 ** (2040 - 2036), delta=1)
         # Medicare is per person: two covered people at 65+.
         self.assertAlmostEqual(find_year(family, 2056)["healthcareCost"], 2 * find_year(single, 2056)["healthcareCost"], delta=2)
 
