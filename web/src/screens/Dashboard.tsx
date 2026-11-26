@@ -2,7 +2,7 @@
    chart library, and the service-ribbon timelines. */
 
 import { useState } from "react";
-import { useAppState, useDispatch, fmtMoney, pathColor, visiblePaths } from "../state/store";
+import { useAppState, useDispatch, fmtMoney, visiblePaths, usePathColor } from "../state/store";
 import { ChartsPanel } from "../components/ChartsPanel";
 import { Ribbon, RibbonScale } from "../components/Ribbon";
 import { MissingRatesBanner } from "../components/OhaEntry";
@@ -82,8 +82,19 @@ function PathVisibilityToggle({ entry, shown, lastShown }: { entry: any; shown: 
   );
 }
 
-function PathCard({ entry, index, baseline, shown, lastShown }: { entry: any; index: number; baseline: boolean; shown: boolean; lastShown: boolean }) {
-  const { realDollars, theme, results } = useAppState();
+interface DragProps {
+  dragging: boolean;
+  dropSide: "before" | "after" | null;
+  onHandleDown: () => void;
+  onMoveBy: (delta: number) => void;
+  canMoveLeft: boolean;
+  canMoveRight: boolean;
+  dndProps: React.HTMLAttributes<HTMLElement> & { draggable?: boolean };
+}
+
+function PathCard({ entry, index, baseline, shown, lastShown, drag }: { entry: any; index: number; baseline: boolean; shown: boolean; lastShown: boolean; drag: DragProps }) {
+  const { realDollars, results } = useAppState();
+  const colorOf = usePathColor();
   const dispatch = useDispatch();
   const [expanded, setExpanded] = useState(false);
   const m = entry.metrics;
@@ -91,9 +102,25 @@ function PathCard({ entry, index, baseline, shown, lastShown }: { entry: any; in
   const hash8 = results?.inputHash?.slice(0, 8) ?? "";
   const unit = realDollars ? "real 2026$" : "nominal";
   return (
-    <article className={`card path-card${shown ? "" : " path-hidden"}`}>
+    <article
+      className={`card path-card${shown ? "" : " path-hidden"}${drag.dragging ? " dragging" : ""}${drag.dropSide ? ` drop-${drag.dropSide}` : ""}`}
+      {...drag.dndProps}
+    >
       <h3 className="path-card-title">
-        <span className="pathdot" style={{ background: pathColor(index, theme) }} />
+        <button
+          className="drag-grip"
+          aria-label={`Move ${entry.scenarioName} (arrow keys move left or right)`}
+          data-tip="Drag to reorder (or focus and use ← →)"
+          onMouseDown={drag.onHandleDown}
+          onTouchStart={drag.onHandleDown}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft" && drag.canMoveLeft) { e.preventDefault(); drag.onMoveBy(-1); }
+            if (e.key === "ArrowRight" && drag.canMoveRight) { e.preventDefault(); drag.onMoveBy(1); }
+          }}
+        >
+          ⠿
+        </button>
+        <span className="pathdot" style={{ background: colorOf(entry.scenarioId) }} />
         <span className="path-card-name" title={entry.scenarioName}>{entry.scenarioName}</span>
         <PathVisibilityToggle entry={entry} shown={shown} lastShown={lastShown} />
       </h3>
@@ -167,6 +194,19 @@ function PathCard({ entry, index, baseline, shown, lastShown }: { entry: any; in
 export function Dashboard() {
   const state = useAppState();
   const dispatch = useDispatch();
+  // Drag to reorder path cards (the order is the plan's path order, so chart
+  // buttons, Explorer tabs and every other path list follow it).
+  const [armedId, setArmedId] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [drop, setDrop] = useState<{ id: string; side: "before" | "after" } | null>(null);
+  const movePath = (id: string, toIndex: number) => {
+    const list = [...state.scenarios];
+    const from = list.findIndex((sc) => sc.id === id);
+    if (from < 0) return;
+    const [item] = list.splice(from, 1);
+    list.splice(Math.max(0, Math.min(toIndex, list.length)), 0, item);
+    if (list.some((sc, i) => sc !== state.scenarios[i])) dispatch({ type: "setScenarios", scenarios: list });
+  };
   const { results, realDollars, errors, engineStatus } = state;
   const [breakdownsCollapsed, setBreakdownsCollapsed] = useState(false);
   // Dismissed callouts are keyed by their CONTENT, so any change to the
@@ -237,16 +277,61 @@ export function Dashboard() {
       <MissingRatesBanner scenarios={scenarios} />
 
       <div className="grid paths">
-        {scenarios.map((entry, i) => (
-          <PathCard
-            key={entry.scenarioId}
-            entry={entry}
-            index={i}
-            baseline={entry.scenarioId === baselineId}
-            shown={shownIds.has(entry.scenarioId)}
-            lastShown={shownIds.size === 1 && shownIds.has(entry.scenarioId)}
-          />
-        ))}
+        {scenarios.map((entry, i) => {
+          const id = entry.scenarioId;
+          const drag: DragProps = {
+            dragging: dragId === id,
+            dropSide: drop && drop.id === id && dragId && dragId !== id ? drop.side : null,
+            onHandleDown: () => setArmedId(id),
+            onMoveBy: (delta) => movePath(id, i + delta),
+            canMoveLeft: i > 0,
+            canMoveRight: i < scenarios.length - 1,
+            dndProps: {
+              draggable: armedId === id,
+              onDragStart: (e) => {
+                setDragId(id);
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", id);
+              },
+              onDragOver: (e) => {
+                if (!dragId) return;
+                e.preventDefault();
+                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                const side = e.clientX < r.left + r.width / 2 ? "before" : "after";
+                if (!drop || drop.id !== id || drop.side !== side) setDrop({ id, side });
+              },
+              onDrop: (e) => {
+                e.preventDefault();
+                if (dragId && dragId !== id && drop) {
+                  const from = scenarios.findIndex((s) => s.scenarioId === dragId);
+                  let to = i + (drop.side === "after" ? 1 : 0);
+                  if (from < to) to -= 1;
+                  movePath(dragId, to);
+                }
+                setDragId(null);
+                setDrop(null);
+                setArmedId(null);
+              },
+              onDragEnd: () => {
+                setDragId(null);
+                setDrop(null);
+                setArmedId(null);
+              },
+              onMouseUp: () => !dragId && setArmedId(null),
+            },
+          };
+          return (
+            <PathCard
+              key={id}
+              entry={entry}
+              index={i}
+              baseline={id === baselineId}
+              shown={shownIds.has(id)}
+              lastShown={shownIds.size === 1 && shownIds.has(id)}
+              drag={drag}
+            />
+          );
+        })}
       </div>
 
       <section className="card" style={{ marginTop: 16 }}>

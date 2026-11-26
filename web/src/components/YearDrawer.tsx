@@ -4,7 +4,7 @@
    Edits are per path and stored as monthly amounts in that year's dollars. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fmtMoney, pathColor, useAppState, useDispatch } from "../state/store";
+import { fmtMoney, usePathColor, useAppState, useDispatch } from "../state/store";
 import { lineLabel } from "./planHelpers";
 
 const STATUS_LABEL: Record<string, { label: string; tone: string; title: string }> = {
@@ -31,7 +31,8 @@ function whereLabel(row: any): string {
 export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string; initialPathId?: string | null; onClose: () => void }) {
   const state = useAppState();
   const dispatch = useDispatch();
-  const { scenarios, results, bootstrap, theme, profile } = state;
+  const { scenarios, results, bootstrap, profile } = state;
+  const colorOf = usePathColor();
   const lineDefs: any[] = bootstrap?.lineDefs ?? [];
   const def = lineDefs.find((d) => d.id === lineId);
   const [pathId, setPathId] = useState<string>(initialPathId ?? state.focusPathId ?? scenarios[0]?.id);
@@ -184,9 +185,9 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
         {def?.help && <p className="drawer-help">{def.help}</p>}
 
         <div className="drawer-paths" role="group" aria-label="Path">
-          {scenarios.map((s, i) => (
+          {scenarios.map((s) => (
             <button key={s.id} className={s.id === scenario?.id ? "on" : ""} aria-pressed={s.id === scenario?.id} onClick={() => setPathId(s.id)}>
-              <span className="pathdot" style={{ background: pathColor(i, theme), display: "inline-block", marginRight: 6, width: 8, height: 8 }} />
+              <span className="pathdot" style={{ background: colorOf(s.id), display: "inline-block", marginRight: 6, width: 8, height: 8 }} />
               {s.displayName || s.name}
               {s.lineOverrides?.[lineId] ? <span className="edit-dot" aria-label="has edits" /> : null}
             </button>

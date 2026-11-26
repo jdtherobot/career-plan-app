@@ -131,8 +131,20 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, results: action.results, errors: null, computing: false };
     case "errors":
       return { ...state, errors: action.errors, computing: false };
-    case "setScenarios":
-      return { ...state, scenarios: action.scenarios };
+    case "setScenarios": {
+      const scenarios = withColorSlots(action.scenarios);
+      // Reordering shouldn't wait for the engine: show computed paths in the
+      // new order right away (the recompute keeps the same order).
+      let results = state.results;
+      if (results?.scenarios) {
+        const pos = new Map(scenarios.map((sc: any, i: number) => [sc.id, i]));
+        const sorted = [...results.scenarios].sort(
+          (a: any, b: any) => (pos.get(a.scenarioId) ?? 999) - (pos.get(b.scenarioId) ?? 999),
+        );
+        if (sorted.some((e: any, i: number) => e !== results.scenarios[i])) results = { ...results, scenarios: sorted };
+      }
+      return { ...state, scenarios, results };
+    }
     case "setManualInputs":
       return { ...state, manualInputs: action.manualInputs };
     case "setBaseline": {
@@ -235,17 +247,44 @@ export function useDispatch() {
 /* Payload v3: paths gain duty stations + year-by-year line edits; grad blocks
    pointing at a workbook program id move to its researched degree offering
    (same money — the engine treats both ids alike). Safe to run repeatedly. */
+/* Each path keeps its own color (colorSlot) wherever it sits in the order,
+   so dragging paths around never swaps their colors. New paths take the
+   lowest free slot. */
+export function withColorSlots(scenarios: any[]): any[] {
+  const used = new Set(scenarios.map((s) => s.colorSlot).filter((n) => typeof n === "number"));
+  let changed = false;
+  const out = scenarios.map((s, i) => {
+    if (typeof s.colorSlot === "number") return s;
+    let slot = used.has(i) ? 0 : i;
+    while (used.has(slot)) slot += 1;
+    used.add(slot);
+    changed = true;
+    return { ...s, colorSlot: slot };
+  });
+  return changed ? out : scenarios;
+}
+
 export function normalizeScenarios(scenarios: any[], bootstrap: any): any[] {
   const programs: any[] = bootstrap?.referenceDomains?.programs ?? [];
   const legacy = new Map(programs.filter((p) => p.legacy && p.offeringId).map((p) => [p.id, p.offeringId]));
-  return (scenarios ?? []).map((s) => ({
+  return withColorSlots((scenarios ?? []).map((s) => ({
     ...s,
     stations: Array.isArray(s.stations) ? s.stations : [],
     lineOverrides: s.lineOverrides && typeof s.lineOverrides === "object" ? s.lineOverrides : {},
     blocks: (s.blocks ?? []).map((b: any) =>
       b.type === "grad_school" && legacy.has(b.programId) ? { ...b, programId: legacy.get(b.programId) } : b,
     ),
-  }));
+  })));
+}
+
+/* Color for a path by id (results entries use scenarioId, plan paths use id). */
+export function usePathColor(): (id: string) => string {
+  const { scenarios, theme } = useAppState();
+  return (id: string) => {
+    const i = scenarios.findIndex((sc) => sc.id === id);
+    const slot = i < 0 ? 0 : typeof scenarios[i].colorSlot === "number" ? scenarios[i].colorSlot : i;
+    return pathColor(slot, theme);
+  };
 }
 
 /* Profile v4: the household timeline drives with/without-dependent rates

@@ -1,7 +1,7 @@
 /* Path Builder: compose a life path from blocks. Every change recomputes. */
 
 import { useState } from "react";
-import { useAppState, useDispatch, pathColor, fmtMoney } from "../state/store";
+import { useAppState, useDispatch, usePathColor, fmtMoney } from "../state/store";
 import { GradBlockEditor } from "../components/GradBlockEditor";
 import { StationTimeline } from "../components/StationTimeline";
 import { SocialSecurityPanel } from "../components/SocialSecurityPanel";
@@ -73,7 +73,8 @@ let blockCounter = 100;
 export function Paths() {
   const state = useAppState();
   const dispatch = useDispatch();
-  const { scenarios, bootstrap, results, errors, theme } = state;
+  const { scenarios, bootstrap, results, errors } = state;
+  const colorOf = usePathColor();
   const [selectedId, setSelectedId] = useState<string | null>(scenarios[0]?.id ?? null);
   const scenario = scenarios.find((s) => s.id === selectedId) ?? scenarios[0];
 
@@ -195,13 +196,13 @@ export function Paths() {
       </header>
 
       <div className="row" style={{ marginBottom: 16 }}>
-        {scenarios.map((s, i) => (
+        {scenarios.map((s) => (
           <button
             key={s.id}
             className={s.id === scenario.id ? "primary" : ""}
             onClick={() => setSelectedId(s.id)}
           >
-            <span className="pathdot" style={{ background: pathColor(i, theme), display: "inline-block", marginRight: 6 }} />
+            <span className="pathdot" style={{ background: colorOf(s.id), display: "inline-block", marginRight: 6 }} />
             {s.displayName || s.name}
           </button>
         ))}

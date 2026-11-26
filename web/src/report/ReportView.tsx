@@ -8,7 +8,7 @@ import { CHART_DEFS } from "../components/ChartsPanel";
 import { CompositionPanel } from "../components/CompositionPanel";
 import { Ribbon, RibbonScale } from "../components/Ribbon";
 import { longTermStats } from "../screens/Dashboard";
-import { fmtMoney, pathColor, useAppState } from "../state/store";
+import { fmtMoney, usePathColor, useAppState } from "../state/store";
 
 function deflate(row: any, value: number, real: boolean): number {
   return real ? value * (row.realDollarFactor ?? 1) : value;
@@ -16,14 +16,14 @@ function deflate(row: any, value: number, real: boolean): number {
 
 /* Path card with every detail visible — the live card's collapsed rows are
    simply always shown here. */
-function StaticPathCard({ entry, index, baseline, realDollars, theme, hash8 }: any) {
+function StaticPathCard({ entry, index, color, baseline, realDollars, hash8 }: any) {
   const m = entry.metrics;
   const s = longTermStats(entry, realDollars);
   const unit = realDollars ? "real 2026$" : "nominal";
   return (
     <article className="card">
       <h3>
-        <span className="pathdot" style={{ background: pathColor(index, theme) }} />
+        <span className="pathdot" style={{ background: color }} />
         {entry.scenarioName}
         {baseline && (
           <span className="override-badge" style={{ background: "var(--line-2)", color: "var(--ink-2)" }}>
@@ -101,7 +101,8 @@ const REPORT_COLUMNS: { label: string; value: (r: any) => any }[] = [
 
 export function ReportView({ generatedAt }: { generatedAt: string }) {
   const state = useAppState();
-  const { results, theme, realDollars } = state;
+  const colorOf = usePathColor();
+  const { results, realDollars } = state;
   if (!results) return null;
 
   const scenarios: any[] = results.scenarios;
@@ -111,10 +112,10 @@ export function ReportView({ generatedAt }: { generatedAt: string }) {
   const unit = realDollars ? "real 2026$" : "nominal";
 
   const compareSeries = (metric: (row: any) => number): Series[] =>
-    scenarios.map((entry, i) => ({
+    scenarios.map((entry) => ({
       id: entry.scenarioId,
       name: entry.scenarioName,
-      color: pathColor(i, theme),
+      color: colorOf(entry.scenarioId),
       points: entry.projection.map((row: any) => ({
         x: row.calendarYear,
         y: deflate(row, metric(row), realDollars),
@@ -137,9 +138,9 @@ export function ReportView({ generatedAt }: { generatedAt: string }) {
             key={entry.scenarioId}
             entry={entry}
             index={i}
+            color={colorOf(entry.scenarioId)}
             baseline={entry.scenarioId === baselineId}
             realDollars={realDollars}
-            theme={theme}
             hash8={hash8}
           />
         ))}
@@ -193,7 +194,7 @@ export function ReportView({ generatedAt }: { generatedAt: string }) {
       {scenarios.map((entry, i) => (
         <details key={entry.scenarioId} open={i === 0} className="report-annual">
           <summary>
-            <span className="pathdot" style={{ background: pathColor(i, theme), display: "inline-block", marginRight: 6 }} />
+            <span className="pathdot" style={{ background: colorOf(entry.scenarioId), display: "inline-block", marginRight: 6 }} />
             {entry.scenarioName} — annual detail (nominal)
           </summary>
           <div className="table-scroll">

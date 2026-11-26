@@ -2,7 +2,7 @@
    breakdowns (income components, accounts, withdrawals). Power-user view. */
 
 import { Fragment, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { useAppState, fmtMoney, pathColor } from "../state/store";
+import { useAppState, fmtMoney, usePathColor } from "../state/store";
 import { CompositionPanel } from "../components/CompositionPanel";
 
 const COLUMN_SETS: Record<string, { key: string; label: string }[]> = {
@@ -108,7 +108,8 @@ function saveWidths(widths: Record<string, Record<string, number>>) {
 }
 
 export function Explorer() {
-  const { results, theme } = useAppState();
+  const { results } = useAppState();
+  const colorOf = usePathColor();
   const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [columnSet, setColumnSet] = useState("Overview");
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -169,13 +170,13 @@ export function Explorer() {
 
       <div className="row" style={{ marginBottom: 12 }}>
         <div className="toggle" role="group" aria-label="Path">
-          {scenarios.map((s, i) => (
+          {scenarios.map((s) => (
             <button
               key={s.scenarioId}
               className={s.scenarioId === active.scenarioId ? "on" : ""}
               onClick={() => setScenarioId(s.scenarioId)}
             >
-              <span className="pathdot" style={{ background: pathColor(i, theme), display: "inline-block", marginRight: 5, width: 8, height: 8 }} />
+              <span className="pathdot" style={{ background: colorOf(s.scenarioId), display: "inline-block", marginRight: 5, width: 8, height: 8 }} />
               {s.scenarioName}
             </button>
           ))}
