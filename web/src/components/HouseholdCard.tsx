@@ -1,7 +1,8 @@
 /* Household members and the costs each one adds, for the years they apply.
    Optional: with nobody listed, the plan uses your own numbers and the
-   service profile's dependents setting. While anyone marked as a dependent is
-   in the household, BAH / OHA / COLA use with-dependent rates. */
+   service profile's dependents setting. Anyone marked as a dependent gives
+   family health coverage; BAH / OHA / COLA use with-dependent rates only while
+   a dependent also "lives with me". */
 
 import { useAppState, useDispatch, fmtMoney } from "../state/store";
 import { uid } from "./planHelpers";
@@ -59,8 +60,10 @@ export function HouseholdCard() {
             {first === null
               ? "No dependents: without-dependent BAH / OHA / COLA and individual health coverage."
               : first <= baseYear
-                ? "With dependents from now: with-dependent rates and family health coverage."
-                : `Single until ${first - 1} · with dependents from ${first} (with-dependent BAH / OHA / COLA, family health coverage). Change the “from” year below.`}
+                ? "Dependents from now: family health coverage; with-dependent BAH / OHA / COLA only for those who live with you."
+                : `Single until ${first - 1} · family health coverage from ${first}${
+                    deps.some((m) => m.livesWithYou) ? " and with-dependent BAH / OHA / COLA" : "; housing allowances stay single-rate unless a dependent “lives with me”"
+                  }. Change the “from” year below.`}
           </p>
         );
       })()}
@@ -84,6 +87,12 @@ export function HouseholdCard() {
                 <input type="checkbox" checked={m.dependent !== false} onChange={(e) => patch(i, { dependent: e.target.checked })} />
                 dependent
               </label>
+              {m.dependent !== false && (
+                <label className="notice" style={{ display: "flex", gap: 5, alignItems: "center", whiteSpace: "nowrap" }} title="With-dependent BAH / OHA / COLA need the dependent living with you">
+                  <input type="checkbox" checked={!!m.livesWithYou} onChange={(e) => patch(i, { livesWithYou: e.target.checked })} />
+                  lives with me
+                </label>
+              )}
               <button className="small danger" aria-label={`Remove ${m.name}`} onClick={() => set(members.filter((_, j) => j !== i))}>✕</button>
             </div>
             {(m.costs ?? []).map((c: any, k: number) => (

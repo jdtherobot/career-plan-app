@@ -620,8 +620,12 @@ def project_scenario_v2(
         rate_samples: list[tuple[float, float, float]] = []  # (weight, fed, state)
 
         post_exit = any(seg.service_status != "active_duty" for seg in segments)
+        # Family (health coverage, VR&E rate) vs. allowance dependents: BAH /
+        # OHA / COLA use with-dependent rates only for dependents living with you.
         household_dep = household_has_dependents(planner_profile, calendar_year)
         dependents = service_dependents if household_dep is None else household_dep
+        allowance_dep = household_has_dependents(planner_profile, calendar_year, for_allowances=True)
+        allowance_dependents = service_dependents if allowance_dep is None else allowance_dep
         residency = _residency_state(tax_residency, calendar_year)
 
         for seg in segments:
@@ -646,7 +650,7 @@ def project_scenario_v2(
                 year_lines.add("bas", pay["bas"] * f, months)
                 if seg.station_index is not None:
                     allowance = station_allowances(
-                        domains, pay_data, location, location_id, seg.housing or "off_base", pay["payGrade"], dependents,
+                        domains, pay_data, location, location_id, seg.housing or "off_base", pay["payGrade"], allowance_dependents,
                         calendar_year - pay_data_year, military_raise, expense_growth,
                         yos=int(pay.get("yos") or 0),
                     )
