@@ -76,7 +76,7 @@ class AdvisorWorkbookTest(unittest.TestCase):
         ws = self.wb["Comparison"]
         self.assertEqual(ws.cell(row=1, column=2).value, "Path A")
         self.assertEqual(ws.freeze_panes, "B2")
-        row = _find_row(ws, "Final portfolio (nominal)")
+        row = _find_row(ws, "Final portfolio")
         cell = ws.cell(row=row, column=2)
         self.assertAlmostEqual(cell.value, self.result["scenarios"][0]["metrics"]["finalPortfolio"])
         self.assertEqual(cell.number_format, MONEY_FMT)
@@ -85,7 +85,7 @@ class AdvisorWorkbookTest(unittest.TestCase):
         ws = self.wb["Comparison"]
         comparisons = self.result["comparison"]["comparisons"]
         self.assertTrue(comparisons)
-        row = _find_row(ws, "Final portfolio Δ (nominal)")
+        row = _find_row(ws, "Final portfolio Δ")
         cell = ws.cell(row=row, column=2)
         self.assertAlmostEqual(cell.value, comparisons[0]["finalPortfolioDelta"])
         self.assertEqual(cell.number_format, MONEY_RED_FMT)
@@ -127,10 +127,7 @@ class AdvisorWorkbookTest(unittest.TestCase):
         )
         last = entry["projection"][-1]
         last_row = 1 + len(entry["projection"])
-        self.assertAlmostEqual(
-            ws.cell(row=last_row, column=_col("Portfolio (real 2026$)")).value,
-            last["portfolio"] * last["realDollarFactor"],
-        )
+        self.assertAlmostEqual(ws.cell(row=last_row, column=_col("Total portfolio")).value, last["portfolio"])
         cf_cell = ws.cell(row=2, column=_col("Net cash flow"))
         self.assertEqual(cf_cell.number_format, MONEY_RED_FMT)
 
@@ -206,6 +203,42 @@ class AdvisorWorkbookTest(unittest.TestCase):
                 self.assertTrue(str(cell.value).startswith("http"), cell.value)
                 self.assertIsNotNone(cell.hyperlink)
         self.assertGreater(linked, 0)
+
+
+class RealDollarWorkbookTest(unittest.TestCase):
+    """dollars='real': every money cell is that year's amount x realDollarFactor,
+    lifetime totals and deltas use the engine's real (deflated) figures."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        payload = default_payload()
+        cls.result = compute(payload)
+        data = build_advisor_workbook(cls.result, payload, {"generatedAt": "2026-07-19T12:00:00Z", "dollars": "real"})
+        cls.wb = load_workbook(io.BytesIO(data))
+
+    def test_annual_money_is_deflated_per_year(self) -> None:
+        entry = self.result["scenarios"][0]
+        ws = self.wb[entry["scenarioName"]]
+        for idx in (0, 20, len(entry["projection"]) - 1):
+            row = entry["projection"][idx]
+            f = row["realDollarFactor"]
+            self.assertEqual(ws.cell(row=2 + idx, column=_col("Year")).value, row["calendarYear"])
+            self.assertAlmostEqual(ws.cell(row=2 + idx, column=_col("Total portfolio")).value, row["portfolio"] * f, places=2)
+            self.assertAlmostEqual(ws.cell(row=2 + idx, column=_col("Total taxes")).value, row["taxes"] * f, places=2)
+
+    def test_comparison_uses_real_totals_and_deltas(self) -> None:
+        ws = self.wb["Comparison"]
+        metrics = self.result["scenarios"][0]["metrics"]
+        self.assertAlmostEqual(ws.cell(row=_find_row(ws, "Final portfolio"), column=2).value, metrics["finalPortfolioReal"])
+        self.assertAlmostEqual(ws.cell(row=_find_row(ws, "Lifetime taxes"), column=2).value, metrics["real"]["totalTaxes"])
+        comp = self.result["comparison"]["comparisons"][0]
+        self.assertAlmostEqual(ws.cell(row=_find_row(ws, "Final portfolio Δ"), column=2).value, comp["finalPortfolioRealDelta"])
+        self.assertIn("real 2026$", self.wb["Cover"].cell(row=6, column=2).value)
+
+    def test_real_totals_equal_sum_of_deflated_rows(self) -> None:
+        entry = self.result["scenarios"][0]
+        expected = sum(r["taxes"] * r["realDollarFactor"] for r in entry["projection"])
+        self.assertAlmostEqual(entry["metrics"]["real"]["totalTaxes"], expected, delta=1)
 
 
 if __name__ == "__main__":

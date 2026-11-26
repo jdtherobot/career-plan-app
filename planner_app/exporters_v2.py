@@ -55,9 +55,6 @@ def _portfolio_withdrawals(row: dict[str, Any]) -> float:
     return sum(v for k, v in w.items() if k != "taxesOnWithdrawals" and isinstance(v, (int, float)))
 
 
-def _real_portfolio(row: dict[str, Any]) -> float:
-    return (row.get("portfolio") or 0) * (row.get("realDollarFactor") or 1)
-
 
 # (header, getter, number format or None) — the full annual cash-flow statement.
 ANNUAL_DETAIL_SPEC: list[tuple[str, Callable[[dict[str, Any]], Any], str | None]] = [
@@ -96,7 +93,6 @@ ANNUAL_DETAIL_SPEC: list[tuple[str, Callable[[dict[str, Any]], Any], str | None]
     ("TSP Roth", _sub("accountBalances", "tspRoth"), MONEY_FMT),
     ("Traditional 401(k)", _sub("accountBalances", "trad401k"), MONEY_FMT),
     ("Total portfolio", lambda r: r.get("portfolio"), MONEY_FMT),
-    ("Portfolio (real 2026$)", _real_portfolio, MONEY_FMT),
 ]
 
 
@@ -194,7 +190,7 @@ def _build_cover_sheet(ws, result: dict[str, Any], payload: dict[str, Any], meta
     _set(ws.cell(row=5, column=1), "Input hash", bold=True)
     ws.cell(row=5, column=2, value=result.get("inputHash", ""))
     _set(ws.cell(row=6, column=1), "Values", bold=True)
-    ws.cell(row=6, column=2, value="Nominal dollars unless labelled real (2026$)")
+    ws.cell(row=6, column=2, value=f"All amounts in {_basis_label(meta)}")
 
     row = 8
     _set(ws.cell(row=row, column=1), "Paths compared", bold=True, size=13)
@@ -221,20 +217,40 @@ def _build_cover_sheet(ws, result: dict[str, Any], payload: dict[str, Any], meta
     ws.column_dimensions["C"].width = 60
 
 
-def _build_comparison_sheet(ws, result: dict[str, Any]):
+def _metric(entry: dict[str, Any], key: str, real: bool) -> Any:
+    real_totals = (entry.get("metrics") or {}).get("real") or {}
+    if real and key in real_totals:
+        return real_totals[key]
+    return (entry.get("metrics") or {}).get(key)
+
+
+def _build_comparison_sheet(ws, result: dict[str, Any], meta: dict[str, Any] | None = None):
     from openpyxl.utils import get_column_letter
 
+    real = _real(meta)
     ws.title = "Comparison"
     scenarios = result["scenarios"]
     names = [entry["scenarioName"] for entry in scenarios]
     _header_row(ws, 1, ["Metric"] + names)
     row = 1
     for key, label in METRIC_ROWS:
+        if key in ("finalPortfolio", "finalPortfolioReal"):
+            # One final-portfolio row, in the chosen basis.
+            if key == "finalPortfolioReal":
+                continue
+            label = "Final portfolio"
+            key_used = "finalPortfolioReal" if real else "finalPortfolio"
+            row += 1
+            ws.cell(row=row, column=1, value=label)
+            for col, entry in enumerate(scenarios, start=2):
+                _set(ws.cell(row=row, column=col), (entry.get("metrics") or {}).get(key_used), fmt=MONEY_FMT)
+            continue
         row += 1
         ws.cell(row=row, column=1, value=label)
         for col, entry in enumerate(scenarios, start=2):
             fmt = None if key in _YEAR_METRICS else MONEY_FMT
-            _set(ws.cell(row=row, column=col), entry["metrics"].get(key), fmt=fmt)
+            value = (entry.get("metrics") or {}).get(key) if key in _YEAR_METRICS else _metric(entry, key, real)
+            _set(ws.cell(row=row, column=col), value, fmt=fmt)
 
     comparisons = (result.get("comparison") or {}).get("comparisons") or []
     by_id = {entry["scenarioId"]: entry["scenarioName"] for entry in scenarios}
@@ -244,15 +260,15 @@ def _build_comparison_sheet(ws, result: dict[str, Any]):
         _set(ws.cell(row=row, column=1), f"Versus baseline — {baseline_name}", bold=True, size=13)
         row += 1
         _header_row(ws, row, [""] + [by_id.get(c["scenarioId"], c["scenarioId"]) for c in comparisons])
+        rk = (lambda c, real_key, nominal_key: c.get(real_key) if real and c.get(real_key) is not None else c.get(nominal_key))
         delta_rows: list[tuple[str, Callable[[dict[str, Any]], Any], str | None]] = [
-            ("Final portfolio Δ (nominal)", lambda c: c.get("finalPortfolioDelta"), MONEY_RED_FMT),
-            ("Final portfolio Δ (real 2026$)", lambda c: c.get("finalPortfolioRealDelta"), MONEY_RED_FMT),
-            ("Lifetime taxes Δ", lambda c: c.get("totalTaxesDelta"), MONEY_RED_FMT),
-            ("Lifetime healthcare Δ", lambda c: c.get("healthcareCostDelta"), MONEY_RED_FMT),
+            ("Final portfolio Δ", lambda c: rk(c, "finalPortfolioRealDelta", "finalPortfolioDelta"), MONEY_RED_FMT),
+            ("Lifetime taxes Δ", lambda c: rk(c, "totalTaxesDeltaReal", "totalTaxesDelta"), MONEY_RED_FMT),
+            ("Lifetime healthcare Δ", lambda c: rk(c, "healthcareCostDeltaReal", "healthcareCostDelta"), MONEY_RED_FMT),
             ("Breakeven year", lambda c: c.get("breakevenYear") or "never", None),
             (
                 "Biggest driver",
-                lambda c: (c.get("biggestDriver") or {}).get("label", "—"),
+                lambda c: (rk(c, "biggestDriverReal", "biggestDriver") or {}).get("label", "—"),
                 None,
             ),
         ]
@@ -262,9 +278,10 @@ def _build_comparison_sheet(ws, result: dict[str, Any]):
             for col, comp in enumerate(comparisons, start=2):
                 _set(ws.cell(row=row, column=col), getter(comp), fmt=fmt)
 
+        drivers_key = "driversReal" if real else "drivers"
         driver_labels: list[str] = []
         for comp in comparisons:
-            for label in (comp.get("drivers") or {}):
+            for label in (comp.get(drivers_key) or comp.get("drivers") or {}):
                 if label not in driver_labels:
                     driver_labels.append(label)
         if driver_labels:
@@ -274,7 +291,7 @@ def _build_comparison_sheet(ws, result: dict[str, Any]):
                 row += 1
                 ws.cell(row=row, column=1, value=f"  {label}")
                 for col, comp in enumerate(comparisons, start=2):
-                    _set(ws.cell(row=row, column=col), (comp.get("drivers") or {}).get(label), fmt=MONEY_RED_FMT)
+                    _set(ws.cell(row=row, column=col), (comp.get(drivers_key) or comp.get("drivers") or {}).get(label), fmt=MONEY_RED_FMT)
 
     milestone_labels: list[str] = []
     for entry in scenarios:
@@ -283,8 +300,8 @@ def _build_comparison_sheet(ws, result: dict[str, Any]):
                 milestone_labels.append(milestone["label"])
     if milestone_labels:
         for title, field in [
-            ("Portfolio at milestones", "portfolio"),
-            ("Sustainable 4% withdrawal at milestones", "withdrawalAt4Pct"),
+            ("Portfolio at milestones", "portfolioReal" if real else "portfolio"),
+            ("Sustainable 4% withdrawal at milestones", "withdrawalAt4PctReal" if real else "withdrawalAt4Pct"),
         ]:
             row += 2
             _set(ws.cell(row=row, column=1), title, bold=True, size=13)
@@ -301,7 +318,7 @@ def _build_comparison_sheet(ws, result: dict[str, Any]):
                     _set(ws.cell(row=row, column=col), match.get(field) if match else None, fmt=MONEY_FMT)
 
     row += 2
-    ws.cell(row=row, column=1, value=f"Input hash: {result.get('inputHash', '')}")
+    ws.cell(row=row, column=1, value=f"All amounts in {_basis_label(meta)}. Input hash: {result.get('inputHash', '')}")
 
     ws.freeze_panes = "B2"
     ws.column_dimensions["A"].width = 34
@@ -309,14 +326,27 @@ def _build_comparison_sheet(ws, result: dict[str, Any]):
         ws.column_dimensions[get_column_letter(col)].width = 18
 
 
-def _build_annual_sheet(wb, entry: dict[str, Any]):
+def _real(meta: dict[str, Any] | None) -> bool:
+    return str((meta or {}).get("dollars") or "").lower() == "real"
+
+
+def _basis_label(meta: dict[str, Any] | None) -> str:
+    return "today's dollars (real 2026$)" if _real(meta) else "each year's own dollars (nominal)"
+
+
+def _build_annual_sheet(wb, entry: dict[str, Any], meta: dict[str, Any] | None = None):
     from openpyxl.utils import get_column_letter
 
+    real = _real(meta)
     ws = wb.create_sheet(title=_sheet_title(entry))
     _header_row(ws, 1, [header for header, _getter, _fmt in ANNUAL_DETAIL_SPEC])
     for row_idx, row in enumerate(entry["projection"], start=2):
+        factor = float(row.get("realDollarFactor") or 1) if real else 1.0
         for col, (_header, getter, fmt) in enumerate(ANNUAL_DETAIL_SPEC, start=1):
-            _set(ws.cell(row=row_idx, column=col), getter(row), fmt=fmt)
+            value = getter(row)
+            if fmt is not None and isinstance(value, (int, float)) and not isinstance(value, bool):
+                value = value * factor  # every formatted column is money for this year
+            _set(ws.cell(row=row_idx, column=col), value, fmt=fmt)
     ws.freeze_panes = "D2"
     widths = {1: 8, 2: 6, 3: 24}
     for col in range(1, len(ANNUAL_DETAIL_SPEC) + 1):
@@ -502,7 +532,7 @@ def _sheet_title(entry: dict[str, Any]) -> str:
     return (entry["scenarioName"] or entry["scenarioId"])[:31]
 
 
-def _build_charts_sheet(wb, result: dict[str, Any]):
+def _build_charts_sheet(wb, result: dict[str, Any], meta: dict[str, Any] | None = None):
     """Native Excel charts (edit/inspect in Excel itself): portfolio over time
     per path, and final real portfolios side by side."""
     from openpyxl.chart import BarChart, LineChart, Reference, Series
@@ -515,7 +545,7 @@ def _build_charts_sheet(wb, result: dict[str, Any]):
     )
 
     line = LineChart()
-    line.title = "Portfolio by year (nominal)"
+    line.title = "Portfolio by year (real 2026$)" if _real(meta) else "Portfolio by year (nominal)"
     line.height = 12
     line.width = 30
     line.y_axis.numFmt = MONEY_FMT
@@ -568,12 +598,12 @@ def build_advisor_workbook(
 
     wb = Workbook()
     _build_cover_sheet(wb.active, result, payload, meta)
-    _build_comparison_sheet(wb.create_sheet(), result)
+    _build_comparison_sheet(wb.create_sheet(), result, meta)
     _build_position_sheet(wb.create_sheet(), payload)
     for entry in result["scenarios"]:
-        _build_annual_sheet(wb, entry)
+        _build_annual_sheet(wb, entry, meta)
     if result["scenarios"]:
-        _build_charts_sheet(wb, result)
+        _build_charts_sheet(wb, result, meta)
     _build_assumptions_sheet(wb.create_sheet(), result, payload)
     _build_sources_sheet(wb.create_sheet(), payload)
 

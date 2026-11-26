@@ -3,7 +3,7 @@
    the year-by-year editor. */
 
 import { useState } from "react";
-import { fmtMoney, usePathColor, useAppState } from "../state/store";
+import { fmtMoney, usePathColor, useAppState, useDollars } from "../state/store";
 import { lineLabel } from "./planHelpers";
 import { YearDrawer } from "./YearDrawer";
 
@@ -24,6 +24,7 @@ export function LinesOverview() {
   const state = useAppState();
   const { scenarios, results, bootstrap, profile } = state;
   const colorOf = usePathColor();
+  const dollars = useDollars();
   const [pathId, setPathId] = useState<string | null>(state.focusPathId ?? scenarios[0]?.id ?? null);
   const [open, setOpen] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -38,7 +39,7 @@ export function LinesOverview() {
   for (const row of rows) for (const id of Object.keys(row.lines ?? {})) ids.add(id);
   const all = [...ids].map((id) => {
     const def = lineDefs.find((d) => d.id === id);
-    const values = rows.map((r) => r.lines?.[id]?.value ?? 0);
+    const values = rows.map((r) => dollars.v(r, r.lines?.[id]?.value ?? 0));
     return {
       id,
       def,

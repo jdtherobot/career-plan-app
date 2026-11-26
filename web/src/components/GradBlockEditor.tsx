@@ -2,7 +2,7 @@
    the VA benefit that pays for it, and any outside funding — then see what the
    school costs and what pays for it, straight from the computed projection. */
 
-import { fmtMoney } from "../state/store";
+import { fmtMoney, useDollars } from "../state/store";
 
 const LEVELS: { id: string; label: string }[] = [
   { id: "masters", label: "Master's" },
@@ -28,11 +28,14 @@ interface Props {
   onChange: (patch: any) => void;
 }
 
-function sumLine(rows: any[], id: string, key: "value" | "months" = "value"): number {
-  return rows.reduce((s, r) => s + (r.lines?.[id]?.[key] ?? 0), 0);
+/* Sum a line over the block's years; money is converted per year (Real
+   2026$ or nominal) before summing, months are not. */
+function sumLine(rows: any[], id: string, key: "value" | "months" = "value", factor: (row: any) => number = () => 1): number {
+  return rows.reduce((s, r) => s + (r.lines?.[id]?.[key] ?? 0) * (key === "value" ? factor(r) : 1), 0);
 }
 
 export function GradBlockEditor({ block, scenario, programs, locations, blockRows, onChange }: Props) {
+  const dollars = useDollars();
   const offerings = programs.filter((p) => !p.legacy && p.institutionId);
   const current = programs.find((p) => p.id === block.programId);
   const offering = current?.legacy ? programs.find((p) => p.id === current.offeringId) : current;
@@ -63,12 +66,13 @@ export function GradBlockEditor({ block, scenario, programs, locations, blockRow
   }
 
   // Money read back from the computed projection for this block's years.
-  const tuition = sumLine(blockRows, "tuitionFees");
-  const paid = sumLine(blockRows, "tuitionPaid");
-  const stipend = sumLine(blockRows, "stipend");
+  const f = dollars.factor;
+  const tuition = sumLine(blockRows, "tuitionFees", "value", f);
+  const paid = sumLine(blockRows, "tuitionPaid", "value", f);
+  const stipend = sumLine(blockRows, "stipend", "value", f);
   const housingMonths = benefit === "vre" ? sumLine(blockRows, "vreSubsistence", "months") : sumLine(blockRows, "giHousing", "months");
-  const housing = benefit === "vre" ? sumLine(blockRows, "vreSubsistence") : sumLine(blockRows, "giHousing");
-  const books = sumLine(blockRows, "giBooks");
+  const housing = benefit === "vre" ? sumLine(blockRows, "vreSubsistence", "value", f) : sumLine(blockRows, "giHousing", "value", f);
+  const books = sumLine(blockRows, "giBooks", "value", f);
   const blockMonths = block.durationMonths ?? 0;
   const loc = locations.find((l) => l.id === offering?.locationId);
   const fundedYears = offering?.fundedYears;

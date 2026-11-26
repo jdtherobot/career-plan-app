@@ -4,7 +4,7 @@
    Edits are per path and stored as monthly amounts in that year's dollars. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fmtMoney, usePathColor, useAppState, useDispatch } from "../state/store";
+import { fmtMoney, usePathColor, useAppState, useDispatch, useDollars } from "../state/store";
 import { lineLabel } from "./planHelpers";
 
 const STATUS_LABEL: Record<string, { label: string; tone: string; title: string }> = {
@@ -39,6 +39,7 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
   const [hideNa, setHideNa] = useState(true);
   const [growPct, setGrowPct] = useState(3);
   const [anchorYear, setAnchorYear] = useState<number | null>(null);
+  const dollars = useDollars();
   // Show and type amounts per month or per year (storage is always monthly).
   const unitKey = `cpc-drawer-unit-${lineId}`;
   const [unit, setUnitState] = useState<"mo" | "yr">(() => {
@@ -98,23 +99,28 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
     return (entry?.projection ?? []).map((row: any) => {
       const line = row.lines?.[lineId];
       const months = line?.months ?? 0;
-      const calcMonthly = months ? line.calc / months : 0;
-      const valueMonthly = months ? line.value / months : 0;
-      const override = overrides[String(row.calendarYear)];
+      // Shown in the chosen basis (Real 2026$ or nominal). Storage is
+      // always nominal monthly, so edits convert back by this row's factor.
+      const df = dollars.factor(row);
+      const calcMonthly = months ? (line.calc / months) * df : 0;
+      const valueMonthly = months ? (line.value / months) * df : 0;
+      const stored = overrides[String(row.calendarYear)];
+      const override = typeof stored === "number" ? stored * df : null;
       return {
+        df,
         year: row.calendarYear as number,
         age: row.age as number,
         where: whereLabel(row),
         months,
         calcMonthly,
         valueMonthly,
-        override: typeof override === "number" ? override : null,
+        override,
         status: line?.status as string | undefined,
         notes: (line?.notes ?? []) as string[],
         applies: months > 0,
       };
     });
-  }, [entry, lineId, overrides]);
+  }, [entry, lineId, overrides, dollars.real]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shown = hideNa ? rows.filter((r: any) => r.applies || r.status) : rows;
   const editedCount = Object.keys(overrides).length;
@@ -133,10 +139,12 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
     });
   }
 
+  /* `value` is monthly in the shown basis; stored as nominal monthly. */
   function setYear(year: number, value: number | null) {
     const next = { ...overrides };
+    const df = rows.find((r: any) => r.year === year)?.df ?? 1;
     if (value === null || Number.isNaN(value)) delete next[String(year)];
-    else next[String(year)] = value;
+    else next[String(year)] = Math.round((value / df) * 100) / 100;
     setOverrides(next);
   }
 
@@ -147,7 +155,9 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
     const next = { ...overrides };
     for (const r of rows) {
       if (r.year < fromYear || !r.applies) continue;
-      next[String(r.year)] = Math.round(base * (1 + grow) ** (r.year - fromYear));
+      // Same amount (or grown) in the shown basis: in Real 2026$ mode a flat
+      // fill keeps purchasing power, so the stored nominal amount rises.
+      next[String(r.year)] = Math.round(((base * (1 + grow) ** (r.year - fromYear)) / r.df) * 100) / 100;
     }
     setOverrides(next);
   }
@@ -237,7 +247,11 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
         <div className="drawer-summary">
           <span>{editedCount ? `${editedCount} year${editedCount > 1 ? "s" : ""} edited` : "Showing calculated values — type in “Yours” to change a year"}</span>
           {editedCount > 0 && <span>lifetime change {lifetimeDelta >= 0 ? "+" : "−"}{fmtMoney(Math.abs(lifetimeDelta), true)}</span>}
-          <div className="toggle unit-toggle" role="group" aria-label="Amounts per" style={{ marginLeft: "auto" }}>
+          <div className="toggle unit-toggle" role="group" aria-label="Dollar basis" style={{ marginLeft: "auto" }}>
+            <button className={dollars.real ? "on" : ""} aria-pressed={dollars.real} onClick={() => dispatch({ type: "setRealDollars", value: true })}>Real 2026$</button>
+            <button className={!dollars.real ? "on" : ""} aria-pressed={!dollars.real} onClick={() => dispatch({ type: "setRealDollars", value: false })}>Nominal</button>
+          </div>
+          <div className="toggle unit-toggle" role="group" aria-label="Amounts per">
             <button className={unit === "mo" ? "on" : ""} aria-pressed={unit === "mo"} onClick={() => setUnit("mo")}>/mo</button>
             <button className={unit === "yr" ? "on" : ""} aria-pressed={unit === "yr"} onClick={() => setUnit("yr")}>/yr</button>
           </div>
@@ -288,7 +302,7 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
                             inputMode="decimal"
                             aria-label={`${label} per ${unit === "yr" ? "year" : "month"} in ${r.year}`}
                             placeholder={String(Math.round(r.calcMonthly * k))}
-                            value={r.override === null ? "" : Math.round(r.override * k * 100) / 100}
+                            value={r.override === null ? "" : Math.round(r.override * k)}
                             onChange={(e) => setYear(r.year, e.target.value === "" ? null : Number(e.target.value) / k)}
                           />
                           {r.override !== null && (
@@ -312,7 +326,7 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
             </tbody>
           </table>
         </div>
-        <p className="drawer-foot">{unit === "yr" ? "Yearly (full-year rate)" : "Monthly"} amounts in each year's own dollars (nominal). Blank = use the calculation. Edits apply to this path only.</p>
+        <p className="drawer-foot">{unit === "yr" ? "Yearly (full-year rate)" : "Monthly"} amounts in {dollars.unitLong} — switch at the top right. Blank = use the calculation. Edits apply to this path only.</p>
       </div>
     </div>
   );
