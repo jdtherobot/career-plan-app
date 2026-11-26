@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { fmtMoney } from "../state/store";
+import { MissingRateChip, missingRates, type MissingRate } from "./OhaEntry";
 import {
   exitMonthIndex,
   groupLocations,
@@ -71,15 +72,13 @@ export function StationTimeline({ scenario, scenarios, profile, locations, entry
 
   /* What a station pays, read back from the computed projection (first year
      the station covers fully, else its first year). */
-  function stationSummary(index: number): { text: string; missing: string[]; source?: string } | null {
+  function stationSummary(index: number): { text: string; missing: MissingRate[]; source?: string } | null {
     if (!entry || implicit) return null;
     const id = `active_duty:${stations[index].id}`;
     const rows = entry.projection.filter((r: any) => (r.segments ?? []).some((s: any) => s.blockId === id));
     if (!rows.length) return null;
     const row = rows.find((r: any) => (r.segments ?? []).some((s: any) => s.blockId === id && s.months === 12)) ?? rows[0];
-    const missing = ["bah", "oha", "cola"]
-      .filter((k) => row.lines?.[k]?.status === "missing_official_rate")
-      .map((k) => k.toUpperCase());
+    const missing = missingRates(rows);
     const bah = lineMonthly(row, "bah");
     const ua = lineMonthly(row, "ua");
     const cola = lineMonthly(row, "cola");
@@ -247,9 +246,7 @@ export function StationTimeline({ scenario, scenarios, profile, locations, entry
                 </span>
               )}
               {summary && summary.missing.length > 0 && (
-                <span className="missing-chip" title="No official DTMO rate is loaded for this grade / dependency status, so it pays $0. Enter the DTMO figure in Assumptions → Duty stations.">
-                  Official rate missing: {summary.missing.join(", ")}
-                </span>
+                <MissingRateChip locationId={s.locationId} missing={summary.missing} />
               )}
               {implicit && <span className="notice">Same station for this whole path. Add a PCS to build a timeline.</span>}
               {!implicit && (

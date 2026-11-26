@@ -135,6 +135,34 @@ class OfficialDtmoRatesTest(unittest.TestCase):
         self.assertEqual(rows[2026]["lines"]["oha"]["status"], "missing_official_rate")
         self.assertNotIn("ua", rows[2026]["lines"])
 
+    def test_dependents_timeline_picks_the_oha_row_per_year(self) -> None:
+        """Single until 2034, then one dependent: E-7 without-dependents OHA is
+        paid through 2033, and only 2034 onward asks for the with-dependents row."""
+        stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
+        p = payload(stations, exit_year=2034, profile_patch={
+            "household": [{"id": "d", "name": "Dependent", "dependent": True, "fromYear": 2034, "costs": []}],
+        })
+        p["plannerProfile"]["serviceProfile"]["dependents"] = True  # household timeline wins over the flag
+        rows = rows_of(p)
+        for year in range(2026, 2034):
+            self.assertNotEqual(rows[year]["lines"]["oha"].get("status"), "missing_official_rate", year)
+            self.assertGreater(rows[year]["lines"]["ua"]["value"], 0, year)
+        self.assertEqual(rows[2034]["lines"]["oha"]["status"], "missing_official_rate")
+        self.assertTrue(any("E-7 with dependents" in n for n in rows[2034]["lines"]["oha"]["notes"]))
+
+    def test_oha_override_fills_a_missing_row(self) -> None:
+        stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
+        p = payload(stations, exit_year=2027)
+        p["plannerProfile"]["serviceProfile"]["dependents"] = True
+        p["referenceOverrides"] = [
+            {"domain": "oha_rates", "id": "raf_alconbury_uk:E-7:with", "field": "rentLocal", "value": 2000.0},
+            {"domain": "oha_rates", "id": "raf_alconbury_uk:E-7:with", "field": "uaLocal", "value": 700.0},
+        ]
+        rows = rows_of(p)
+        self.assertNotEqual(rows[2026]["lines"]["oha"].get("status"), "missing_official_rate")
+        ua_monthly = rows[2026]["lines"]["ua"]["value"] / rows[2026]["lines"]["ua"]["months"]
+        self.assertAlmostEqual(ua_monthly, 700.0 / self.ROE, delta=0.01)
+
     def test_no_bah_fallback_to_other_locations_or_grades(self) -> None:
         from planner_app.allowances import bah_monthly
         self.assertIsNone(bah_monthly(PAY, "nowhere_base", "E-7", False))

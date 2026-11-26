@@ -3,20 +3,20 @@
     {
       "baselineScenarioId": "scenario_path_a",
       "scenarioId": "scenario_path_b",
-      "finalPortfolioDelta": 5169697.61,
+      "finalPortfolioDelta": 4507539.82,
       "totalIncomeDelta": 5481488.5,
-      "healthcareCostDelta": -1576465.39,
+      "healthcareCostDelta": -377543.5,
       "breakevenYear": 2026,
-      "cumulativeAdvantage": 5169697.61
+      "cumulativeAdvantage": 4507539.82
     },
     {
       "baselineScenarioId": "scenario_path_a",
       "scenarioId": "scenario_path_c",
-      "finalPortfolioDelta": 1639721.26,
+      "finalPortfolioDelta": 1273190.12,
       "totalIncomeDelta": -2033358.64,
-      "healthcareCostDelta": -977186.2,
+      "healthcareCostDelta": -261994.31,
       "breakevenYear": 2026,
-      "cumulativeAdvantage": 1639721.26
+      "cumulativeAdvantage": 1273190.12
     }
   ]
 }

@@ -3,7 +3,7 @@
    each income stream, benefit and expense shows exactly when it applies. */
 
 import { useEffect, useRef, useState } from "react";
-import { useAppState, useDispatch, pathColor, fmtMoney, NEGATIVE_COLORS } from "../state/store";
+import { useAppState, useDispatch, pathColor, fmtMoney, NEGATIVE_COLORS, visiblePaths } from "../state/store";
 import { Bars, LineChart, type Series } from "./Chart";
 import { CHART_STACKS, phaseLabel } from "./stacks";
 
@@ -226,19 +226,24 @@ function ChartPicker({
 export function ChartsPanel() {
   const state = useAppState();
   const dispatch = useDispatch();
-  const { results, realDollars, theme, chartsEnabled } = state;
+  const { results, realDollars, theme, chartsEnabled, hiddenPathIds } = state;
   if (!results) return null;
 
-  const scenarios: any[] = results.scenarios;
+  const allScenarios: any[] = results.scenarios;
+  // Only paths switched on (eye on the path card); each keeps its own color.
+  const shown = visiblePaths(allScenarios, hiddenPathIds, results.comparison?.baselineScenarioId ?? null);
+  const scenarios: any[] = shown.map(({ entry }) => entry);
+  const colorIndex = new Map(shown.map(({ entry, colorIndex }) => [entry.scenarioId, colorIndex]));
+  const colorOf = (entry: any) => pathColor(colorIndex.get(entry.scenarioId) ?? 0, theme);
   const unit = realDollars ? "real 2026$" : "nominal";
   const enabled = chartsEnabled.filter((id) => KNOWN_IDS.has(id));
   const active = enabled.length ? enabled : ["net_cf"];
 
   const compareSeries = (metric: (row: any) => number): Series[] =>
-    scenarios.map((entry, i) => ({
+    scenarios.map((entry) => ({
       id: entry.scenarioId,
       name: entry.scenarioName,
-      color: pathColor(i, theme),
+      color: colorOf(entry),
       points: entry.projection.map((row: any) => ({
         x: row.calendarYear,
         y: deflate(row, metric(row), realDollars),
@@ -254,6 +259,16 @@ export function ChartsPanel() {
             <p className="sub" style={{ margin: "2px 0 0" }}>
               Line: one line per path. Bars: one path's total split by category, year by year.
             </p>
+            {allScenarios.length > 1 && (
+              <span className="paths-shown">
+                Showing {scenarios.length} of {allScenarios.length} paths
+                {scenarios.length < allScenarios.length ? (
+                  <button className="small" onClick={() => dispatch({ type: "showAllPaths" })}>Show all</button>
+                ) : (
+                  <span>· hide one with the eye on its card</span>
+                )}
+              </span>
+            )}
           </div>
           <ChartPicker
             enabled={active}
@@ -267,6 +282,7 @@ export function ChartsPanel() {
           key={def.id}
           def={def}
           scenarios={scenarios}
+          colorOf={colorOf}
           series={compareSeries(def.metric)}
           unit={unit}
           realDollars={realDollars}
@@ -282,6 +298,7 @@ export function ChartsPanel() {
 function ChartCard({
   def,
   scenarios,
+  colorOf,
   series,
   unit,
   realDollars,
@@ -289,6 +306,7 @@ function ChartCard({
 }: {
   def: ChartDef;
   scenarios: any[];
+  colorOf: (entry: any) => string;
   series: Series[];
   unit: string;
   realDollars: boolean;
@@ -377,7 +395,7 @@ function ChartCard({
               aria-pressed={i === barIndex}
               onClick={() => setBarPathId(entry.scenarioId)}
             >
-              <span className="pathdot" style={{ background: pathColor(i, theme), display: "inline-block", marginRight: 5, width: 8, height: 8 }} />
+              <span className="pathdot" style={{ background: colorOf(entry), display: "inline-block", marginRight: 5, width: 8, height: 8 }} />
               {entry.scenarioName}
             </button>
           ))}
@@ -415,9 +433,9 @@ function ChartCard({
               <thead>
                 <tr>
                   <th />
-                  {scenarios.map((entry, i) => (
+                  {scenarios.map((entry) => (
                     <th key={entry.scenarioId} title={entry.scenarioName}>
-                      <span className="pathdot" style={{ background: pathColor(i, theme), width: 8, height: 8, display: "inline-block" }} />
+                      <span className="pathdot" style={{ background: colorOf(entry), width: 8, height: 8, display: "inline-block" }} />
                     </th>
                   ))}
                 </tr>

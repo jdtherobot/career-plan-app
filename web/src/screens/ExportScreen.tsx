@@ -77,6 +77,7 @@ export function ExportScreen() {
           chartsEnabled: state.chartsEnabled,
           realDollars: state.realDollars,
           panelBrightness: state.panelBrightness,
+          hiddenPathIds: state.hiddenPathIds,
         },
         zipB64: bytesToB64(new Uint8Array(await zipResp.arrayBuffer())),
       };

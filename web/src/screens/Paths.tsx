@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAppState, useDispatch, pathColor, fmtMoney } from "../state/store";
 import { GradBlockEditor } from "../components/GradBlockEditor";
 import { StationTimeline } from "../components/StationTimeline";
-import { MONTHS, PAY_GRADES, STATE_NAMES, groupLocations, locationLabel } from "../components/planHelpers";
+import { MONTHS, PAY_GRADES, STATE_NAMES, groupLocations, locationLabel, uid } from "../components/planHelpers";
 
 const BLOCK_TYPES = [
   { id: "tech_career", label: "Tech career", color: "var(--blk-tech)" },
@@ -226,7 +226,7 @@ export function Paths() {
               payGrade: "E-7",
               serviceEntryYear: state.profile?.serviceEntryYear ?? 2014,
               serviceEntryMonth: 2,
-              dependents: true,
+              dependents: false,
               dutyLocationId: "sacramento_ca",
             };
             const setSvc = (patch: any) => {
@@ -289,15 +289,7 @@ export function Paths() {
                     />
                   </div>
                 </div>
-                <label className="field" style={{ marginTop: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={svc.dependents}
-                    onChange={(e) => setSvc({ dependents: e.target.checked })}
-                    style={{ marginRight: 6 }}
-                  />
-                  With dependents (BAH / OHA / COLA rate)
-                </label>
+                <DependentsControl />
                 {!state.profile?.serviceProfile && (
                   <p className="notice" style={{ marginTop: 6 }}>
                     Using the seeded service trajectory — change any field to switch to the standard pay tables.
@@ -651,5 +643,61 @@ export function Paths() {
         </section>
       </div>
     </>
+  );
+}
+
+/* When you gain dependents. Drives with/without-dependent BAH / OHA / COLA and
+   family vs. individual health coverage, year by year. Backed by the
+   household list (Finances → Household), so both stay in sync. */
+function DependentsControl() {
+  const state = useAppState();
+  const dispatch = useDispatch();
+  const profile = state.profile ?? {};
+  const members: any[] = profile.household ?? [];
+  const idx = members.findIndex((m) => m.dependent !== false);
+  const member = idx >= 0 ? members[idx] : null;
+  const baseYear = profile.baseYear ?? 2026;
+  const setHousehold = (household: any[]) =>
+    dispatch({ type: "setProfile", profile: { ...profile, household, householdTimelineSeeded: true } });
+  const setYear = (year: number) => {
+    if (member) setHousehold(members.map((m, j) => (j === idx ? { ...m, fromYear: year } : m)));
+    else {
+      const dormant = members.findIndex((m) => m.name === "Dependent" && m.dependent === false);
+      if (dormant >= 0) setHousehold(members.map((m, j) => (j === dormant ? { ...m, dependent: true, fromYear: year } : m)));
+      else setHousehold([...members, { id: uid("m"), name: "Dependent", dependent: true, fromYear: year, toYear: null, costs: [] }]);
+    }
+  };
+  const setNone = () => setHousehold(members.map((m) => ({ ...m, dependent: false })));
+  const from = member ? Number(member.fromYear ?? baseYear) : null;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <label className="field" htmlFor="dep-from">Dependents</label>
+      <div className="row" style={{ gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        <div className="toggle" role="group" aria-label="Dependents">
+          <button className={from === null ? "on" : ""} aria-pressed={from === null} onClick={setNone}>None</button>
+          <button className={from !== null ? "on" : ""} aria-pressed={from !== null} onClick={() => from === null && setYear(2034)}>From year</button>
+        </div>
+        {from !== null && (
+          <input
+            id="dep-from"
+            type="number"
+            min={baseYear}
+            max={baseYear + 60}
+            style={{ width: 80 }}
+            value={from}
+            onChange={(e) => setYear(Number(e.target.value))}
+            aria-label="Year dependents start"
+          />
+        )}
+      </div>
+      <p className="notice" style={{ marginTop: 4 }}>
+        {from === null
+          ? "Single throughout: without-dependent BAH / OHA / COLA and individual health coverage."
+          : from <= baseYear
+            ? "With dependents from now on: with-dependent rates and family health coverage."
+            : `Single until ${from - 1}, then with-dependent rates and family health coverage from ${from}.`}{" "}
+        Details in Finances → Household.
+      </p>
+    </div>
   );
 }

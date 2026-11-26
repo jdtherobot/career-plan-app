@@ -307,28 +307,49 @@ def _segment_tax_profile(segment: YearSegment, domains: dict, salary_annualized:
     return {"id": "gap_year_tax_free", "federalRate": 0.0, "stateRate": 0.0}
 
 
-def _segment_healthcare(segment: YearSegment, domains: dict, age: int) -> tuple[float, str]:
-    """Annualized healthcare cost for the segment (before proration) and its profile id."""
+def _profile_cost(profile: dict, calendar_year: int, family: bool, people: int) -> float:
+    """A healthcare profile's annual premium for one year: family or individual
+    tier (or per person), grown from the year the figure is quoted for."""
+    if profile.get("perPerson"):
+        base = float(profile.get("annualCost", 0) or 0) * people
+    elif family and profile.get("annualCostFamily") is not None:
+        base = float(profile.get("annualCostFamily") or 0)
+    else:
+        base = float(profile.get("annualCost", 0) or 0)
+    cost_year = int(profile.get("costYear", 2026) or 2026)
+    return base * (1 + float(profile.get("inflationRate", 0) or 0)) ** max(calendar_year - cost_year, 0)
+
+
+def _segment_healthcare(segment: YearSegment, domains: dict, age: int, calendar_year: int = 2026,
+                        family: bool = False) -> tuple[float, str]:
+    """Annual health-coverage premiums for the segment (before proration) and the profile id.
+
+    * Active duty: $0.
+    * Military retiree: TRICARE Select Group A enrollment fee until 65, then
+      TRICARE For Life — whose only cost is the Medicare Part B premium.
+    * Everyone else: employer plan while working a civilian job, unsubsidized
+      marketplace in years without one, Medicare + Medigap + Part D at 65.
+    `family` is True while the household has a dependent; at 65+ Medicare is
+    priced per person (you plus one dependent, assumed to be a spouse)."""
     medicare = _domain_lookup(domains, "medicare_profiles", "medicare_baseline") or {}
     medicare_age = int(medicare.get("startAge", 65))
+    people = 2 if family else 1
 
     if segment.activity_type == "active_duty":
         return 0.0, "active_duty_covered"
     if segment.service_status == "military_retired":
+        if age >= medicare_age:
+            profile = _domain_lookup(domains, "healthcare_profiles", "tricare_for_life") or {}
+            return _profile_cost(profile, calendar_year, family, people), "tricare_for_life"
         profile = _domain_lookup(domains, "healthcare_profiles", "tricare_select_retiree") or {}
-        cost = float(profile.get("annualCost", 0)) * (1 + float(profile.get("inflationRate", 0))) ** segment.years_since_exit
-        return cost, "tricare_select_retiree"
+        return _profile_cost(profile, calendar_year, family, people), "tricare_select_retiree"
     if segment.activity_type == "grad_school":
         return 0.0, "university_funded_healthcare"
-    # Civilian: employer plan (or marketplace during gaps), replaced by Medicare at 65.
     if age >= medicare_age:
-        years_on_medicare = age - medicare_age
-        cost = float(medicare.get("annualCost", 0)) * (1 + float(medicare.get("inflationRate", 0))) ** years_on_medicare
-        return cost, "medicare_baseline"
+        return _profile_cost(medicare, calendar_year, family, people), "medicare_baseline"
     profile_id = "marketplace_gap_year" if segment.activity_type in ("gap", "retire") else "civilian_employer_plan"
     profile = _domain_lookup(domains, "healthcare_profiles", profile_id) or {}
-    cost = float(profile.get("annualCost", 0)) * (1 + float(profile.get("inflationRate", 0))) ** segment.years_in_activity
-    return cost, profile_id
+    return _profile_cost(profile, calendar_year, family, people), profile_id
 
 
 def _contribution_policy_id(activity_type: str) -> str:
@@ -485,7 +506,7 @@ def project_scenario_v2(
     pay_data = load_military_pay_2026()
     pay_data_year = int(pay_data.get("effectiveYear", 2026) or 2026)
     military_raise = _rule(domains, "military_raise_default", default=0.025)
-    service_dependents = bool((planner_profile.get("serviceProfile") or {}).get("dependents", True))
+    service_dependents = bool((planner_profile.get("serviceProfile") or {}).get("dependents", False))
     tax_residency = sorted(
         [entry for entry in planner_profile.get("taxResidency") or [] if entry.get("stateCode")],
         key=lambda entry: int(entry.get("fromYear", 0) or 0),
@@ -623,7 +644,7 @@ def project_scenario_v2(
             rate_samples.append((months, fed_rate, state_rate))
 
             # Health coverage. Grad years without funding pay the school plan.
-            seg_health, _health_id = _segment_healthcare(seg, domains, age)
+            seg_health, _health_id = _segment_healthcare(seg, domains, age, calendar_year, bool(dependents))
             if seg.activity_type == "grad_school" and seg_health == 0 and program and not funded_this_year:
                 seg_health = float(program.get("healthInsuranceAnnual", 0) or 0)
             year_lines.add("healthcare", seg_health * f, months)

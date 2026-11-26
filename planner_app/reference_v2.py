@@ -13,6 +13,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .lines import household_has_dependents
+
 _LOCATION_COSTS_PATH = Path(__file__).resolve().parent / "data_location_costs.json"
 
 LOCATION_LABELS = {
@@ -89,9 +91,13 @@ V2_REFERENCE_DOMAINS: dict[str, list[dict[str, Any]]] = {
                              (89, 12.9), (90, 12.2)]
     ],
     "medicare_profiles": [
-        {"id": "medicare_baseline", "label": "Medicare Part B + supplement baseline", "annualCost": 2820.0, "inflationRate": 0.045,
-         "startAge": 65,
-         "sourceLabel": "CMS Part B premium (planning estimate)", "sourceUrl": "https://www.medicare.gov/basics/costs/medicare-costs"},
+        {"id": "medicare_baseline", "label": "Medicare Part B + Medigap G + Part D (per person)", "annualCost": 4900.0,
+         "perPerson": True, "costYear": 2026, "inflationRate": 0.05, "startAge": 65,
+         "verificationStatus": "estimate_verify",
+         "notes": "Separated (non-retiree) at 65+: Part B $202.90/mo (CMS 2026, official) plus a planning estimate of "
+                  "about $2,000/yr Medigap Plan G and $500/yr Part D. Verify supplement prices for your state.",
+         "sourceLabel": "CMS 2026 Part B premium + Medigap/Part D planning estimate",
+         "sourceUrl": "https://www.cms.gov/newsroom/fact-sheets/2026-medicare-parts-b-premiums-deductibles"},
     ],
     "v2_benefit_rules": [
         {"id": "employer_match_effective_default", "label": "Employer 401(k) match (effective rate of salary)", "valuePercent": 0.04,
@@ -242,7 +248,7 @@ def build_service_projection_domains(
     grade = str(service.get("payGrade", "E-5"))
     entry_year = int(service.get("serviceEntryYear", planner_profile.get("serviceEntryYear", 2020)))
     entry_month = int(service.get("serviceEntryMonth", 1))
-    dependents = bool(service.get("dependents", True))
+    dependents = bool(service.get("dependents", False))
     location_id = service.get("dutyLocationId", "sacramento_ca")
 
     base_year = int(planner_profile.get("baseYear", 2026))
@@ -264,10 +270,12 @@ def build_service_projection_domains(
         raise_factor = (1 + raise_rate) ** max(calendar_year - 2026, 0)
         # Month by month so a mid-year promotion is paid from its month.
         base_sum = bah_sum = bas_sum = 0.0
+        household_dep = household_has_dependents(planner_profile, calendar_year)
+        year_dependents = dependents if household_dep is None else household_dep
         for month in range(1, 13):
             g = grade_at(history, grade, calendar_year, month)
             base_sum += _bracket_pay(pay.get("basicPayMonthly", {}).get(g, {}), yos)
-            bah_sum += _bah_for(pay.get("bah", {}), location_id, g, dependents)
+            bah_sum += _bah_for(pay.get("bah", {}), location_id, g, year_dependents)
             bas_sum += bas_for(g)
         year_grade = grade_at(history, grade, calendar_year, 7)
         grade_numeric = int("".join(ch for ch in year_grade if ch.isdigit()) or 0)

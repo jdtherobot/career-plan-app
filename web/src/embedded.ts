@@ -23,6 +23,7 @@ export interface EmbeddedBundle {
     chartsEnabled: string[];
     realDollars: boolean;
     panelBrightness: number;
+    hiddenPathIds?: string[];
   };
   zipB64: string;
 }
