@@ -5,7 +5,7 @@ import { useAppState, useDispatch, pathColor, fmtMoney } from "../state/store";
 import { GradBlockEditor } from "../components/GradBlockEditor";
 import { StationTimeline } from "../components/StationTimeline";
 import { SocialSecurityPanel } from "../components/SocialSecurityPanel";
-import { MONTHS, PAY_GRADES, STATE_NAMES, groupLocations, locationLabel } from "../components/planHelpers";
+import { MONTHS, PAY_GRADES, STATE_NAMES, groupLocations, locationLabel, uid } from "../components/planHelpers";
 
 const BLOCK_TYPES = [
   { id: "tech_career", label: "Tech career", color: "var(--blk-tech)" },
@@ -227,7 +227,7 @@ export function Paths() {
               payGrade: "E-7",
               serviceEntryYear: state.profile?.serviceEntryYear ?? 2014,
               serviceEntryMonth: 2,
-              dependents: true,
+              dependents: false,
               dutyLocationId: "sacramento_ca",
             };
             const setSvc = (patch: any) => {
@@ -290,15 +290,7 @@ export function Paths() {
                     />
                   </div>
                 </div>
-                <label className="field" style={{ marginTop: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={svc.dependents}
-                    onChange={(e) => setSvc({ dependents: e.target.checked })}
-                    style={{ marginRight: 6 }}
-                  />
-                  With dependents (BAH / OHA / COLA rate)
-                </label>
+                <DependentsControl />
                 {!state.profile?.serviceProfile && (
                   <p className="notice" style={{ marginTop: 6 }}>
                     Using the seeded service trajectory — change any field to switch to the standard pay tables.
@@ -594,6 +586,47 @@ export function Paths() {
                     </div>
                   )}
                 </div>
+                {(block.type === "tech_career" || block.type === "research_career") && (() => {
+                  const preset = (block.type === "tech_career" ? companies : employers).find((c: any) => c.id === block.careerProfileId);
+                  const ov = block.overrides ?? {};
+                  const setOv = (patch: any) => {
+                    const next = { ...ov, ...patch };
+                    for (const k of Object.keys(patch)) if (patch[k] === null) delete next[k];
+                    updateBlock(index, { overrides: next });
+                  };
+                  return (
+                    <div className="row" style={{ gap: 12, marginTop: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+                      <div style={{ minWidth: 170 }}>
+                        <label className="field" htmlFor={`sal-${block.id}`}>Starting salary (today's $/yr)</label>
+                        <input
+                          id={`sal-${block.id}`}
+                          type="number"
+                          min={0}
+                          step={1000}
+                          placeholder={preset ? String(Math.round(preset.baseSalary)) : ""}
+                          value={ov.salaryStartAnnual ?? ""}
+                          onChange={(e) => setOv({ salaryStartAnnual: e.target.value === "" ? null : Number(e.target.value) })}
+                        />
+                      </div>
+                      <div style={{ width: 110 }}>
+                        <label className="field" htmlFor={`raise-${block.id}`}>Raise (%/yr)</label>
+                        <input
+                          id={`raise-${block.id}`}
+                          type="number"
+                          step={0.5}
+                          placeholder="5.5→3.5"
+                          value={typeof ov.salaryGrowthRate === "number" ? Math.round(ov.salaryGrowthRate * 1000) / 10 : ""}
+                          onChange={(e) => setOv({ salaryGrowthRate: e.target.value === "" ? null : Number(e.target.value) / 100 })}
+                        />
+                      </div>
+                      <p className="notice" style={{ margin: 0, flex: 1, minWidth: 200 }}>
+                        {ov.salaryStartAnnual || typeof ov.salaryGrowthRate === "number"
+                          ? "Your numbers replace the preset's salary path. Clear both to go back."
+                          : `Blank = ${preset?.label ?? "preset"}: ${fmtMoney(preset?.baseSalary ?? 0)} in today's dollars (rises with market wages until you start), then raises of 5.5%/yr for 4 years, 4.5% to year 9, 3.5% after. Fine-tune any year in Finances → Salary.`}
+                      </p>
+                    </div>
+                  );
+                })()}
                 {block.type === "grad_school" && (
                   <GradBlockEditor
                     block={block}
@@ -633,5 +666,61 @@ export function Paths() {
         </section>
       </div>
     </>
+  );
+}
+
+/* When you gain dependents. Drives with/without-dependent BAH / OHA / COLA and
+   family vs. individual health coverage, year by year. Backed by the
+   household list (Finances → Household), so both stay in sync. */
+function DependentsControl() {
+  const state = useAppState();
+  const dispatch = useDispatch();
+  const profile = state.profile ?? {};
+  const members: any[] = profile.household ?? [];
+  const idx = members.findIndex((m) => m.dependent !== false);
+  const member = idx >= 0 ? members[idx] : null;
+  const baseYear = profile.baseYear ?? 2026;
+  const setHousehold = (household: any[]) =>
+    dispatch({ type: "setProfile", profile: { ...profile, household, householdTimelineSeeded: true } });
+  const setYear = (year: number) => {
+    if (member) setHousehold(members.map((m, j) => (j === idx ? { ...m, fromYear: year } : m)));
+    else {
+      const dormant = members.findIndex((m) => m.name === "Dependent" && m.dependent === false);
+      if (dormant >= 0) setHousehold(members.map((m, j) => (j === dormant ? { ...m, dependent: true, fromYear: year } : m)));
+      else setHousehold([...members, { id: uid("m"), name: "Dependent", dependent: true, fromYear: year, toYear: null, costs: [] }]);
+    }
+  };
+  const setNone = () => setHousehold(members.map((m) => ({ ...m, dependent: false })));
+  const from = member ? Number(member.fromYear ?? baseYear) : null;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <label className="field" htmlFor="dep-from">Dependents</label>
+      <div className="row" style={{ gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        <div className="toggle" role="group" aria-label="Dependents">
+          <button className={from === null ? "on" : ""} aria-pressed={from === null} onClick={setNone}>None</button>
+          <button className={from !== null ? "on" : ""} aria-pressed={from !== null} onClick={() => from === null && setYear(2034)}>From year</button>
+        </div>
+        {from !== null && (
+          <input
+            id="dep-from"
+            type="number"
+            min={baseYear}
+            max={baseYear + 60}
+            style={{ width: 80 }}
+            value={from}
+            onChange={(e) => setYear(Number(e.target.value))}
+            aria-label="Year dependents start"
+          />
+        )}
+      </div>
+      <p className="notice" style={{ marginTop: 4 }}>
+        {from === null
+          ? "Single throughout: without-dependent BAH / OHA / COLA and individual health coverage."
+          : from <= baseYear
+            ? "With dependents from now on: with-dependent rates and family health coverage."
+            : `Single until ${from - 1}, then with-dependent rates and family health coverage from ${from}.`}{" "}
+        Details in Finances → Household.
+      </p>
+    </div>
   );
 }

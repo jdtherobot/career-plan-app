@@ -11,7 +11,8 @@ const STATUS_LABEL: Record<string, { label: string; tone: string; title: string 
   covered: { label: "covered", tone: "ok", title: "Paid for by an allowance or benefit — nets to $0" },
   partial: { label: "partly covered", tone: "warn", title: "An allowance or benefit pays part of this" },
   quarters: { label: "gov't quarters", tone: "ok", title: "Provided while living on base" },
-  missing_official_rate: { label: "official rate missing", tone: "bad", title: "No official DTMO rate is loaded — pays $0 until you enter it in Assumptions" },
+  missing_official_rate: { label: "official rate missing", tone: "bad", title: "No official DTMO rate is loaded — pays $0 until you enter it (Dashboard banner or the station chip)" },
+  pending_official_rate: { label: "awaiting OHA rate", tone: "bad", title: "Rent is held at $0 with OHA until the official DTMO rate is entered — they net to $0 either way" },
 };
 
 function whereLabel(row: any): string {
@@ -37,6 +38,26 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
   const [hideNa, setHideNa] = useState(true);
   const [growPct, setGrowPct] = useState(3);
   const [anchorYear, setAnchorYear] = useState<number | null>(null);
+  // Show and type amounts per month or per year (storage is always monthly).
+  const unitKey = `cpc-drawer-unit-${lineId}`;
+  const [unit, setUnitState] = useState<"mo" | "yr">(() => {
+    try {
+      const saved = localStorage.getItem(unitKey);
+      if (saved === "mo" || saved === "yr") return saved;
+    } catch {
+      /* storage unavailable */
+    }
+    return lineId === "salary" ? "yr" : "mo";
+  });
+  const setUnit = (next: "mo" | "yr") => {
+    setUnitState(next);
+    try {
+      localStorage.setItem(unitKey, next);
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  const k = unit === "yr" ? 12 : 1;
   const panelRef = useRef<HTMLDivElement>(null);
   const scenario = scenarios.find((s) => s.id === pathId) ?? scenarios[0];
   const entry = results?.scenarios?.find((s: any) => s.scenarioId === scenario?.id);
@@ -181,7 +202,7 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
             <div className="drawer-legend">
               <span><i className="lg-calc" /> calculated</span>
               <span><i className="lg-yours" /> with your edits</span>
-              <span style={{ marginLeft: "auto" }}>peak {fmtMoney(chart.max)}/mo</span>
+              <span style={{ marginLeft: "auto" }}>peak {fmtMoney(chart.max * k)}/{unit}</span>
             </div>
           </div>
         )}
@@ -192,7 +213,7 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
             <select id="anchor-year" value={anchor ?? ""} onChange={(e) => setAnchorYear(Number(e.target.value))} style={{ width: 90 }}>
               {rows.filter((r: any) => r.applies).map((r: any) => <option key={r.year} value={r.year}>{r.year}</option>)}
             </select>
-            <button className="small" disabled={anchor === null} onClick={() => anchor !== null && fillForward(anchor, 0)} title="Copy this year's monthly amount to every later year">
+            <button className="small" disabled={anchor === null} onClick={() => anchor !== null && fillForward(anchor, 0)} title="Copy this year's amount to every later year">
               Fill forward
             </button>
             <span className="grow">
@@ -215,7 +236,11 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
         <div className="drawer-summary">
           <span>{editedCount ? `${editedCount} year${editedCount > 1 ? "s" : ""} edited` : "Showing calculated values — type in “Yours” to change a year"}</span>
           {editedCount > 0 && <span>lifetime change {lifetimeDelta >= 0 ? "+" : "−"}{fmtMoney(Math.abs(lifetimeDelta), true)}</span>}
-          <label className="notice" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+          <div className="toggle unit-toggle" role="group" aria-label="Amounts per" style={{ marginLeft: "auto" }}>
+            <button className={unit === "mo" ? "on" : ""} aria-pressed={unit === "mo"} onClick={() => setUnit("mo")}>/mo</button>
+            <button className={unit === "yr" ? "on" : ""} aria-pressed={unit === "yr"} onClick={() => setUnit("yr")}>/yr</button>
+          </div>
+          <label className="notice" style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <input type="checkbox" checked={hideNa} onChange={(e) => setHideNa(e.target.checked)} />
             only years it applies
           </label>
@@ -228,7 +253,7 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
                 <th scope="col">Year</th>
                 <th scope="col">Where / phase</th>
                 <th scope="col" className="num">Calculated</th>
-                <th scope="col" className="num">Yours /mo</th>
+                <th scope="col" className="num">Yours /{unit}</th>
               </tr>
             </thead>
             <tbody>
@@ -253,24 +278,24 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
                         </span>
                       )}
                     </td>
-                    <td className="num">{r.applies ? `${fmtMoney(r.calcMonthly)}` : <span className="na-text">n/a</span>}</td>
+                    <td className="num">{r.applies ? `${fmtMoney(r.calcMonthly * k)}` : <span className="na-text">n/a</span>}</td>
                     <td className="num yours">
                       {r.applies && editable ? (
                         <span className="yours-cell">
                           <input
                             type="number"
                             inputMode="decimal"
-                            aria-label={`${label} per month in ${r.year}`}
-                            placeholder={String(Math.round(r.calcMonthly))}
-                            value={r.override ?? ""}
-                            onChange={(e) => setYear(r.year, e.target.value === "" ? null : Number(e.target.value))}
+                            aria-label={`${label} per ${unit === "yr" ? "year" : "month"} in ${r.year}`}
+                            placeholder={String(Math.round(r.calcMonthly * k))}
+                            value={r.override === null ? "" : Math.round(r.override * k * 100) / 100}
+                            onChange={(e) => setYear(r.year, e.target.value === "" ? null : Number(e.target.value) / k)}
                           />
                           {r.override !== null && (
                             <button className="lock-btn" onClick={() => setYear(r.year, null)} aria-label={`Reset ${r.year} to calculated`} title="Back to calculated">↺</button>
                           )}
                         </span>
                       ) : r.applies ? (
-                        fmtMoney(r.valueMonthly)
+                        fmtMoney(r.valueMonthly * k)
                       ) : (
                         <span className="na-text" title="This line doesn't apply this year (e.g. a different phase or location)">—</span>
                       )}
@@ -286,7 +311,7 @@ export function YearDrawer({ lineId, initialPathId, onClose }: { lineId: string;
             </tbody>
           </table>
         </div>
-        <p className="drawer-foot">Monthly amounts in each year's own dollars (nominal). Blank = use the calculation. Edits apply to this path only.</p>
+        <p className="drawer-foot">{unit === "yr" ? "Yearly (full-year rate)" : "Monthly"} amounts in each year's own dollars (nominal). Blank = use the calculation. Edits apply to this path only.</p>
       </div>
     </div>
   );

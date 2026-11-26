@@ -80,7 +80,8 @@ class GiBillLedgerTest(unittest.TestCase):
         gi_years = [row for row in rows if row["incomeBreakdown"]["giBillHousing"] > 0]
         self.assertEqual(len(gi_years), 3)  # 36 months = 3 school years
         self.assertEqual([row["calendarYear"] for row in gi_years], [2035, 2036, 2037])
-        expected_mha = 4992.0 * 12
+        # 2026 MHA grown with BAH (military raise, 3.5%/yr) to the school year.
+        expected_mha = 4992.0 * 12 * 1.035 ** (2035 - 2026)
         self.assertAlmostEqual(gi_years[0]["incomeBreakdown"]["giBillHousing"], expected_mha, delta=1)
 
     def test_gi_bill_disabled_when_toggled_off(self) -> None:
@@ -116,15 +117,16 @@ class ForeignSchoolGiBillTest(unittest.TestCase):
             "id": "us_phd", "type": "grad_school", "durationMonths": 60, "programId": "STAN-CS-PHD",
         })
         rows, _ = project(ScenarioV2.from_dict(data))
-        months = sum(row["incomeBreakdown"]["giBillHousing"] for row in rows) / 4992.0
+        months = sum(row["incomeBreakdown"]["giBillHousing"] / (4992.0 * 1.035 ** (row["calendarYear"] - 2026)) for row in rows)
         self.assertAlmostEqual(months, 36, delta=0.01)
 
     def test_approved_foreign_program_pays_flat_foreign_rate(self) -> None:
         rows, _ = project(_with_grad_program("scenario_path_c", "CAM-CS-PHD"))
-        full_years = [row for row in rows if row["incomeBreakdown"]["giBillHousing"] >= 2396.0 * 12 - 1]
+        rate = lambda row: 2396.0 * 1.035 ** (row["calendarYear"] - 2026)  # noqa: E731
+        full_years = [row for row in rows if row["incomeBreakdown"]["giBillHousing"] >= rate(row) * 12 - 1]
         self.assertTrue(full_years)
-        self.assertAlmostEqual(full_years[0]["incomeBreakdown"]["giBillHousing"], 2396.0 * 12, delta=1)
-        total_months = sum(row["incomeBreakdown"]["giBillHousing"] for row in rows) / 2396.0
+        self.assertAlmostEqual(full_years[0]["incomeBreakdown"]["giBillHousing"], rate(full_years[0]) * 12, delta=1)
+        total_months = sum(row["incomeBreakdown"]["giBillHousing"] / rate(row) for row in rows)
         self.assertAlmostEqual(total_months, 36, delta=0.01)
 
 
@@ -142,7 +144,8 @@ class ProrationMoneyTest(unittest.TestCase):
         self.assertGreater(breakdown["salaryBase"], 0)
         # Military half-year should be roughly half the 2027 schedule base pay.
         self.assertAlmostEqual(breakdown["militaryBasePay"], 68845.0104 / 2, delta=50)
-        self.assertAlmostEqual(breakdown["salaryBase"], 117638 / 2, delta=50)
+        # Offer in 2026 dollars, indexed one year of wage growth to its 2027 start.
+        self.assertAlmostEqual(breakdown["salaryBase"], 100000 * 1.035 / 2, delta=50)
 
 
 class EmployerMatchTest(unittest.TestCase):
@@ -160,17 +163,34 @@ class EmployerMatchTest(unittest.TestCase):
 
 
 class MedicareTest(unittest.TestCase):
+    PART_B_2026 = 202.90 * 12
+
     def test_civilian_healthcare_switches_to_medicare_at_65(self) -> None:
         rows, _ = project(MIGRATED["scenario_path_b"])
-        pre = find_year(rows, 2054)   # age 64 — civilian employer plan, ~26 yrs of 8% inflation
-        post = find_year(rows, 2055)  # age 65 — Medicare baseline
-        self.assertGreater(pre["healthcareCost"], 10_000)
-        self.assertLess(post["healthcareCost"], pre["healthcareCost"] / 2)
+        pre = find_year(rows, 2054)   # age 64 — employer plan, worker share (single)
+        post = find_year(rows, 2055)  # age 65 — Part B + Medigap + Part D
+        self.assertAlmostEqual(pre["healthcareCost"], 1440 * 1.05 ** (2054 - 2025), delta=1)
+        self.assertAlmostEqual(post["healthcareCost"], 202.90 * 12 * 1.06 ** (2055 - 2026) + 2465 * 1.05 ** (2055 - 2026), delta=1)
 
-    def test_military_retiree_stays_on_tricare(self) -> None:
+    def test_military_retiree_tricare_then_tricare_for_life(self) -> None:
         rows, _ = project(MIGRATED["scenario_path_a"])
-        row = find_year(rows, 2056)
-        self.assertLess(row["healthcareCost"], 1_000)  # TRICARE stays cheap
+        # Under 65: Group A TRICARE Select enrollment fee (single), a few hundred dollars.
+        self.assertLess(find_year(rows, 2054)["healthcareCost"], 1_000)
+        # 65+: TRICARE For Life — Part B premium only, no Medigap.
+        self.assertAlmostEqual(find_year(rows, 2056)["healthcareCost"], self.PART_B_2026 * 1.06 ** 30, delta=1)
+        separated, _ = project(MIGRATED["scenario_path_b"])
+        # Separated pays the same Part B plus Medigap and Part D.
+        self.assertLess(find_year(rows, 2056)["healthcareCost"], find_year(separated, 2056)["healthcareCost"])
+
+    def test_family_coverage_follows_household(self) -> None:
+        profile = dict(PLANNER_PROFILE)
+        profile["household"] = [{"id": "d", "name": "Dependent", "dependent": True, "fromYear": 2034, "costs": []}]
+        single, _ = project(MIGRATED["scenario_path_b"])
+        family, _ = project_scenario_v2(MIGRATED["scenario_path_b"], profile, REFERENCE_TABLES, MANUAL_CASHFLOW_SEED, REFERENCE_DOMAINS)
+        self.assertAlmostEqual(find_year(family, 2033)["healthcareCost"], find_year(single, 2033)["healthcareCost"], delta=1)
+        self.assertAlmostEqual(find_year(family, 2040)["healthcareCost"], 6850 * 1.05 ** (2040 - 2025), delta=1)
+        # Medicare is per person: two covered people at 65+.
+        self.assertAlmostEqual(find_year(family, 2056)["healthcareCost"], 2 * find_year(single, 2056)["healthcareCost"], delta=2)
 
 
 class RetirementLifecycleTest(unittest.TestCase):

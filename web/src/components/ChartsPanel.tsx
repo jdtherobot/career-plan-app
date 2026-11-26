@@ -3,7 +3,7 @@
    each income stream, benefit and expense shows exactly when it applies. */
 
 import { useEffect, useRef, useState } from "react";
-import { useAppState, useDispatch, pathColor, fmtMoney, NEGATIVE_COLORS } from "../state/store";
+import { useAppState, useDispatch, pathColor, fmtMoney, NEGATIVE_COLORS, visiblePaths } from "../state/store";
 import { Bars, LineChart, type Series } from "./Chart";
 import { CHART_STACKS, phaseLabel } from "./stacks";
 
@@ -165,8 +165,9 @@ function deflate(row: any, value: number, real: boolean): number {
   return real ? value * (row.realDollarFactor ?? 1) : value;
 }
 
-/* Multi-select dropdown: check charts on/off; closes on the trigger or any
-   outside click. At least one chart always stays selected (store-enforced). */
+/* Chart picker: check charts on/off and set their order (drag, or ▲▼ for
+   keyboard). Closes on the trigger or any outside click. At least one chart
+   always stays selected (store-enforced). */
 function ChartPicker({
   enabled,
   onChange,
@@ -193,30 +194,83 @@ function ChartPicker({
     };
   }, [open]);
 
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropId, setDropId] = useState<string | null>(null);
+  const byId = new Map(CHART_DEFS.map((d) => [d.id, d]));
+  const onList = enabled.filter((id) => byId.has(id));
+  const offList = CHART_DEFS.filter((d) => !enabled.includes(d.id));
+  const move = (id: string, to: number) => {
+    const from = onList.indexOf(id);
+    if (from < 0 || to < 0 || to >= onList.length || from === to) return;
+    const next = [...onList];
+    next.splice(from, 1);
+    next.splice(to, 0, id);
+    onChange(next);
+  };
+
   return (
     <div className="chart-picker" ref={wrapRef}>
       <button aria-expanded={open} aria-haspopup="listbox" onClick={() => setOpen(!open)}>
         Charts · {enabled.length} selected {open ? "▲" : "▼"}
       </button>
       {open && (
-        <div className="chart-picker-menu" role="listbox" aria-label="Visible charts">
-          {CHART_DEFS.map((def) => {
-            const on = enabled.includes(def.id);
-            const isLastOn = on && enabled.length === 1;
+        <div className="chart-picker-menu" aria-label="Visible charts, in display order">
+          <p className="chart-picker-h">Shown — top to bottom (drag or use ▲▼)</p>
+          {onList.map((id, i) => {
+            const def = byId.get(id)!;
+            const isLastOn = onList.length === 1;
             return (
-              <label key={def.id} className={isLastOn ? "locked" : ""} title={isLastOn ? "At least one chart stays visible" : def.sub}>
-                <input
-                  type="checkbox"
-                  checked={on}
-                  disabled={isLastOn}
-                  onChange={() =>
-                    onChange(on ? enabled.filter((c) => c !== def.id) : [...enabled, def.id])
-                  }
-                />
-                {def.title}
-              </label>
+              <div
+                key={id}
+                className={`chart-picker-row${dragId === id ? " dragging" : ""}${dropId === id && dragId !== id ? " drop" : ""}`}
+                draggable
+                onDragStart={(e) => {
+                  setDragId(id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDropId(id);
+                }}
+                onDragLeave={() => setDropId((cur) => (cur === id ? null : cur))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragId) move(dragId, i);
+                  setDragId(null);
+                  setDropId(null);
+                }}
+                onDragEnd={() => {
+                  setDragId(null);
+                  setDropId(null);
+                }}
+              >
+                <span className="drag-handle" aria-hidden="true">⠿</span>
+                <label className={isLastOn ? "locked" : ""} title={isLastOn ? "At least one chart stays visible" : def.sub}>
+                  <input
+                    type="checkbox"
+                    checked
+                    disabled={isLastOn}
+                    onChange={() => onChange(onList.filter((c) => c !== id))}
+                  />
+                  {def.title}
+                </label>
+                <span className="order-btns">
+                  <button className="lock-btn" disabled={i === 0} onClick={() => move(id, i - 1)} aria-label={`Move ${def.title} up`}>▲</button>
+                  <button className="lock-btn" disabled={i === onList.length - 1} onClick={() => move(id, i + 1)} aria-label={`Move ${def.title} down`}>▼</button>
+                </span>
+              </div>
             );
           })}
+          {offList.length > 0 && <p className="chart-picker-h">Hidden — check to add at the bottom</p>}
+          {offList.map((def) => (
+            <div key={def.id} className="chart-picker-row off">
+              <span className="drag-handle" aria-hidden="true" />
+              <label title={def.sub}>
+                <input type="checkbox" checked={false} onChange={() => onChange([...onList, def.id])} />
+                {def.title}
+              </label>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -226,19 +280,24 @@ function ChartPicker({
 export function ChartsPanel() {
   const state = useAppState();
   const dispatch = useDispatch();
-  const { results, realDollars, theme, chartsEnabled } = state;
+  const { results, realDollars, theme, chartsEnabled, hiddenPathIds } = state;
   if (!results) return null;
 
-  const scenarios: any[] = results.scenarios;
+  const allScenarios: any[] = results.scenarios;
+  // Only paths switched on (eye on the path card); each keeps its own color.
+  const shown = visiblePaths(allScenarios, hiddenPathIds, results.comparison?.baselineScenarioId ?? null);
+  const scenarios: any[] = shown.map(({ entry }) => entry);
+  const colorIndex = new Map(shown.map(({ entry, colorIndex }) => [entry.scenarioId, colorIndex]));
+  const colorOf = (entry: any) => pathColor(colorIndex.get(entry.scenarioId) ?? 0, theme);
   const unit = realDollars ? "real 2026$" : "nominal";
   const enabled = chartsEnabled.filter((id) => KNOWN_IDS.has(id));
   const active = enabled.length ? enabled : ["net_cf"];
 
   const compareSeries = (metric: (row: any) => number): Series[] =>
-    scenarios.map((entry, i) => ({
+    scenarios.map((entry) => ({
       id: entry.scenarioId,
       name: entry.scenarioName,
-      color: pathColor(i, theme),
+      color: colorOf(entry),
       points: entry.projection.map((row: any) => ({
         x: row.calendarYear,
         y: deflate(row, metric(row), realDollars),
@@ -254,6 +313,16 @@ export function ChartsPanel() {
             <p className="sub" style={{ margin: "2px 0 0" }}>
               Line: one line per path. Bars: one path's total split by category, year by year.
             </p>
+            {allScenarios.length > 1 && (
+              <span className="paths-shown">
+                Showing {scenarios.length} of {allScenarios.length} paths
+                {scenarios.length < allScenarios.length ? (
+                  <button className="small" onClick={() => dispatch({ type: "showAllPaths" })}>Show all</button>
+                ) : (
+                  <span>· hide one with the eye on its card</span>
+                )}
+              </span>
+            )}
           </div>
           <ChartPicker
             enabled={active}
@@ -262,11 +331,12 @@ export function ChartsPanel() {
         </div>
       </div>
 
-      {CHART_DEFS.filter((def) => active.includes(def.id)).map((def) => (
+      {active.map((id) => CHART_DEFS.find((d) => d.id === id)).filter((def): def is ChartDef => !!def).map((def) => (
         <ChartCard
           key={def.id}
           def={def}
           scenarios={scenarios}
+          colorOf={colorOf}
           series={compareSeries(def.metric)}
           unit={unit}
           realDollars={realDollars}
@@ -282,6 +352,7 @@ export function ChartsPanel() {
 function ChartCard({
   def,
   scenarios,
+  colorOf,
   series,
   unit,
   realDollars,
@@ -289,6 +360,7 @@ function ChartCard({
 }: {
   def: ChartDef;
   scenarios: any[];
+  colorOf: (entry: any) => string;
   series: Series[];
   unit: string;
   realDollars: boolean;
@@ -377,7 +449,7 @@ function ChartCard({
               aria-pressed={i === barIndex}
               onClick={() => setBarPathId(entry.scenarioId)}
             >
-              <span className="pathdot" style={{ background: pathColor(i, theme), display: "inline-block", marginRight: 5, width: 8, height: 8 }} />
+              <span className="pathdot" style={{ background: colorOf(entry), display: "inline-block", marginRight: 5, width: 8, height: 8 }} />
               {entry.scenarioName}
             </button>
           ))}
@@ -415,9 +487,9 @@ function ChartCard({
               <thead>
                 <tr>
                   <th />
-                  {scenarios.map((entry, i) => (
+                  {scenarios.map((entry) => (
                     <th key={entry.scenarioId} title={entry.scenarioName}>
-                      <span className="pathdot" style={{ background: pathColor(i, theme), width: 8, height: 8, display: "inline-block" }} />
+                      <span className="pathdot" style={{ background: colorOf(entry), width: 8, height: 8, display: "inline-block" }} />
                     </th>
                   ))}
                 </tr>

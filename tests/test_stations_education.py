@@ -65,6 +65,23 @@ class StationTimelineTest(unittest.TestCase):
         self.assertAlmostEqual(line(rows[2028], "oha"), line(rows[2028], "housing"), delta=1)
         self.assertEqual(rows[2028]["lines"]["housing"]["status"], "covered")
 
+    def test_oha_is_the_full_dtmo_rate_and_all_goes_to_rent(self) -> None:
+        stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
+        rows = rows_of(payload(stations, exit_year=2027))
+        full = 1627.20 / 0.7239 * 12  # DTMO E-7 w/o deps, $2,247.82/mo
+        self.assertAlmostEqual(line(rows[2026], "oha"), full, delta=1)
+        self.assertAlmostEqual(line(rows[2026], "housing"), full, delta=1)
+
+    def test_missing_oha_holds_rent_and_oha_at_zero_and_flags_it(self) -> None:
+        stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
+        p = payload(stations, exit_year=2027)
+        p["plannerProfile"]["serviceProfile"]["dependents"] = True  # E-7 with deps: not loaded
+        rows = rows_of(p)
+        self.assertEqual(line(rows[2026], "oha"), 0.0)
+        self.assertEqual(line(rows[2026], "housing"), 0.0)
+        self.assertEqual(rows[2026]["lines"]["housing"]["status"], "pending_official_rate")
+        self.assertEqual(rows[2026]["lines"]["oha"]["status"], "missing_official_rate")
+
     def test_rent_above_cap_costs_the_difference_and_oha_follows_edits(self) -> None:
         rows = rows_of(payload(ALCONBURY, overrides={"housing": {"2028": 5000}}))
         housing = line(rows[2028], "housing")
@@ -135,6 +152,34 @@ class OfficialDtmoRatesTest(unittest.TestCase):
         self.assertEqual(rows[2026]["lines"]["oha"]["status"], "missing_official_rate")
         self.assertNotIn("ua", rows[2026]["lines"])
 
+    def test_dependents_timeline_picks_the_oha_row_per_year(self) -> None:
+        """Single until 2034, then one dependent: E-7 without-dependents OHA is
+        paid through 2033, and only 2034 onward asks for the with-dependents row."""
+        stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
+        p = payload(stations, exit_year=2034, profile_patch={
+            "household": [{"id": "d", "name": "Dependent", "dependent": True, "fromYear": 2034, "costs": []}],
+        })
+        p["plannerProfile"]["serviceProfile"]["dependents"] = True  # household timeline wins over the flag
+        rows = rows_of(p)
+        for year in range(2026, 2034):
+            self.assertNotEqual(rows[year]["lines"]["oha"].get("status"), "missing_official_rate", year)
+            self.assertGreater(rows[year]["lines"]["ua"]["value"], 0, year)
+        self.assertEqual(rows[2034]["lines"]["oha"]["status"], "missing_official_rate")
+        self.assertTrue(any("E-7 with dependents" in n for n in rows[2034]["lines"]["oha"]["notes"]))
+
+    def test_oha_override_fills_a_missing_row(self) -> None:
+        stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
+        p = payload(stations, exit_year=2027)
+        p["plannerProfile"]["serviceProfile"]["dependents"] = True
+        p["referenceOverrides"] = [
+            {"domain": "oha_rates", "id": "raf_alconbury_uk:E-7:with", "field": "rentLocal", "value": 2000.0},
+            {"domain": "oha_rates", "id": "raf_alconbury_uk:E-7:with", "field": "uaLocal", "value": 700.0},
+        ]
+        rows = rows_of(p)
+        self.assertNotEqual(rows[2026]["lines"]["oha"].get("status"), "missing_official_rate")
+        ua_monthly = rows[2026]["lines"]["ua"]["value"] / rows[2026]["lines"]["ua"]["months"]
+        self.assertAlmostEqual(ua_monthly, 700.0 / self.ROE, delta=0.01)
+
     def test_no_bah_fallback_to_other_locations_or_grades(self) -> None:
         from planner_app.allowances import bah_monthly
         self.assertIsNone(bah_monthly(PAY, "nowhere_base", "E-7", False))
@@ -172,8 +217,9 @@ class EducationBenefitTest(unittest.TestCase):
         rows = rows_of(payload(blocks=grad_blocks("cmu-scs-mscs", "gi_bill", 24)))
         tuition = line(rows[2031], "tuitionFees")
         paid = line(rows[2031], "tuitionPaid")
-        self.assertAlmostEqual(tuition, 60400, delta=1)
-        self.assertAlmostEqual(paid, 30908.34, delta=1)
+        grown = 1.03 ** (2031 - 2026)  # tuition and the GI Bill cap grow 3%/yr from 2026
+        self.assertAlmostEqual(tuition, 60400 * grown, delta=1)
+        self.assertAlmostEqual(paid, 30908.34 * grown, delta=1)
         self.assertEqual(rows[2031]["lines"]["tuitionFees"]["status"], "partial")
         self.assertGreater(line(rows[2031], "giHousing"), 0)
 
@@ -220,6 +266,29 @@ class EducationBenefitTest(unittest.TestCase):
         self.assertEqual(line(funded[2031], "tuitionFees"), 0)  # MEXT waives tuition
 
 
+class BlockSalaryTest(unittest.TestCase):
+    def test_starting_salary_and_raise_override_the_preset(self) -> None:
+        blocks = [{"id": "t", "type": "tech_career", "durationMonths": None, "careerProfileId": "GOOG_SWE",
+                   "overrides": {"salaryStartAnnual": 120000, "salaryGrowthRate": 0.04}}]
+        rows = rows_of(payload(blocks=blocks, exit_year=2026))
+        start = 120000 * 1.035  # today's-dollar offer, indexed to the 2027 start
+        self.assertAlmostEqual(line(rows[2027], "salary"), start, delta=1)
+        self.assertAlmostEqual(line(rows[2029], "salary"), start * 1.04 ** 2, delta=1)
+        preset = rows_of(payload(exit_year=2026))
+        self.assertNotAlmostEqual(line(preset[2027], "salary"), 120000, delta=1)
+        self.assertLess(rows[2029]["employerMatch"], preset[2029]["employerMatch"] * 2)
+
+
+class SalaryStartYearTest(unittest.TestCase):
+    def test_same_job_starting_later_starts_higher_by_wage_growth(self) -> None:
+        blocks = lambda: [{"id": "t", "type": "research_career", "durationMonths": None, "careerProfileId": "CONSERVATIVE"}]  # noqa: E731
+        early = rows_of(payload(blocks=blocks(), exit_year=2027))
+        late = rows_of(payload(blocks=blocks(), exit_year=2033))
+        first_early, first_late = line(early[2028], "salary"), line(late[2034], "salary")
+        self.assertAlmostEqual(first_late / first_early, 1.035 ** 6, delta=1e-6)
+        self.assertAlmostEqual(first_early, 150000 * 1.035 ** 2, delta=1)
+
+
 class LineOverrideTest(unittest.TestCase):
     def test_overrides_flow_into_totals(self) -> None:
         base = rows_of(payload(ALCONBURY))
@@ -238,7 +307,7 @@ class LineOverrideTest(unittest.TestCase):
                       "costs": [{"id": "ins", "label": "Insurance", "monthly": 200, "category": "insurance"}]}]
         rows = rows_of(payload(ALCONBURY, profile_patch={"household": household}))
         self.assertEqual(line(rows[2027], "hh:m1:ins"), 0)
-        self.assertAlmostEqual(line(rows[2028], "hh:m1:ins"), 2400, delta=0.01)
+        self.assertAlmostEqual(line(rows[2028], "hh:m1:ins"), 2400 * 1.045 ** 2, delta=0.01)  # insurance CPI growth
         self.assertEqual(line(rows[2030], "hh:m1:ins"), 0)
 
 

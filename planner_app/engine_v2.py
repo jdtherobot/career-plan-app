@@ -249,10 +249,22 @@ def _segment_location_id(segment: YearSegment, domains: dict, default_location: 
     return default_location
 
 
+EXPENSE_GROWTH_DEFAULTS = {
+    "housing": 0.035, "utilities": 0.0325, "food": 0.03, "transportation": 0.026, "insurance": 0.045,
+    "healthcareOutOfPocket": 0.03, "personal": 0.024, "entertainment": 0.015, "gifts": 0.025, "miscellaneous": 0.025,
+}
+
+
+def expense_growth_rates(domains: dict) -> dict[str, float]:
+    """Long-run growth per living-expense category (BLS CPI component history),
+    editable in Assumptions → Lifecycle rules (expense_growth_<category>)."""
+    return {key: _rule(domains, f"expense_growth_{key}", default=default) for key, default in EXPENSE_GROWTH_DEFAULTS.items()}
+
+
 def _blended_expense_breakdown(
     expense_items: list[dict],
     cost_profile: dict | None,
-    growth: float,
+    growth: dict[str, float],
     year_index: int,
     override_total_monthly: float | None,
     post_service: bool,
@@ -286,7 +298,7 @@ def _blended_expense_breakdown(
 
     total_monthly = sum(monthly.values()) or 1.0
     scale = (override_total_monthly / total_monthly) if override_total_monthly is not None else 1.0
-    return {key: _value(amount * scale * 12, growth, year_index) for key, amount in monthly.items()}
+    return {key: _value(amount * scale * 12, growth.get(key, 0.025), year_index) for key, amount in monthly.items()}
 
 
 def _segment_tax_profile(segment: YearSegment, domains: dict, salary_annualized: float) -> dict:
@@ -307,28 +319,52 @@ def _segment_tax_profile(segment: YearSegment, domains: dict, salary_annualized:
     return {"id": "gap_year_tax_free", "federalRate": 0.0, "stateRate": 0.0}
 
 
-def _segment_healthcare(segment: YearSegment, domains: dict, age: int) -> tuple[float, str]:
-    """Annualized healthcare cost for the segment (before proration) and its profile id."""
+def _profile_cost(profile: dict, calendar_year: int, family: bool, people: int) -> float:
+    """A healthcare profile's annual premium for one year: family or individual
+    tier (or per person), grown from the year the figure is quoted for."""
+    if profile.get("perPerson"):
+        base = float(profile.get("annualCost", 0) or 0) * people
+    elif family and profile.get("annualCostFamily") is not None:
+        base = float(profile.get("annualCostFamily") or 0)
+    else:
+        base = float(profile.get("annualCost", 0) or 0)
+    cost_year = int(profile.get("costYear", 2026) or 2026)
+    return base * (1 + float(profile.get("inflationRate", 0) or 0)) ** max(calendar_year - cost_year, 0)
+
+
+def _segment_healthcare(segment: YearSegment, domains: dict, age: int, calendar_year: int = 2026,
+                        family: bool = False) -> tuple[float, str]:
+    """Annual health-coverage premiums for the segment (before proration) and the profile id.
+
+    * Active duty: $0.
+    * Military retiree: TRICARE Select Group A enrollment fee until 65, then
+      TRICARE For Life — whose only cost is the Medicare Part B premium.
+    * Everyone else: employer plan while working a civilian job, unsubsidized
+      marketplace in years without one, Medicare + Medigap + Part D at 65.
+    `family` is True while the household has a dependent; at 65+ Medicare is
+    priced per person (you plus one dependent, assumed to be a spouse)."""
     medicare = _domain_lookup(domains, "medicare_profiles", "medicare_baseline") or {}
     medicare_age = int(medicare.get("startAge", 65))
+    people = 2 if family else 1
 
     if segment.activity_type == "active_duty":
         return 0.0, "active_duty_covered"
     if segment.service_status == "military_retired":
+        if age >= medicare_age:
+            profile = _domain_lookup(domains, "healthcare_profiles", "tricare_for_life") or {}
+            return _profile_cost(profile, calendar_year, family, people), "tricare_for_life"
         profile = _domain_lookup(domains, "healthcare_profiles", "tricare_select_retiree") or {}
-        cost = float(profile.get("annualCost", 0)) * (1 + float(profile.get("inflationRate", 0))) ** segment.years_since_exit
-        return cost, "tricare_select_retiree"
+        return _profile_cost(profile, calendar_year, family, people), "tricare_select_retiree"
     if segment.activity_type == "grad_school":
         return 0.0, "university_funded_healthcare"
-    # Civilian: employer plan (or marketplace during gaps), replaced by Medicare at 65.
     if age >= medicare_age:
-        years_on_medicare = age - medicare_age
-        cost = float(medicare.get("annualCost", 0)) * (1 + float(medicare.get("inflationRate", 0))) ** years_on_medicare
-        return cost, "medicare_baseline"
+        # Part B (same premium a retiree pays under TFL) + Medigap & Part D.
+        part_b = _domain_lookup(domains, "healthcare_profiles", "tricare_for_life") or {}
+        return (_profile_cost(part_b, calendar_year, family, people)
+                + _profile_cost(medicare, calendar_year, family, people)), "medicare_baseline"
     profile_id = "marketplace_gap_year" if segment.activity_type in ("gap", "retire") else "civilian_employer_plan"
     profile = _domain_lookup(domains, "healthcare_profiles", profile_id) or {}
-    cost = float(profile.get("annualCost", 0)) * (1 + float(profile.get("inflationRate", 0))) ** segment.years_in_activity
-    return cost, profile_id
+    return _profile_cost(profile, calendar_year, family, people), profile_id
 
 
 def _contribution_policy_id(activity_type: str) -> str:
@@ -509,7 +545,9 @@ def project_scenario_v2(
     surplus_rate = float(growth_policy.get("surplusInvestmentRate", 0.2))
     withdrawal_rate = float(growth_policy.get("withdrawalRate", 0.04))
     inflation = _rule(domains, "inflation_general_default", default=0.025)
-    va_cola = _rule(domains, "va_cola", default=0.028)
+    # VA compensation and military retired pay get the same statutory COLA as
+    # Social Security (one rule: ss_cola_default).
+    va_cola = _rule(domains, "ss_cola_default", default=0.025)
     capital_gains_rate = _rule(domains, "capital_gains_rate_default", default=0.15)
     match_rate_default = _rule(domains, "employer_match_effective_default", default=0.04)
     gi_months_total = int(_rule(domains, "gi_bill_usage_default", field="valueNumber", default=36))
@@ -531,7 +569,7 @@ def project_scenario_v2(
     exit = scenario.service_exit
     is_military_retirement = exit.type == "military_retirement"
     pension_info = derive_high3_pension(domains, planner_profile, exit.year, exit.month) if is_military_retirement else None
-    pension_cola = float((_domain_lookup(domains, "pension_profiles", "high_3_path_a") or {}).get("colaRate", 0.028))
+    pension_cola = _rule(domains, "ss_cola_default", default=0.025)
     va = _domain_lookup(domains, "va_disability", scenario.selected_va_rating_id)
 
     withdrawal_age = float(scenario.retirement.withdrawal_age_years)
@@ -543,8 +581,11 @@ def project_scenario_v2(
     }
     pay_data = load_military_pay_2026()
     pay_data_year = int(pay_data.get("effectiveYear", 2026) or 2026)
-    military_raise = _rule(domains, "military_raise_default", default=0.025)
-    service_dependents = bool((planner_profile.get("serviceProfile") or {}).get("dependents", True))
+    military_raise = _rule(domains, "military_raise_default", default=0.035)
+    category_growth = expense_growth_rates(domains)
+    wage_growth = _rule(domains, "wage_growth_default", default=0.035)
+    tuition_growth = _rule(domains, "tuition_growth_default", default=0.03)
+    service_dependents = bool((planner_profile.get("serviceProfile") or {}).get("dependents", False))
     tax_residency = sorted(
         [entry for entry in planner_profile.get("taxResidency") or [] if entry.get("stateCode")],
         key=lambda entry: int(entry.get("fromYear", 0) or 0),
@@ -594,7 +635,8 @@ def project_scenario_v2(
             location_id = _segment_location_id(seg, domains, default_location)
             location = _domain_lookup(domains, "locations", location_id)
             cost_profile = _domain_lookup(domains, "location_cost_profiles", (location or {}).get("costProfileId"))
-            expense_growth = float((cost_profile or {}).get("annualGrowthRate", 0) or 0) or _rule(domains, "living_expense_growth_default", default=0.03)
+            # Rent growth also projects the OHA ceiling forward (OHA tracks local rents).
+            expense_growth = category_growth["housing"]
             allowance = None
 
             if seg.activity_type == "active_duty":
@@ -645,6 +687,7 @@ def project_scenario_v2(
                 if seg.activity_type == "grad_school":
                     program = _domain_lookup(domains, "programs", seg.program_id) if seg.program_id else None
                     funded_this_year, stipend = _stipend_for(program, seg)
+                    stipend *= (1 + wage_growth) ** year_index  # quoted in 2026 dollars
                     if stipend > 0:
                         year_lines.add("stipend", stipend * f, months)
                         taxable.append(("stipend", stipend * f))
@@ -654,10 +697,29 @@ def project_scenario_v2(
                     edu_ledger = _apply_education(
                         year_lines, seg, program, domains, edu_rules, edu_ledger, scenario, dependents,
                         funded_this_year,
+                        price={
+                            "tuition": (1 + tuition_growth) ** year_index,
+                            "housing": (1 + military_raise) ** year_index,  # MHA = E-5 BAH
+                            "cola": (1 + va_cola) ** year_index,
+                        },
                     )
                 elif seg.activity_type in ("tech_career", "research_career"):
                     career = _career_profile(reference_tables, seg.career_profile_id) or {}
-                    salary_annualized = salary_for_year(career, seg.years_in_activity)
+                    # Your own starting salary / raise for this block, if set,
+                    # replace the company preset's (bonus, RSU, match % stay).
+                    block_ov = seg.block_overrides or {}
+                    start_annual = block_ov.get("salaryStartAnnual")
+                    if isinstance(start_annual, (int, float)) and start_annual > 0:
+                        growth = block_ov.get("salaryGrowthRate")
+                        career = {**career, "baseSalary": float(start_annual), "compSegments": [],
+                                  "growthRate": float(growth) if isinstance(growth, (int, float))
+                                  else float(career.get("growthRate", 0.03) or 0.03)}
+                    elif isinstance(block_ov.get("salaryGrowthRate"), (int, float)):
+                        career = {**career, "compSegments": [], "growthRate": float(block_ov["salaryGrowthRate"])}
+                    # Offers are in today's (2026) dollars: a job that starts later
+                    # starts higher by market wage growth up to its first year.
+                    start_index = seg.block_start_month_index // 12
+                    salary_annualized = salary_for_year(career, seg.years_in_activity) * (1 + wage_growth) ** start_index
                     year_lines.add("salary", salary_annualized * f, months)
                     taxable.append(("salary", salary_annualized * f))
                     placeholders["bonusPlaceholder"] += salary_annualized * float(career.get("bonusPct", 0) or 0) * f
@@ -692,7 +754,7 @@ def project_scenario_v2(
             rate_samples.append((months, fed_rate, state_rate))
 
             # Health coverage. Grad years without funding pay the school plan.
-            seg_health, _health_id = _segment_healthcare(seg, domains, age)
+            seg_health, _health_id = _segment_healthcare(seg, domains, age, calendar_year, bool(dependents))
             if seg.activity_type == "grad_school" and seg_health == 0 and program and not funded_this_year:
                 seg_health = float(program.get("healthInsuranceAnnual", 0) or 0)
             year_lines.add("healthcare", seg_health * f, months)
@@ -702,7 +764,7 @@ def project_scenario_v2(
             # post-service blocks use the location's researched costs.
             uses_location_costs = seg.activity_type != "active_duty" or (seg.station_index or 0) > 0
             seg_expenses = _blended_expense_breakdown(
-                expense_inputs, cost_profile, expense_growth, year_index,
+                expense_inputs, cost_profile, category_growth, year_index,
                 float(override_living_monthly) if override_living_monthly is not None else None,
                 post_service=uses_location_costs,
             )
@@ -715,36 +777,44 @@ def project_scenario_v2(
                     continue
                 year_lines.add(key, value * f, months)
             if allowance and allowance["overseas"] and not on_base:
-                rent_monthly = seg_expenses.get("housing", 0.0) / 12.0
                 cap = allowance["ohaCap"]
-                oha_monthly = min(rent_monthly, cap) if cap > 0 else 0.0
+                housing_line = year_lines.get("housing")
+                # Off-base overseas housing: rent is taken to be the full OHA
+                # rental allowance — you receive it and all of it goes to rent,
+                # so OHA and rent net to $0. (Type a different rent in the
+                # year editor to model renting above or below the cap.)
+                local_rent = seg_expenses.get("housing", 0.0) * f
+                housing_line.calc -= local_rent
+                rent_monthly = cap
+                if cap > 0:
+                    year_lines.add("housing", cap * months, 0)
+                    housing_line.status = "covered"
+                    housing_line.note(
+                        f"Rent = your full OHA (${cap:,.0f}/mo) — it all goes to rent, so OHA and rent net to $0.")
+                else:
+                    housing_line.status = "pending_official_rate"
+                    housing_line.note(
+                        "Official OHA rate not entered yet — OHA and rent are both held at $0 (they net to $0 once "
+                        "the DTMO figure is entered).")
+                oha_monthly = rent_monthly if cap > 0 else 0.0
                 year_lines.add("oha", oha_monthly * months, months)
                 prior = year_lines.oha_months
                 year_lines.oha_months += months
                 year_lines.oha_cap_monthly = (
                     (year_lines.oha_cap_monthly * prior + cap * months) / year_lines.oha_months
                 )
-                housing_line = year_lines.get("housing")
-                if cap > 0 and rent_monthly <= cap:
-                    housing_line.status = "covered"
-                    housing_line.note("Rent is covered by OHA (up to the cap) — OHA and rent net to $0.")
-                elif cap > 0:
-                    housing_line.status = "partial"
-                    housing_line.note(
-                        f"Rent is above the OHA cap (${cap:,.0f}/mo) — you pay the difference."
-                    )
                 if cap > 0:
                     cur = allowance["currency"]
                     official = allowance["ohaCapOfficialLocal"]
                     if allowance["projected"]:
                         year_lines.get("oha").note(
-                            f"OHA reimburses actual rent up to the DTMO rental allowance: {cur} {official:,.2f}/mo "
+                            f"Full DTMO OHA rental allowance: {cur} {official:,.2f}/mo "
                             f"({allowance.get('source', 'DTMO')}), projected to {cur} {cap * allowance['roe']:,.0f} "
-                            f"(${cap:,.0f}) for {calendar_year} as local rents rise. You keep nothing above rent.")
+                            f"(${cap:,.0f}) for {calendar_year} as local rents rise. All of it goes to rent.")
                     else:
                         year_lines.get("oha").note(
-                            f"OHA reimburses actual rent up to the DTMO rental allowance: {cur} {official:,.2f} "
-                            f"(${cap:,.0f})/mo ({allowance.get('source', 'DTMO')}). You keep nothing above rent.")
+                            f"Full DTMO OHA rental allowance: {cur} {official:,.2f} "
+                            f"(${cap:,.0f})/mo ({allowance.get('source', 'DTMO')}). All of it goes to rent.")
                 if allowance["ua"] > 0:
                     year_lines.get("utilities").note("Offset by the OHA utility allowance.")
                 # MIHA: one-time move-in allowance in the first month at the station,
@@ -773,7 +843,10 @@ def project_scenario_v2(
 
         # Household members' costs (user-entered, whole years).
         for item in household_lines(planner_profile, calendar_year):
-            year_lines.add(item["id"], item["monthly"] * 12.0, 12.0)
+            # Entered in today's (base-year) dollars; grows like its category.
+            key = _category_field_map().get(item["category"], item["category"])
+            hh_growth = category_growth.get(key, category_growth["miscellaneous"])
+            year_lines.add(item["id"], item["monthly"] * 12.0 * (1 + hh_growth) ** year_index, 12.0)
             household_categories[item["id"]] = item
 
         weight = sum(w for w, _, _ in rate_samples) or 1.0

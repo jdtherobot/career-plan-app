@@ -222,7 +222,7 @@ REFERENCE_FIELD_METADATA: dict[str, dict[str, Any]] = {
             {"field": "transportationMonthly", "label": "Transport", "kind": "currency", "sourceable": True},
             {"field": "insuranceMonthly", "label": "Insurance", "kind": "currency", "sourceable": True},
             {"field": "healthcareOutOfPocketMonthly", "label": "Healthcare OOP", "kind": "currency", "sourceable": True},
-            {"field": "annualGrowthRate", "label": "Growth", "kind": "percent", "sourceable": True},
+            {"field": "annualGrowthRate", "label": "Recent local CPI (reference only)", "kind": "percent", "sourceable": True},
             {"field": "verificationStatus", "label": "Verified", "kind": "status"},
         ],
         "advancedColumns": [
@@ -513,7 +513,9 @@ REFERENCE_FIELD_METADATA: dict[str, dict[str, Any]] = {
         "visibleColumns": [
             {"field": "label", "label": "Plan"},
             {"field": "coverageKind", "label": "Coverage"},
-            {"field": "annualCost", "label": "Annual Cost", "kind": "currency", "sourceable": True},
+            {"field": "annualCost", "label": "Annual Cost (individual / per person)", "kind": "currency", "sourceable": True},
+            {"field": "annualCostFamily", "label": "Annual Cost (family)", "kind": "currency", "sourceable": True},
+            {"field": "costYear", "label": "Cost Year"},
             {"field": "inflationRate", "label": "Inflation", "kind": "percent", "sourceable": True},
             {"field": "verificationStatus", "label": "Verified", "kind": "status"},
         ],
@@ -1384,21 +1386,61 @@ def _build_military_promotion_schedule() -> list[dict[str, Any]]:
     ]
 
 
+# Raises after you start, by years in the role (nominal; market wage growth +
+# merit/promotion). Early years include the first promotion; later years
+# converge to economy-wide wage growth. Atlanta Fed Wage Growth Tracker (job
+# stayers, prime-age) ~4-5%; BLS ECI wages ~3.5%.
+CAREER_COMP_SEGMENTS = [
+    {"fromYearInRole": 0, "toYearInRole": 4, "annualGrowthRate": 0.055},
+    {"fromYearInRole": 5, "toYearInRole": 9, "annualGrowthRate": 0.045},
+    {"fromYearInRole": 10, "toYearInRole": 10_000, "annualGrowthRate": 0.035},
+]
+
+
 def _build_career_profiles() -> list[dict[str, Any]]:
+    """Entry-level offers in 2026 dollars: new-grad (tech) and new-PhD
+    (research). Base salary drives the projection; bonus % and yearly stock are
+    shown for reference only (not counted as income). Researched 2026-11-26."""
     rows = [
-        ("tech_company", "GENERIC_IC", "Generic Big Tech IC", 117638, 0.10, 20000, 0.04),
-        ("tech_company", "MSFT_SWE", "Microsoft SWE (L62-63)", 175000, 0.15, 90000, 0.04),
-        ("tech_company", "GOOG_SWE", "Google SWE (L4-L5)", 190000, 0.15, 110000, 0.04),
-        ("tech_company", "NVDA_IC", "NVIDIA IC (IC4-5)", 195000, 0.15, 150000, 0.05),
-        ("tech_company", "INTEL_IC", "Intel Grade 7-8", 155000, 0.10, 40000, 0.03),
-        ("tech_company", "STARTUP_TECH", "Funded Tech Startup", 140000, 0.05, 40000, 0.05),
-        ("research_employer", "CONSERVATIVE", "Conservative Default", 220000, 0.10, 30000, 0.04),
-        ("research_employer", "INTEL_LABS", "Intel Labs", 190000, 0.10, 50000, 0.03),
-        ("research_employer", "NEURALINK", "Neuralink", 185000, 0.10, 60000, 0.04),
-        ("research_employer", "MSFT_RESEARCH", "Microsoft Research", 200000, 0.15, 80000, 0.04),
-        ("research_employer", "DEEPMIND", "Google DeepMind", 230000, 0.15, 120000, 0.04),
-        ("research_employer", "NVDA_RESEARCH", "NVIDIA Research", 250000, 0.15, 150000, 0.05),
-        ("research_employer", "ANTHROPIC", "Anthropic", 400000, 0.00, 100000, 0.05),
+        ("tech_company", "GENERIC_IC", "Typical new-grad software engineer", 100000, 0.05, 5000,
+         "NACE Winter 2026: CS master's avg $94,212, bachelor's $81,535 (all employers); large tech pays more",
+         "https://naceweb.org/job-market/compensation/"),
+        ("tech_company", "MSFT_SWE", "Microsoft SWE (59, new grad)", 120000, 0.10, 25000,
+         "Payscale early-career Microsoft SWE median base $116K; Levels.fyi level 59 ~$120K base, ~$155-162K total",
+         "https://www.levels.fyi/companies/microsoft/salaries/software-engineer"),
+        ("tech_company", "GOOG_SWE", "Google SWE (L3, new grad)", 160000, 0.15, 35000,
+         "Google posted L3 band ~$155-189K base, ~15% target bonus; Levels.fyi L3 ~$157K base, ~$205-216K total",
+         "https://www.levels.fyi/companies/google/salaries/software-engineer"),
+        ("tech_company", "NVDA_IC", "NVIDIA SWE (IC1-2, new grad)", 145000, 0.0, 30000,
+         "NVIDIA posted new-grad bands: Level 1 $108,000-178,250, Level 2 $124,000-195,500; Levels.fyi IC1 median total ~$176K",
+         "https://www.aced.io/jobs/new-grad/nvidia"),
+        ("tech_company", "INTEL_IC", "Intel SWE (Grade 3, new grad)", 112000, 0.08, 8000,
+         "Levels.fyi Intel Grade 3 (entry) ~$112K base / $124K total; Payscale entry-level median $89K",
+         "https://www.levels.fyi/companies/intel/salaries/software-engineer/locations/united-states"),
+        ("tech_company", "STARTUP_TECH", "Funded startup (new grad)", 125000, 0.0, 0,
+         "Planning estimate between NACE averages and big-tech offers; startup equity is illiquid, so counted as $0",
+         ""),
+        ("research_employer", "CONSERVATIVE", "Typical new-PhD industry researcher", 150000, 0.10, 20000,
+         "NACE-reported doctoral CS starting salary: mean $144,633, median $129,500, 75th pct ~$167,500 (via Purdue)",
+         "https://www.purdue.edu/academics/ogsps/admissions/preparing-for-graduate-studies/doctoral-degree-starting-salaries"),
+        ("research_employer", "INTEL_LABS", "Intel Labs (new PhD, Grade 7)", 155000, 0.08, 15000,
+         "6figr Intel Grade 7 PhD profiles ~$154-191K base; Payscale early-career research scientist $112-147K",
+         "https://6figr.com/us/salary/intel--research"),
+        ("research_employer", "NEURALINK", "Neuralink (new PhD)", 150000, 0.0, 30000,
+         "Neuralink 2026 postings: software engineer bases $119-261K (e.g. $123-216K, $135-216K) plus RSUs",
+         "https://job-boards.greenhouse.io/neuralink/jobs/4205469003"),
+        ("research_employer", "MSFT_RESEARCH", "Microsoft Research (new PhD, IC4)", 165000, 0.10, 30000,
+         "Microsoft Research IC4 Researcher postings: typical US base $119,800-234,700",
+         "https://jobs.anitab.org/companies/microsoft/jobs/68131980-senior-researcher-research-in-software-engineering-microsoft-research"),
+        ("research_employer", "DEEPMIND", "Google DeepMind (new PhD)", 175000, 0.15, 60000,
+         "DeepMind 2026 US research scientist postings: entry band $147,000-211,000 base (+ bonus + equity)",
+         "https://jobs.anitab.org/companies/google-24698/jobs/76651428-frontier-ai-research-scientist-deepmind"),
+        ("research_employer", "NVDA_RESEARCH", "NVIDIA Research (new PhD)", 190000, 0.0, 60000,
+         "NVIDIA 'PhD New College Grad 2026' research scientist postings: base $168,000-264,500",
+         "https://jobs.nvidia.com/careers/job/893394590339"),
+        ("research_employer", "ANTHROPIC", "Anthropic (entry research engineer)", 300000, 0.0, 75000,
+         "Anthropic 2026 postings: lowest research engineer bands $300-400K and $300-405K base; research scientist bands $350-850K",
+         "https://jobs.generalcatalyst.com/companies/anthropic/jobs/92322682-applied-ai-research-engineer"),
     ]
     return [
         {
@@ -1408,13 +1450,15 @@ def _build_career_profiles() -> list[dict[str, Any]]:
             "baseSalary": base_salary,
             "bonusPct": bonus_pct,
             "annualRsu": annual_rsu,
-            "growthRate": growth_rate,
-            "sourceLabel": "Planner seed default",
-            "sourceUrl": "",
-            "verificationStatus": "seed_default",
-            "notes": "Reference compensation profile used by path selectors.",
+            "growthRate": 0.035,
+            "compSegments": CAREER_COMP_SEGMENTS,
+            "sourceLabel": source,
+            "sourceUrl": url,
+            "verificationStatus": "researched_2026_11_26" if url else "estimate_verify",
+            "notes": "Entry-level base salary in 2026 dollars (indexed to your start year by market wage growth). "
+                     "Raises: 5.5%/yr for years 0-4, 4.5% years 5-9, 3.5% after. Bonus and stock are reference only.",
         }
-        for profile_type, item_id, label, base_salary, bonus_pct, annual_rsu, growth_rate in rows
+        for profile_type, item_id, label, base_salary, bonus_pct, annual_rsu, source, url in rows
     ]
 
 
@@ -1590,36 +1634,62 @@ def _build_healthcare_profiles() -> list[dict[str, Any]]:
         },
         {
             "id": "tricare_select_retiree",
-            "label": "TRICARE Select retiree",
+            "label": "TRICARE Select retiree, Group A (enrollment fee)",
             "coverageKind": "retiree_tricare",
-            "annualCost": 182.0,
-            "inflationRate": 0.03,
-            "sourceLabel": "Planner seed default",
-            "sourceUrl": "",
-            "verificationStatus": "placeholder_pending_research",
-            "notes": "Retiree TRICARE placeholder aligned with the current baseline until the public rate is re-verified.",
+            "annualCost": 193.92,
+            "annualCostFamily": 388.92,
+            "costYear": 2027,
+            "inflationRate": 0.025,
+            "sourceLabel": "TRICARE Health Plan Costs (CY2027, Group A retiree, TRICARE Select)",
+            "sourceUrl": "https://www.tricare.mil/Costs/Compare",
+            "verificationStatus": "official",
+            "notes": "Fees rise with the retiree COLA by law (~2.5%/yr). "
+                     "Military retirees under 65. Group A (entered service before 2018) annual enrollment fee: "
+                     "$193.92 individual / $388.92 family (CY2027). Copays are small and capped "
+                     "($4,538/family catastrophic cap) and sit in health out-of-pocket.",
+        },
+        {
+            "id": "tricare_for_life",
+            "label": "TRICARE For Life (Medicare Part B premium only)",
+            "coverageKind": "retiree_tricare_for_life",
+            "annualCost": 2434.80,
+            "perPerson": True,
+            "costYear": 2026,
+            "inflationRate": 0.06,
+            "sourceLabel": "CMS 2026 Medicare Part B standard premium ($202.90/mo); TRICARE For Life has no enrollment fee",
+            "sourceUrl": "https://www.cms.gov/newsroom/fact-sheets/2026-medicare-parts-b-premiums-deductibles",
+            "verificationStatus": "official",
+            "notes": "Grows ~6%/yr: 2026 Medicare Trustees project Part B from $202.90 (2026) to ~$272 (2031). "
+                     "Military retirees 65+. TFL is free but requires Medicare Part B, so the only premium is Part B "
+                     "per covered person. No Medigap or Part D needed (TFL is the supplement; TRICARE pharmacy covers drugs).",
         },
         {
             "id": "civilian_employer_plan",
-            "label": "Civilian employer plan",
+            "label": "Civilian employer plan (worker premium share)",
             "coverageKind": "civilian_employer",
-            "annualCost": 3000.0,
-            "inflationRate": 0.08,
-            "sourceLabel": "Planner seed default",
-            "sourceUrl": "",
-            "verificationStatus": "seed_default",
-            "notes": "Employer-sponsored plan baseline used for tech and research phases.",
+            "annualCost": 1440.0,
+            "annualCostFamily": 6850.0,
+            "costYear": 2025,
+            "inflationRate": 0.05,
+            "sourceLabel": "KFF 2025 Employer Health Benefits Survey: average worker contribution",
+            "sourceUrl": "https://www.kff.org/health-costs/report/2025-employer-health-benefits-survey/",
+            "verificationStatus": "researched_2026_11_26",
+            "notes": "Average annual worker contribution: $1,440 single / $6,850 family (2025). Used while working a civilian job. "
+                     "Grows 5%/yr: family premiums +6% in 2025, +26% over 5 yrs (~4.7%/yr); worker share +23% (~4.2%/yr) (KFF).",
         },
         {
             "id": "marketplace_gap_year",
-            "label": "Marketplace gap-year plan",
+            "label": "Marketplace plan, unsubsidized (no employer, under 65)",
             "coverageKind": "gap_year_marketplace",
-            "annualCost": 3000.0,
-            "inflationRate": 0.0,
-            "sourceLabel": "Planner seed default",
-            "sourceUrl": "",
-            "verificationStatus": "seed_default",
-            "notes": "Gap-year health insurance placeholder used by Path C.",
+            "annualCost": 7500.0,
+            "annualCostFamily": 18000.0,
+            "costYear": 2026,
+            "inflationRate": 0.05,
+            "sourceLabel": "Planning estimate: ACA benchmark silver premium, no subsidy",
+            "sourceUrl": "https://www.healthcare.gov/",
+            "verificationStatus": "estimate_verify",
+            "notes": "Estimate — verify on healthcare.gov for your ZIP and ages. Applies to separated (non-retiree) years "
+                     "with no employer plan before Medicare at 65.",
         },
         {
             "id": "university_funded_healthcare",
@@ -1994,7 +2064,7 @@ def _build_benefit_rules() -> list[dict[str, Any]]:
             "valuePercent": 0.028,
             "valueText": "",
             "verificationStatus": "seed_default",
-            "notes": "Applied to annual VA compensation after the first year it becomes active.",
+            "notes": "Superseded: VA compensation now uses the shared retiree COLA rule (ss_cola_default), as the law ties them together.",
         },
         {
             "id": "gi_bill_usage_default",
@@ -2014,7 +2084,7 @@ def _build_benefit_rules() -> list[dict[str, Any]]:
             "valuePercent": 0.03,
             "valueText": "",
             "verificationStatus": "seed_default",
-            "notes": "Fallback expense growth used when a location cost profile does not override it.",
+            "notes": "Superseded by per-category rules (expense_growth_<category>) in Lifecycle rules.",
         },
         {
             "id": "high_income_salary_threshold",
@@ -2476,6 +2546,7 @@ def build_compatibility_reference_tables(reference_domains: dict[str, list[dict[
                 "bonusPct": row["bonusPct"],
                 "annualRsu": row["annualRsu"],
                 "growthRate": row["growthRate"],
+                "compSegments": row.get("compSegments") or [],
             }
             for row in career_rows
             if row.get("profileType") == "tech_company"
@@ -2488,6 +2559,7 @@ def build_compatibility_reference_tables(reference_domains: dict[str, list[dict[
                 "bonusPct": row["bonusPct"],
                 "annualRsu": row["annualRsu"],
                 "growthRate": row["growthRate"],
+                "compSegments": row.get("compSegments") or [],
             }
             for row in career_rows
             if row.get("profileType") == "research_employer"

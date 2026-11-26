@@ -51,6 +51,19 @@ export function HouseholdCard() {
         </button>
       </div>
       {!members.length && <p className="notice" style={{ marginTop: 8 }}>No one added — the plan is for you alone.</p>}
+      {members.length > 0 && (() => {
+        const deps = members.filter((m) => m.dependent !== false);
+        const first = deps.length ? Math.min(...deps.map((m) => Number(m.fromYear ?? baseYear))) : null;
+        return (
+          <p className="notice" style={{ marginTop: 8 }}>
+            {first === null
+              ? "No dependents: without-dependent BAH / OHA / COLA and individual health coverage."
+              : first <= baseYear
+                ? "With dependents from now: with-dependent rates and family health coverage."
+                : `Single until ${first - 1} · with dependents from ${first} (with-dependent BAH / OHA / COLA, family health coverage). Change the “from” year below.`}
+          </p>
+        );
+      })()}
       {members.map((m, i) => {
         const monthly = (m.costs ?? []).reduce((s: number, c: any) => s + (Number(c.monthly) || 0), 0);
         return (

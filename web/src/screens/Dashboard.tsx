@@ -2,9 +2,10 @@
    chart library, and the service-ribbon timelines. */
 
 import { useState } from "react";
-import { useAppState, useDispatch, fmtMoney, pathColor } from "../state/store";
+import { useAppState, useDispatch, fmtMoney, pathColor, visiblePaths } from "../state/store";
 import { ChartsPanel } from "../components/ChartsPanel";
 import { Ribbon, RibbonScale } from "../components/Ribbon";
+import { MissingRatesBanner } from "../components/OhaEntry";
 
 /* Long-horizon planning stats (standard retirement-readiness metrics):
    net worth at +20y and at retirement start, sustainable income (4% rule),
@@ -49,7 +50,41 @@ export function longTermStats(entry: any, realDollars: boolean) {
   };
 }
 
-function PathCard({ entry, index, baseline }: { entry: any; index: number; baseline: boolean }) {
+/* Eye toggle on each path card: is this path drawn on the charts and
+   compared in the notes? The baseline is the comparison anchor, so it is
+   always on. */
+function EyeIcon({ open }: { open: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M1 8s2.6-4.5 7-4.5S15 8 15 8s-2.6 4.5-7 4.5S1 8 1 8z" />
+      {open ? <circle cx="8" cy="8" r="2" fill="currentColor" /> : <path d="M2.5 13.5l11-11" />}
+    </svg>
+  );
+}
+
+function PathVisibilityToggle({ entry, baseline, shown }: { entry: any; baseline: boolean; shown: boolean }) {
+  const dispatch = useDispatch();
+  const title = baseline
+    ? "The baseline is always on the charts — set another path as baseline to hide this one"
+    : shown
+      ? "Shown on charts and comparisons — click to hide"
+      : "Hidden from charts and comparisons — click to show";
+  return (
+    <button
+      className={`path-vis${shown ? " on" : ""}${baseline ? " locked" : ""}`}
+      aria-pressed={shown}
+      aria-disabled={baseline}
+      aria-label={`${entry.scenarioName}: ${shown ? "shown on" : "hidden from"} charts`}
+      title={title}
+      onClick={() => !baseline && dispatch({ type: "setPathVisible", id: entry.scenarioId, visible: !shown })}
+    >
+      <EyeIcon open={shown} />
+      {shown ? "On charts" : "Hidden"}
+    </button>
+  );
+}
+
+function PathCard({ entry, index, baseline, shown }: { entry: any; index: number; baseline: boolean; shown: boolean }) {
   const { realDollars, theme, results } = useAppState();
   const dispatch = useDispatch();
   const [expanded, setExpanded] = useState(false);
@@ -58,12 +93,14 @@ function PathCard({ entry, index, baseline }: { entry: any; index: number; basel
   const hash8 = results?.inputHash?.slice(0, 8) ?? "";
   const unit = realDollars ? "real 2026$" : "nominal";
   return (
-    <article className="card">
+    <article className={`card path-card${shown ? "" : " path-hidden"}`}>
       <h3>
         <span className="pathdot" style={{ background: pathColor(index, theme) }} />
-        {entry.scenarioName}
+        <span className="path-card-name">{entry.scenarioName}</span>
         {baseline && <span className="override-badge" style={{ background: "var(--line-2)", color: "var(--ink-2)" }}>baseline</span>}
+        <PathVisibilityToggle entry={entry} baseline={baseline} shown={shown} />
       </h3>
+      <div className="path-card-body">
       <p className="sub">{entry.scenario.notes || "Custom path"}</p>
       <p className="headline">
         {fmtMoney(s.netWorthAtRet, true)}
@@ -117,6 +154,7 @@ function PathCard({ entry, index, baseline }: { entry: any; index: number; basel
           Edit path →
         </a>
       </div>
+      </div>
       <span className="stencil">{`PATH.${String(index + 1).padStart(2, "0")} · ${hash8}`}</span>
     </article>
   );
@@ -168,6 +206,10 @@ export function Dashboard() {
   const scenarios = results.scenarios as any[];
   const comparison = results.comparison;
   const baselineId = comparison.baselineScenarioId;
+  const shown = visiblePaths(scenarios, state.hiddenPathIds, baselineId);
+  const shownIds = new Set(shown.map(({ entry }) => entry.scenarioId));
+  const baselineName = scenarios.find((s) => s.scenarioId === baselineId)?.scenarioName;
+  const visibleComparisons = (comparison.comparisons as any[]).filter((item) => shownIds.has(item.scenarioId));
 
   return (
     <>
@@ -188,9 +230,17 @@ export function Dashboard() {
         </div>
       </header>
 
+      <MissingRatesBanner scenarios={scenarios} />
+
       <div className="grid paths">
         {scenarios.map((entry, i) => (
-          <PathCard key={entry.scenarioId} entry={entry} index={i} baseline={entry.scenarioId === baselineId} />
+          <PathCard
+            key={entry.scenarioId}
+            entry={entry}
+            index={i}
+            baseline={entry.scenarioId === baselineId}
+            shown={shownIds.has(entry.scenarioId)}
+          />
         ))}
       </div>
 
@@ -209,7 +259,7 @@ export function Dashboard() {
         {!breakdownsCollapsed && (
           <>
             <p className="sub">Each ribbon is one path — segment width is time spent in that phase.</p>
-            {scenarios.map((entry) => (
+            {shown.map(({ entry }) => (
               <Ribbon key={entry.scenarioId} label={entry.scenarioName} projection={entry.projection} />
             ))}
             <RibbonScale projection={scenarios[0]?.projection ?? []} />
@@ -217,7 +267,14 @@ export function Dashboard() {
         )}
       </section>
 
-      {comparison.comparisons.map((item: any) => {
+      {visibleComparisons.length > 0 && (
+        <p className="compare-head">
+          Compared with baseline <strong>{baselineName}</strong> · {visibleComparisons.length} of{" "}
+          {scenarios.length - 1} other path{scenarios.length - 1 === 1 ? "" : "s"} shown — use the eye on a path card to
+          add or drop one, or “Set as baseline” to change the anchor.
+        </p>
+      )}
+      {visibleComparisons.map((item: any) => {
         const candidate = scenarios.find((s) => s.scenarioId === item.scenarioId);
         const base = scenarios.find((s) => s.scenarioId === baselineId);
         const delta = realDollars ? item.finalPortfolioRealDelta : item.finalPortfolioDelta;

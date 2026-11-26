@@ -48,6 +48,9 @@ export interface AppState {
   theme: Theme;
   chartsEnabled: string[];
   focusPathId: string | null;
+  /* Paths left off the dashboard charts and comparisons (the baseline is
+     always shown). Per-device view preference, not part of the plan. */
+  hiddenPathIds: string[];
   panelBrightness: number;
   hydrated: boolean;
 }
@@ -81,6 +84,14 @@ const initial: AppState = {
     return valid.length ? valid : DEFAULT_CHARTS;
   })(),
   focusPathId: null,
+  hiddenPathIds: (() => {
+    try {
+      const stored = EMBEDDED?.uiPrefs.hiddenPathIds ?? JSON.parse(lsGet("cpc-hidden-paths") || "[]");
+      return Array.isArray(stored) ? stored.filter((id: unknown) => typeof id === "string") : [];
+    } catch {
+      return [];
+    }
+  })(),
   panelBrightness: EMBEDDED?.uiPrefs.panelBrightness ?? Number(lsGet("cpc-panel-bright") ?? 25),
   hydrated: false,
 };
@@ -100,6 +111,8 @@ type Action =
   | { type: "setTheme"; value: Theme }
   | { type: "setChartsEnabled"; charts: string[] }
   | { type: "setFocusPath"; id: string | null }
+  | { type: "setPathVisible"; id: string; visible: boolean }
+  | { type: "showAllPaths" }
   | { type: "setPanelBrightness"; value: number }
   | { type: "setProfile"; profile: any }
   | { type: "replaceAll"; payload: Partial<AppState> };
@@ -122,8 +135,12 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, scenarios: action.scenarios };
     case "setManualInputs":
       return { ...state, manualInputs: action.manualInputs };
-    case "setBaseline":
-      return { ...state, baselineId: action.id };
+    case "setBaseline": {
+      // The baseline is the comparison anchor, so it is always on the charts.
+      const hiddenPathIds = state.hiddenPathIds.filter((id) => id !== action.id);
+      lsSet("cpc-hidden-paths", JSON.stringify(hiddenPathIds));
+      return { ...state, baselineId: action.id, hiddenPathIds };
+    }
     case "setOverrides":
       return { ...state, referenceOverrides: action.overrides };
     case "setRealDollars":
@@ -140,6 +157,15 @@ function reducer(state: AppState, action: Action): AppState {
     }
     case "setFocusPath":
       return { ...state, focusPathId: action.id };
+    case "setPathVisible": {
+      const rest = state.hiddenPathIds.filter((id) => id !== action.id);
+      const next = action.visible || action.id === state.baselineId ? rest : [...rest, action.id];
+      lsSet("cpc-hidden-paths", JSON.stringify(next));
+      return { ...state, hiddenPathIds: next };
+    }
+    case "showAllPaths":
+      lsSet("cpc-hidden-paths", "[]");
+      return { ...state, hiddenPathIds: [] };
     case "setProfile":
       return { ...state, profile: action.profile };
     case "setPanelBrightness":
@@ -220,6 +246,34 @@ export function normalizeScenarios(scenarios: any[], bootstrap: any): any[] {
       b.type === "grad_school" && legacy.has(b.programId) ? { ...b, programId: legacy.get(b.programId) } : b,
     ),
   }));
+}
+
+/* Profile v4: the household timeline drives with/without-dependent rates
+   (BAH / OHA / COLA) and family vs. individual health coverage. Profiles that
+   predate it get the default timeline once — single until 2034, then one
+   dependent — which the user can move or remove in Household. */
+export const DEFAULT_DEPENDENTS_FROM = 2034;
+export function normalizeProfile(profile: any): any {
+  if (!profile || profile.householdTimelineSeeded) return profile;
+  const household: any[] = Array.isArray(profile.household) ? profile.household : [];
+  return {
+    ...profile,
+    householdTimelineSeeded: true,
+    household: household.length
+      ? household
+      : [{ id: "m_dependent", name: "Dependent", dependent: true, fromYear: DEFAULT_DEPENDENTS_FROM, toYear: null, costs: [] }],
+  };
+}
+
+/* Visible paths for charts/comparisons, each with its stable color index. */
+export function visiblePaths<T extends { scenarioId: string }>(
+  scenarios: T[],
+  hiddenPathIds: string[],
+  baselineId: string | null,
+): { entry: T; colorIndex: number }[] {
+  const hidden = new Set(hiddenPathIds.filter((id) => id !== baselineId));
+  const shown = scenarios.map((entry, colorIndex) => ({ entry, colorIndex })).filter(({ entry }) => !hidden.has(entry.scenarioId));
+  return shown.length ? shown : scenarios.map((entry, colorIndex) => ({ entry, colorIndex }));
 }
 
 export function buildPayload(state: AppState) {
@@ -308,7 +362,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       dispatch({
         type: "hydrate",
         payload: {
-          profile: seed.plannerProfile ?? defaults.plannerProfile,
+          profile: normalizeProfile(seed.plannerProfile ?? defaults.plannerProfile),
           scenarios: normalizeScenarios(seed.scenarios ?? defaults.scenarios, bootstrap),
           manualInputs: seed.manualInputs ?? defaults.manualInputs,
           baselineId: seed.baselineId ?? defaults.baselineId,

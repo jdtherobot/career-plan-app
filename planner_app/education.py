@@ -89,14 +89,23 @@ def apply_education(
     scenario: Any,
     dependents: bool,
     funded_this_year: bool,
+    price: dict[str, float] | None = None,
 ) -> dict[str, float]:
-    """Add tuition, VA payments and housing/subsistence for one grad segment."""
+    """Add tuition, VA payments and housing/subsistence for one grad segment.
+
+    `price` grows 2026-dollar figures to this year: tuition (tuition, fees, the
+    GI Bill private/foreign cap), housing (GI Bill MHA, which follows BAH) and
+    cola (VR&E Chapter 31 rates). The $1,000 GI Bill books cap is fixed by law."""
+    price = price or {}
+    tuition_x = float(price.get("tuition", 1.0))
+    housing_x = float(price.get("housing", 1.0))
+    cola_x = float(price.get("cola", 1.0))
     months = float(segment.months)
     f = months / 12.0
     if not program:
         return ledger
 
-    tuition_annual = float(program.get("tuitionAnnual", 0) or 0) + float(program.get("feesAnnual", 0) or 0)
+    tuition_annual = (float(program.get("tuitionAnnual", 0) or 0) + float(program.get("feesAnnual", 0) or 0)) * tuition_x
     source = _funding_source(program, getattr(segment, "funding_source_id", None))
     source_waives = bool(source and source.get("waivesTuition")) and funded_this_year
     waived = (bool(program.get("tuitionWaived")) and funded_this_year) or source_waives
@@ -106,7 +115,7 @@ def apply_education(
         tuition_line.note("Tuition is waived while the program funds you.")
     if tuition_annual > 0:
         year_lines.add("tuitionFees", tuition_annual * f, months)
-    admission = 0.0 if source_waives else float(program.get("admissionFee", 0) or 0)
+    admission = 0.0 if source_waives else float(program.get("admissionFee", 0) or 0) * tuition_x
     if admission > 0 and int(segment.years_in_activity) == 0:  # the block's first year
         year_lines.add("tuitionFees", admission, months)
         tuition_line.note(f"Includes the one-time admission fee (${admission:,.0f}) in the first year.")
@@ -124,6 +133,7 @@ def apply_education(
     mha = float((record or {}).get("monthlyHousingAllowance", 0) or 0)
     if foreign and not mha:
         mha = float(rules.get("foreignMhaMonthly", 0) or 0)
+    mha *= housing_x
 
     if benefit == "none":
         return ledger
@@ -145,7 +155,7 @@ def apply_education(
         year_lines.add("giBooks", min(books, books_cap) * months_used / 12.0, months_used)
         if tuition_annual > 0:
             public = program.get("schoolType") == "public"
-            cap = None if public else float(rules.get("tuitionCapPrivateForeignAnnual", 0) or 0)
+            cap = None if public else float(rules.get("tuitionCapPrivateForeignAnnual", 0) or 0) * tuition_x
             cost = tuition_annual * months_used / 12.0
             paid = cost if cap is None else min(cost, cap * months_used / 12.0)
             line = year_lines.add("tuitionPaid", paid, months_used)
@@ -172,7 +182,7 @@ def apply_education(
         rate = mha
         note = "Paid at the Post-9/11 rate (the school's GI Bill housing rate)."
     else:
-        rate = _vre_ch31_rate(rules, dependents)
+        rate = _vre_ch31_rate(rules, dependents) * cola_x
         note = "Paid at the Chapter 31 full-time rate."
     year_lines.add("vreSubsistence", rate * months_used, months_used).note(note)
     if tuition_annual > 0:

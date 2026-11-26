@@ -1,5 +1,5 @@
 /* Chart marks (SVG, no deps): lines, stacked areas, and bars. 2px lines,
-   recessive grid, crosshair + shared tooltip, direct end-labels, 1.5px
+   recessive grid, crosshair + shared tooltip (series named by the legend), 1.5px
    surface gaps between stacked fills. One axis, always. */
 
 import { useMemo, useRef, useState } from "react";
@@ -50,7 +50,7 @@ export function LineChart({
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<{ xIndex: number; px: number; py: number } | null>(null);
   const width = 900; // viewBox width; scales responsively
-  const pad = { left: 62, right: 84, top: 14, bottom: 26 };
+  const pad = { left: 62, right: 20, top: 14, bottom: 26 };
 
   const { xs, scaleX, scaleY, ticks, yMin } = useMemo(() => {
     const xs = series[0]?.points.map((p) => p.x) ?? [];
@@ -158,20 +158,9 @@ export function LineChart({
           const d = s.points
             .map((p, i) => `${i === 0 ? "M" : "L"}${scaleX(p.x).toFixed(1)},${scaleY(p.y).toFixed(1)}`)
             .join(" ");
-          const end = s.points[s.points.length - 1];
           return (
             <g key={s.id}>
               <path d={d} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" />
-              <text
-                x={scaleX(end.x) + 6}
-                y={scaleY(end.y) + 3.5}
-                fontSize={11}
-                fontWeight={600}
-                fontFamily="var(--font-ui)"
-                fill="var(--ink)"
-              >
-                {s.name}
-              </text>
               {hover && (
                 <circle
                   cx={scaleX(s.points[hover.xIndex].x)}
@@ -486,8 +475,9 @@ export function Bars({
           )}
         </div>
       )}
-      <div className="legend">
-        {visible.map((s) => (
+      {(() => {
+        // Income parts (solid) on the first row, expense parts (hatched) on the second.
+        const swatch = (s: Series) => (
           <span key={s.id}>
             <span style={{
               width: 10, height: 10, borderRadius: 2, display: "inline-block",
@@ -496,9 +486,27 @@ export function Bars({
             }} />
             {s.name}
           </span>
-        ))}
-        <span style={{ marginLeft: "auto", color: "var(--ink-3)" }}>{yLabel}</span>
-      </div>
+        );
+        const income = visible.filter((s) => !s.hatch);
+        const expenses = visible.filter((s) => s.hatch);
+        const unit = <span style={{ marginLeft: "auto", color: "var(--ink-3)" }}>{yLabel}</span>;
+        if (!income.length || !expenses.length) {
+          return <div className="legend">{visible.map(swatch)}{unit}</div>;
+        }
+        return (
+          <div className="legend-rows">
+            <div className="legend">
+              <span className="legend-group">Income</span>
+              <span className="legend-items">{income.map(swatch)}</span>
+            </div>
+            <div className="legend">
+              <span className="legend-group">Expenses</span>
+              <span className="legend-items">{expenses.map(swatch)}</span>
+              {unit}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
