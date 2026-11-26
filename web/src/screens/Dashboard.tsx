@@ -51,40 +51,38 @@ export function longTermStats(entry: any, realDollars: boolean) {
 }
 
 /* Eye toggle on each path card: is this path drawn on the charts and
-   compared in the notes? The baseline is the comparison anchor, so it is
-   always on. */
+   compared in the notes? Any path can be hidden, as long as one stays shown. */
 function EyeIcon({ open }: { open: boolean }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M1 8s2.6-4.5 7-4.5S15 8 15 8s-2.6 4.5-7 4.5S1 8 1 8z" />
       {open ? <circle cx="8" cy="8" r="2" fill="currentColor" /> : <path d="M2.5 13.5l11-11" />}
     </svg>
   );
 }
 
-function PathVisibilityToggle({ entry, baseline, shown }: { entry: any; baseline: boolean; shown: boolean }) {
+function PathVisibilityToggle({ entry, shown, lastShown }: { entry: any; shown: boolean; lastShown: boolean }) {
   const dispatch = useDispatch();
-  const title = baseline
-    ? "The baseline is always on the charts — set another path as baseline to hide this one"
+  const tip = lastShown
+    ? "Shown on charts — at least one path stays visible"
     : shown
       ? "Shown on charts and comparisons — click to hide"
       : "Hidden from charts and comparisons — click to show";
   return (
     <button
-      className={`path-vis${shown ? " on" : ""}${baseline ? " locked" : ""}`}
+      className={`path-vis${shown ? " on" : ""}${lastShown ? " locked" : ""}`}
       aria-pressed={shown}
-      aria-disabled={baseline}
-      aria-label={`${entry.scenarioName}: ${shown ? "shown on" : "hidden from"} charts`}
-      title={title}
-      onClick={() => !baseline && dispatch({ type: "setPathVisible", id: entry.scenarioId, visible: !shown })}
+      aria-disabled={lastShown}
+      aria-label={`${entry.scenarioName}: ${tip}`}
+      data-tip={tip}
+      onClick={() => !lastShown && dispatch({ type: "setPathVisible", id: entry.scenarioId, visible: !shown })}
     >
       <EyeIcon open={shown} />
-      {shown ? "On charts" : "Hidden"}
     </button>
   );
 }
 
-function PathCard({ entry, index, baseline, shown }: { entry: any; index: number; baseline: boolean; shown: boolean }) {
+function PathCard({ entry, index, baseline, shown, lastShown }: { entry: any; index: number; baseline: boolean; shown: boolean; lastShown: boolean }) {
   const { realDollars, theme, results } = useAppState();
   const dispatch = useDispatch();
   const [expanded, setExpanded] = useState(false);
@@ -94,19 +92,15 @@ function PathCard({ entry, index, baseline, shown }: { entry: any; index: number
   const unit = realDollars ? "real 2026$" : "nominal";
   return (
     <article className={`card path-card${shown ? "" : " path-hidden"}`}>
-      <h3>
+      <h3 className="path-card-title">
         <span className="pathdot" style={{ background: pathColor(index, theme) }} />
-        <span className="path-card-name">{entry.scenarioName}</span>
-        {baseline && <span className="override-badge" style={{ background: "var(--line-2)", color: "var(--ink-2)" }}>baseline</span>}
-        <PathVisibilityToggle entry={entry} baseline={baseline} shown={shown} />
+        <span className="path-card-name" title={entry.scenarioName}>{entry.scenarioName}</span>
+        <PathVisibilityToggle entry={entry} shown={shown} lastShown={lastShown} />
       </h3>
       <div className="path-card-body">
-      <p className="sub">{entry.scenario.notes || "Custom path"}</p>
-      <p className="headline">
-        {fmtMoney(s.netWorthAtRet, true)}
-        <span className="unit">
-          {unit} at retirement{s.retIsProxy ? " (65)" : ""} · {s.retYear}
-        </span>
+      <p className="headline">{fmtMoney(s.netWorthAtRet, true)}</p>
+      <p className="headline-unit">
+        {unit} at retirement{s.retIsProxy ? " (65)" : ""} · {s.retYear}
       </p>
       <table className="kv">
         <tbody>
@@ -120,10 +114,17 @@ function PathCard({ entry, index, baseline, shown }: { entry: any; index: number
             </td>
           </tr>
           <tr><td>Avg savings rate (next 20 yrs)</td><td>{Math.round(s.savingsRate * 100)}%</td></tr>
-          {m.depletionAge && <tr><td style={{ color: "var(--danger)" }}>Depletes at age</td><td>{m.depletionAge}</td></tr>}
-          {m.totalUnfundedSpending > 0 && (
-            <tr><td style={{ color: "var(--danger)" }}>Unfunded spending</td><td>{fmtMoney(m.totalUnfundedSpending, true)}</td></tr>
-          )}
+          {/* Always present (even when "none") so every card's rows line up. */}
+          <tr>
+            <td style={m.depletionAge ? { color: "var(--danger)" } : {}}>Money runs out</td>
+            <td style={m.depletionAge ? { color: "var(--danger)" } : {}}>{m.depletionAge ? `age ${m.depletionAge}` : "never"}</td>
+          </tr>
+          <tr>
+            <td style={m.totalUnfundedSpending > 0 ? { color: "var(--danger)" } : {}}>Unfunded spending</td>
+            <td style={m.totalUnfundedSpending > 0 ? { color: "var(--danger)" } : {}}>
+              {m.totalUnfundedSpending > 0 ? fmtMoney(m.totalUnfundedSpending, true) : "none"}
+            </td>
+          </tr>
         </tbody>
       </table>
       {expanded && (
@@ -141,17 +142,20 @@ function PathCard({ entry, index, baseline, shown }: { entry: any; index: number
           </tbody>
         </table>
       )}
-      <div className="row" style={{ marginTop: 10 }}>
+      <div className="path-card-actions">
         <button className="small" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
-          {expanded ? "Fewer details ▲" : "More details ▼"}
+          {expanded ? "Less ▲" : "More ▼"}
         </button>
-        {!baseline && (
-          <button className="small" onClick={() => dispatch({ type: "setBaseline", id: entry.scenarioId })}>
-            Set as baseline
-          </button>
-        )}
-        <a className="small" href="#paths" style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>
-          Edit path →
+        <button
+          className={`small${baseline ? " is-baseline" : ""}`}
+          disabled={baseline}
+          title={baseline ? "Other paths are compared against this one" : "Compare the other paths against this one"}
+          onClick={() => dispatch({ type: "setBaseline", id: entry.scenarioId })}
+        >
+          {baseline ? "Baseline ✓" : "Set as baseline"}
+        </button>
+        <a className="small" href="#paths" style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600, marginLeft: "auto" }}>
+          Edit →
         </a>
       </div>
       </div>
@@ -240,6 +244,7 @@ export function Dashboard() {
             index={i}
             baseline={entry.scenarioId === baselineId}
             shown={shownIds.has(entry.scenarioId)}
+            lastShown={shownIds.size === 1 && shownIds.has(entry.scenarioId)}
           />
         ))}
       </div>
@@ -269,7 +274,8 @@ export function Dashboard() {
 
       {visibleComparisons.length > 0 && (
         <p className="compare-head">
-          Compared with baseline <strong>{baselineName}</strong> · {visibleComparisons.length} of{" "}
+          Compared with baseline <strong>{baselineName}</strong>
+          {shownIds.has(baselineId) ? "" : " (hidden from charts)"} · {visibleComparisons.length} of{" "}
           {scenarios.length - 1} other path{scenarios.length - 1 === 1 ? "" : "s"} shown — use the eye on a path card to
           add or drop one, or “Set as baseline” to change the anchor.
         </p>
