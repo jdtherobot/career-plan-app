@@ -309,7 +309,7 @@ def build_service_projection_domains(
         raise_factor = (1 + raise_rate) ** max(calendar_year - 2026, 0)
         # Month by month so a mid-year promotion is paid from its month.
         base_sum = bah_sum = bas_sum = 0.0
-        household_dep = household_has_dependents(planner_profile, calendar_year)
+        household_dep = household_has_dependents(planner_profile, calendar_year, for_allowances=True)
         year_dependents = dependents if household_dep is None else household_dep
         for month in range(1, 13):
             g = grade_at(history, grade, calendar_year, month)

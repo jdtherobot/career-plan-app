@@ -713,12 +713,22 @@ function DependentsControl() {
           />
         )}
       </div>
+      {member && (
+        <label className="notice" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+          <input
+            type="checkbox"
+            checked={!!member.livesWithYou}
+            onChange={(e) => setHousehold(members.map((m, j) => (j === idx ? { ...m, livesWithYou: e.target.checked } : m)))}
+          />
+          Lives with me at my duty station (with-dependent BAH / OHA / COLA)
+        </label>
+      )}
       <p className="notice" style={{ marginTop: 4 }}>
         {from === null
           ? "Single throughout: without-dependent BAH / OHA / COLA and individual health coverage."
-          : from <= baseYear
-            ? "With dependents from now on: with-dependent rates and family health coverage."
-            : `Single until ${from - 1}, then with-dependent rates and family health coverage from ${from}.`}{" "}
+          : `${from <= baseYear ? "From now" : `Single until ${from - 1}; from ${from}`}: family health coverage (TRICARE / employer plan / Medicare for two)${
+              member?.livesWithYou ? " and with-dependent BAH / OHA / COLA." : ". Housing allowances stay at the without-dependent rate (they don't live with you)."
+            }`}{" "}
         Details in Finances → Household.
       </p>
     </div>

@@ -184,6 +184,7 @@ class MedicareTest(unittest.TestCase):
 
     def test_family_coverage_follows_household(self) -> None:
         profile = dict(PLANNER_PROFILE)
+        # Not living with you: family health coverage still applies.
         profile["household"] = [{"id": "d", "name": "Dependent", "dependent": True, "fromYear": 2034, "costs": []}]
         single, _ = project(MIGRATED["scenario_path_b"])
         family, _ = project_scenario_v2(MIGRATED["scenario_path_b"], profile, REFERENCE_TABLES, MANUAL_CASHFLOW_SEED, REFERENCE_DOMAINS)

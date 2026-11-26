@@ -152,18 +152,23 @@ class OfficialDtmoRatesTest(unittest.TestCase):
         self.assertEqual(rows[2026]["lines"]["oha"]["status"], "missing_official_rate")
         self.assertNotIn("ua", rows[2026]["lines"])
 
-    def test_dependents_timeline_picks_the_oha_row_per_year(self) -> None:
-        """Single until 2034, then one dependent: E-7 without-dependents OHA is
-        paid through 2033, and only 2034 onward asks for the with-dependents row."""
+    def test_dependent_not_living_with_you_keeps_single_oha(self) -> None:
+        """A dependent from 2034 who doesn't live with you: E-7 without-dependents
+        OHA all tour (nothing missing), but family health coverage from 2034."""
         stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
-        p = payload(stations, exit_year=2034, profile_patch={
-            "household": [{"id": "d", "name": "Dependent", "dependent": True, "fromYear": 2034, "costs": []}],
-        })
+        member = {"id": "d", "name": "Dependent", "dependent": True, "fromYear": 2034, "costs": []}
+        p = payload(stations, exit_year=2034, profile_patch={"household": [member]})
         p["plannerProfile"]["serviceProfile"]["dependents"] = True  # household timeline wins over the flag
         rows = rows_of(p)
-        for year in range(2026, 2034):
+        for year in range(2026, 2035):
             self.assertNotEqual(rows[year]["lines"]["oha"].get("status"), "missing_official_rate", year)
-            self.assertGreater(rows[year]["lines"]["ua"]["value"], 0, year)
+            self.assertGreater(rows[year]["lines"]["oha"]["value"], 0, year)
+
+    def test_dependent_living_with_you_uses_with_dependent_oha(self) -> None:
+        stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
+        member = {"id": "d", "name": "Dependent", "dependent": True, "fromYear": 2034, "livesWithYou": True, "costs": []}
+        rows = rows_of(payload(stations, exit_year=2034, profile_patch={"household": [member]}))
+        self.assertNotEqual(rows[2033]["lines"]["oha"].get("status"), "missing_official_rate")
         self.assertEqual(rows[2034]["lines"]["oha"]["status"], "missing_official_rate")
         self.assertTrue(any("E-7 with dependents" in n for n in rows[2034]["lines"]["oha"]["notes"]))
 

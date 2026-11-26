@@ -207,8 +207,13 @@ def household_lines(profile: dict[str, Any], calendar_year: int) -> list[dict[st
     return active
 
 
-def household_has_dependents(profile: dict[str, Any], calendar_year: int) -> bool | None:
-    """True/False when a household is defined; None when it isn't (use the service flag)."""
+def household_has_dependents(profile: dict[str, Any], calendar_year: int, for_allowances: bool = False) -> bool | None:
+    """True/False when a household is defined; None when it isn't (use the service flag).
+
+    for_allowances=True counts only dependents marked `livesWithYou` — the
+    with-dependent BAH / OHA / COLA rates need them living with you. A
+    dependent who doesn't (e.g. stays stateside) still counts for family
+    health coverage (for_allowances=False)."""
     members = profile.get("household") or []
     if not members:
         return None
@@ -219,6 +224,6 @@ def household_has_dependents(profile: dict[str, Any], calendar_year: int) -> boo
             continue
         if end not in (None, "") and calendar_year > int(end):
             continue
-        if member.get("dependent", True):
+        if member.get("dependent", True) and (not for_allowances or member.get("livesWithYou", False)):
             return True
     return False
