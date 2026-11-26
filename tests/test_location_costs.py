@@ -88,14 +88,14 @@ class ExpenseModelTest(unittest.TestCase):
         rows, _ = project(MIGRATED["scenario_path_b"])  # GENERIC_IC → us_metro_average
         row = find_year(rows, 2028)  # year_index 2 → two years of growth applied
         metro = RESEARCH["us_metro_average"]
-        growth = metro["annualGrowthRate"]
+        growth = 0.035  # national rent growth rule (CPI rent, 20-yr), not a 1-yr metro reading
         expected_housing = metro["housingMonthly"] * 12 * (1 + growth) ** 2  # replaces, not adds to, manual $500
         self.assertAlmostEqual(row["expenseBreakdown"]["housing"], expected_housing, delta=expected_housing * 0.02)
 
     def test_gifts_stay_personal(self) -> None:
         rows, _ = project(MIGRATED["scenario_path_b"])
         row = find_year(rows, 2028)
-        growth = RESEARCH["us_metro_average"]["annualGrowthRate"]
+        growth = 0.025  # gifts follow overall CPI
         self.assertAlmostEqual(row["expenseBreakdown"]["gifts"], 100 * 12 * (1 + growth) ** 2, delta=20)
 
 

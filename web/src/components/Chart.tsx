@@ -475,8 +475,9 @@ export function Bars({
           )}
         </div>
       )}
-      <div className="legend">
-        {visible.map((s) => (
+      {(() => {
+        // Income parts (solid) on the first row, expense parts (hatched) on the second.
+        const swatch = (s: Series) => (
           <span key={s.id}>
             <span style={{
               width: 10, height: 10, borderRadius: 2, display: "inline-block",
@@ -485,9 +486,27 @@ export function Bars({
             }} />
             {s.name}
           </span>
-        ))}
-        <span style={{ marginLeft: "auto", color: "var(--ink-3)" }}>{yLabel}</span>
-      </div>
+        );
+        const income = visible.filter((s) => !s.hatch);
+        const expenses = visible.filter((s) => s.hatch);
+        const unit = <span style={{ marginLeft: "auto", color: "var(--ink-3)" }}>{yLabel}</span>;
+        if (!income.length || !expenses.length) {
+          return <div className="legend">{visible.map(swatch)}{unit}</div>;
+        }
+        return (
+          <div className="legend-rows">
+            <div className="legend">
+              <span className="legend-group">Income</span>
+              <span className="legend-items">{income.map(swatch)}</span>
+            </div>
+            <div className="legend">
+              <span className="legend-group">Expenses</span>
+              <span className="legend-items">{expenses.map(swatch)}</span>
+              {unit}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -594,11 +594,10 @@ export function Paths() {
                     for (const k of Object.keys(patch)) if (patch[k] === null) delete next[k];
                     updateBlock(index, { overrides: next });
                   };
-                  const presetGrowth = Number(preset?.growthRate ?? 0.03);
                   return (
                     <div className="row" style={{ gap: 12, marginTop: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
                       <div style={{ minWidth: 170 }}>
-                        <label className="field" htmlFor={`sal-${block.id}`}>Starting salary ($/yr)</label>
+                        <label className="field" htmlFor={`sal-${block.id}`}>Starting salary (today's $/yr)</label>
                         <input
                           id={`sal-${block.id}`}
                           type="number"
@@ -615,7 +614,7 @@ export function Paths() {
                           id={`raise-${block.id}`}
                           type="number"
                           step={0.5}
-                          placeholder={String(Math.round(presetGrowth * 1000) / 10)}
+                          placeholder="5.5→3.5"
                           value={typeof ov.salaryGrowthRate === "number" ? Math.round(ov.salaryGrowthRate * 1000) / 10 : ""}
                           onChange={(e) => setOv({ salaryGrowthRate: e.target.value === "" ? null : Number(e.target.value) / 100 })}
                         />
@@ -623,7 +622,7 @@ export function Paths() {
                       <p className="notice" style={{ margin: 0, flex: 1, minWidth: 200 }}>
                         {ov.salaryStartAnnual || typeof ov.salaryGrowthRate === "number"
                           ? "Your numbers replace the preset's salary path. Clear both to go back."
-                          : `Blank = ${preset?.label ?? "preset"} (${fmtMoney(preset?.baseSalary ?? 0)} to start). Fine-tune any single year in Finances → Salary.`}
+                          : `Blank = ${preset?.label ?? "preset"}: ${fmtMoney(preset?.baseSalary ?? 0)} in today's dollars (rises with market wages until you start), then raises of 5.5%/yr for 4 years, 4.5% to year 9, 3.5% after. Fine-tune any year in Finances → Salary.`}
                       </p>
                     </div>
                   );

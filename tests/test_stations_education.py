@@ -217,8 +217,9 @@ class EducationBenefitTest(unittest.TestCase):
         rows = rows_of(payload(blocks=grad_blocks("cmu-scs-mscs", "gi_bill", 24)))
         tuition = line(rows[2031], "tuitionFees")
         paid = line(rows[2031], "tuitionPaid")
-        self.assertAlmostEqual(tuition, 60400, delta=1)
-        self.assertAlmostEqual(paid, 30908.34, delta=1)
+        grown = 1.03 ** (2031 - 2026)  # tuition and the GI Bill cap grow 3%/yr from 2026
+        self.assertAlmostEqual(tuition, 60400 * grown, delta=1)
+        self.assertAlmostEqual(paid, 30908.34 * grown, delta=1)
         self.assertEqual(rows[2031]["lines"]["tuitionFees"]["status"], "partial")
         self.assertGreater(line(rows[2031], "giHousing"), 0)
 
@@ -270,11 +271,22 @@ class BlockSalaryTest(unittest.TestCase):
         blocks = [{"id": "t", "type": "tech_career", "durationMonths": None, "careerProfileId": "GOOG_SWE",
                    "overrides": {"salaryStartAnnual": 120000, "salaryGrowthRate": 0.04}}]
         rows = rows_of(payload(blocks=blocks, exit_year=2026))
-        self.assertAlmostEqual(line(rows[2027], "salary"), 120000, delta=1)
-        self.assertAlmostEqual(line(rows[2029], "salary"), 120000 * 1.04 ** 2, delta=1)
+        start = 120000 * 1.035  # today's-dollar offer, indexed to the 2027 start
+        self.assertAlmostEqual(line(rows[2027], "salary"), start, delta=1)
+        self.assertAlmostEqual(line(rows[2029], "salary"), start * 1.04 ** 2, delta=1)
         preset = rows_of(payload(exit_year=2026))
         self.assertNotAlmostEqual(line(preset[2027], "salary"), 120000, delta=1)
         self.assertLess(rows[2029]["employerMatch"], preset[2029]["employerMatch"] * 2)
+
+
+class SalaryStartYearTest(unittest.TestCase):
+    def test_same_job_starting_later_starts_higher_by_wage_growth(self) -> None:
+        blocks = lambda: [{"id": "t", "type": "research_career", "durationMonths": None, "careerProfileId": "CONSERVATIVE"}]  # noqa: E731
+        early = rows_of(payload(blocks=blocks(), exit_year=2027))
+        late = rows_of(payload(blocks=blocks(), exit_year=2033))
+        first_early, first_late = line(early[2028], "salary"), line(late[2034], "salary")
+        self.assertAlmostEqual(first_late / first_early, 1.035 ** 6, delta=1e-6)
+        self.assertAlmostEqual(first_early, 150000 * 1.035 ** 2, delta=1)
 
 
 class LineOverrideTest(unittest.TestCase):
@@ -295,7 +307,7 @@ class LineOverrideTest(unittest.TestCase):
                       "costs": [{"id": "ins", "label": "Insurance", "monthly": 200, "category": "insurance"}]}]
         rows = rows_of(payload(ALCONBURY, profile_patch={"household": household}))
         self.assertEqual(line(rows[2027], "hh:m1:ins"), 0)
-        self.assertAlmostEqual(line(rows[2028], "hh:m1:ins"), 2400, delta=0.01)
+        self.assertAlmostEqual(line(rows[2028], "hh:m1:ins"), 2400 * 1.045 ** 2, delta=0.01)  # insurance CPI growth
         self.assertEqual(line(rows[2030], "hh:m1:ins"), 0)
 
 

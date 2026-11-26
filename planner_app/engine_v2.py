@@ -249,10 +249,22 @@ def _segment_location_id(segment: YearSegment, domains: dict, default_location: 
     return default_location
 
 
+EXPENSE_GROWTH_DEFAULTS = {
+    "housing": 0.035, "utilities": 0.0325, "food": 0.03, "transportation": 0.026, "insurance": 0.045,
+    "healthcareOutOfPocket": 0.03, "personal": 0.024, "entertainment": 0.015, "gifts": 0.025, "miscellaneous": 0.025,
+}
+
+
+def expense_growth_rates(domains: dict) -> dict[str, float]:
+    """Long-run growth per living-expense category (BLS CPI component history),
+    editable in Assumptions → Lifecycle rules (expense_growth_<category>)."""
+    return {key: _rule(domains, f"expense_growth_{key}", default=default) for key, default in EXPENSE_GROWTH_DEFAULTS.items()}
+
+
 def _blended_expense_breakdown(
     expense_items: list[dict],
     cost_profile: dict | None,
-    growth: float,
+    growth: dict[str, float],
     year_index: int,
     override_total_monthly: float | None,
     post_service: bool,
@@ -286,7 +298,7 @@ def _blended_expense_breakdown(
 
     total_monthly = sum(monthly.values()) or 1.0
     scale = (override_total_monthly / total_monthly) if override_total_monthly is not None else 1.0
-    return {key: _value(amount * scale * 12, growth, year_index) for key, amount in monthly.items()}
+    return {key: _value(amount * scale * 12, growth.get(key, 0.025), year_index) for key, amount in monthly.items()}
 
 
 def _segment_tax_profile(segment: YearSegment, domains: dict, salary_annualized: float) -> dict:
@@ -346,7 +358,10 @@ def _segment_healthcare(segment: YearSegment, domains: dict, age: int, calendar_
     if segment.activity_type == "grad_school":
         return 0.0, "university_funded_healthcare"
     if age >= medicare_age:
-        return _profile_cost(medicare, calendar_year, family, people), "medicare_baseline"
+        # Part B (same premium a retiree pays under TFL) + Medigap & Part D.
+        part_b = _domain_lookup(domains, "healthcare_profiles", "tricare_for_life") or {}
+        return (_profile_cost(part_b, calendar_year, family, people)
+                + _profile_cost(medicare, calendar_year, family, people)), "medicare_baseline"
     profile_id = "marketplace_gap_year" if segment.activity_type in ("gap", "retire") else "civilian_employer_plan"
     profile = _domain_lookup(domains, "healthcare_profiles", profile_id) or {}
     return _profile_cost(profile, calendar_year, family, people), profile_id
@@ -530,7 +545,9 @@ def project_scenario_v2(
     surplus_rate = float(growth_policy.get("surplusInvestmentRate", 0.2))
     withdrawal_rate = float(growth_policy.get("withdrawalRate", 0.04))
     inflation = _rule(domains, "inflation_general_default", default=0.025)
-    va_cola = _rule(domains, "va_cola", default=0.028)
+    # VA compensation and military retired pay get the same statutory COLA as
+    # Social Security (one rule: ss_cola_default).
+    va_cola = _rule(domains, "ss_cola_default", default=0.025)
     capital_gains_rate = _rule(domains, "capital_gains_rate_default", default=0.15)
     match_rate_default = _rule(domains, "employer_match_effective_default", default=0.04)
     gi_months_total = int(_rule(domains, "gi_bill_usage_default", field="valueNumber", default=36))
@@ -552,7 +569,7 @@ def project_scenario_v2(
     exit = scenario.service_exit
     is_military_retirement = exit.type == "military_retirement"
     pension_info = derive_high3_pension(domains, planner_profile, exit.year, exit.month) if is_military_retirement else None
-    pension_cola = float((_domain_lookup(domains, "pension_profiles", "high_3_path_a") or {}).get("colaRate", 0.028))
+    pension_cola = _rule(domains, "ss_cola_default", default=0.025)
     va = _domain_lookup(domains, "va_disability", scenario.selected_va_rating_id)
 
     withdrawal_age = float(scenario.retirement.withdrawal_age_years)
@@ -564,7 +581,10 @@ def project_scenario_v2(
     }
     pay_data = load_military_pay_2026()
     pay_data_year = int(pay_data.get("effectiveYear", 2026) or 2026)
-    military_raise = _rule(domains, "military_raise_default", default=0.025)
+    military_raise = _rule(domains, "military_raise_default", default=0.035)
+    category_growth = expense_growth_rates(domains)
+    wage_growth = _rule(domains, "wage_growth_default", default=0.035)
+    tuition_growth = _rule(domains, "tuition_growth_default", default=0.03)
     service_dependents = bool((planner_profile.get("serviceProfile") or {}).get("dependents", False))
     tax_residency = sorted(
         [entry for entry in planner_profile.get("taxResidency") or [] if entry.get("stateCode")],
@@ -615,7 +635,8 @@ def project_scenario_v2(
             location_id = _segment_location_id(seg, domains, default_location)
             location = _domain_lookup(domains, "locations", location_id)
             cost_profile = _domain_lookup(domains, "location_cost_profiles", (location or {}).get("costProfileId"))
-            expense_growth = float((cost_profile or {}).get("annualGrowthRate", 0) or 0) or _rule(domains, "living_expense_growth_default", default=0.03)
+            # Rent growth also projects the OHA ceiling forward (OHA tracks local rents).
+            expense_growth = category_growth["housing"]
             allowance = None
 
             if seg.activity_type == "active_duty":
@@ -666,6 +687,7 @@ def project_scenario_v2(
                 if seg.activity_type == "grad_school":
                     program = _domain_lookup(domains, "programs", seg.program_id) if seg.program_id else None
                     funded_this_year, stipend = _stipend_for(program, seg)
+                    stipend *= (1 + wage_growth) ** year_index  # quoted in 2026 dollars
                     if stipend > 0:
                         year_lines.add("stipend", stipend * f, months)
                         taxable.append(("stipend", stipend * f))
@@ -675,6 +697,11 @@ def project_scenario_v2(
                     edu_ledger = _apply_education(
                         year_lines, seg, program, domains, edu_rules, edu_ledger, scenario, dependents,
                         funded_this_year,
+                        price={
+                            "tuition": (1 + tuition_growth) ** year_index,
+                            "housing": (1 + military_raise) ** year_index,  # MHA = E-5 BAH
+                            "cola": (1 + va_cola) ** year_index,
+                        },
                     )
                 elif seg.activity_type in ("tech_career", "research_career"):
                     career = _career_profile(reference_tables, seg.career_profile_id) or {}
@@ -689,7 +716,10 @@ def project_scenario_v2(
                                   else float(career.get("growthRate", 0.03) or 0.03)}
                     elif isinstance(block_ov.get("salaryGrowthRate"), (int, float)):
                         career = {**career, "compSegments": [], "growthRate": float(block_ov["salaryGrowthRate"])}
-                    salary_annualized = salary_for_year(career, seg.years_in_activity)
+                    # Offers are in today's (2026) dollars: a job that starts later
+                    # starts higher by market wage growth up to its first year.
+                    start_index = seg.block_start_month_index // 12
+                    salary_annualized = salary_for_year(career, seg.years_in_activity) * (1 + wage_growth) ** start_index
                     year_lines.add("salary", salary_annualized * f, months)
                     taxable.append(("salary", salary_annualized * f))
                     placeholders["bonusPlaceholder"] += salary_annualized * float(career.get("bonusPct", 0) or 0) * f
@@ -734,7 +764,7 @@ def project_scenario_v2(
             # post-service blocks use the location's researched costs.
             uses_location_costs = seg.activity_type != "active_duty" or (seg.station_index or 0) > 0
             seg_expenses = _blended_expense_breakdown(
-                expense_inputs, cost_profile, expense_growth, year_index,
+                expense_inputs, cost_profile, category_growth, year_index,
                 float(override_living_monthly) if override_living_monthly is not None else None,
                 post_service=uses_location_costs,
             )
@@ -813,7 +843,10 @@ def project_scenario_v2(
 
         # Household members' costs (user-entered, whole years).
         for item in household_lines(planner_profile, calendar_year):
-            year_lines.add(item["id"], item["monthly"] * 12.0, 12.0)
+            # Entered in today's (base-year) dollars; grows like its category.
+            key = _category_field_map().get(item["category"], item["category"])
+            hh_growth = category_growth.get(key, category_growth["miscellaneous"])
+            year_lines.add(item["id"], item["monthly"] * 12.0 * (1 + hh_growth) ** year_index, 12.0)
             household_categories[item["id"]] = item
 
         weight = sum(w for w, _, _ in rate_samples) or 1.0

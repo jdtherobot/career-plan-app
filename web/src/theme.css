@@ -320,6 +320,10 @@ body {
   text-transform: uppercase; color: var(--ink-2);
 }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-rows .legend + .legend { margin-top: 6px; }
+.legend-rows .legend { flex-wrap: nowrap; align-items: flex-start; }
+.legend .legend-group { color: var(--ink-3); min-width: 72px; flex-shrink: 0; }
+.legend .legend-items { display: flex; flex-wrap: wrap; gap: 6px 16px; flex: 1; }
 
 /* ---------- forms ---------- */
 label.field {
