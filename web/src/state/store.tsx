@@ -48,8 +48,8 @@ export interface AppState {
   theme: Theme;
   chartsEnabled: string[];
   focusPathId: string | null;
-  /* Paths left off the dashboard charts and comparisons (the baseline is
-     always shown). Per-device view preference, not part of the plan. */
+  /* Paths left off the dashboard charts and comparisons. Per-device view
+     preference, not part of the plan; at least one path always stays shown. */
   hiddenPathIds: string[];
   panelBrightness: number;
   hydrated: boolean;
@@ -159,7 +159,7 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, focusPathId: action.id };
     case "setPathVisible": {
       const rest = state.hiddenPathIds.filter((id) => id !== action.id);
-      const next = action.visible || action.id === state.baselineId ? rest : [...rest, action.id];
+      const next = action.visible ? rest : [...rest, action.id];
       lsSet("cpc-hidden-paths", JSON.stringify(next));
       return { ...state, hiddenPathIds: next };
     }
@@ -271,7 +271,8 @@ export function visiblePaths<T extends { scenarioId: string }>(
   hiddenPathIds: string[],
   baselineId: string | null,
 ): { entry: T; colorIndex: number }[] {
-  const hidden = new Set(hiddenPathIds.filter((id) => id !== baselineId));
+  void baselineId; // any path, baseline included, can be hidden
+  const hidden = new Set(hiddenPathIds);
   const shown = scenarios.map((entry, colorIndex) => ({ entry, colorIndex })).filter(({ entry }) => !hidden.has(entry.scenarioId));
   return shown.length ? shown : scenarios.map((entry, colorIndex) => ({ entry, colorIndex }));
 }

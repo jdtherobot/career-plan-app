@@ -820,21 +820,39 @@ button.linkish:hover { background: none; color: var(--ink); }
   body, .card { transition: background-color 0.3s ease, color 0.3s ease; }
 }
 
-/* ---------- path visibility (dashboard path cards) ---------- */
-.path-card-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* ---------- path cards: aligned rows, eye toggle ---------- */
+.path-card { display: flex; flex-direction: column; }
+.path-card-title { flex-wrap: nowrap; min-height: 26px; font-size: 15px; }
+.path-card-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.path-card-body { display: flex; flex-direction: column; flex: 1; }
+.path-card .headline { margin-top: 10px; }
+.path-card .headline-unit {
+  margin: 2px 0 0; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.path-card .kv td:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; width: 70%; }
+.path-card .kv { table-layout: fixed; }
+.path-card-actions { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 12px; }
+.path-card-actions button.is-baseline:disabled { opacity: 1; color: var(--stat-on-panel); border-color: var(--stat-on-panel); cursor: default; }
 .path-vis {
-  margin-left: auto; flex-shrink: 0;
-  display: inline-flex; align-items: center; gap: 5px;
-  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase;
-  padding: 3px 7px; border: 1px solid var(--line); background: transparent; color: var(--ink-3);
-  cursor: pointer;
+  position: relative; flex-shrink: 0; margin-left: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 26px; padding: 0;
+  border: 1px solid var(--line); background: transparent; color: var(--ink-3); cursor: pointer;
 }
 .path-vis.on { color: var(--ink); border-color: var(--gold); }
-.path-vis:hover:not(.locked), .path-vis:active:not(.locked) { border-color: var(--gold); color: var(--ink); background: transparent; }
 .path-vis:not(.on) { border-style: dashed; }
-.path-vis.locked { cursor: default; opacity: 0.75; }
-.path-vis.locked:hover { background: transparent; color: var(--ink); border-color: var(--gold); }
+.path-vis:hover:not(.locked), .path-vis:active:not(.locked) { border-color: var(--gold); color: var(--ink); background: transparent; }
+.path-vis.locked { cursor: default; }
+.path-vis.locked:hover { background: transparent; color: var(--ink); }
 .path-vis:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.path-vis[data-tip]:hover::after, .path-vis[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 20;
+  width: max-content; max-width: 220px; white-space: normal; text-align: left;
+  padding: 6px 9px; background: var(--paper); color: var(--ink); border: 1px solid var(--line);
+  font-family: var(--font-ui); font-size: 11.5px; letter-spacing: 0; text-transform: none; font-weight: 400;
+}
 .path-card.path-hidden { border-top-color: var(--line); }
 .path-card.path-hidden .path-card-body,
 .path-card.path-hidden .pathdot,
