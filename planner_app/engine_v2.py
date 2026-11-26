@@ -1108,6 +1108,8 @@ def project_scenario_v2(
                 "label": milestone["label"], "yearIndex": idx, "calendarYear": row.calendar_year,
                 "age": row.age, "portfolio": _round(row.portfolio),
                 "withdrawalAt4Pct": _round(row.portfolio * withdrawal_rate),
+                "portfolioReal": _round(row.portfolio * row.real_dollar_factor),
+                "withdrawalAt4PctReal": _round(row.portfolio * withdrawal_rate * row.real_dollar_factor),
             })
 
     final_row = rows[-1]
@@ -1130,7 +1132,33 @@ def project_scenario_v2(
         "milestones": milestone_rows,
         "socialSecurity": _ss_summary(scenario, ss_estimate, covered_earnings, assumed_grades, birth_year, domains),
     }
-    return [row.as_dict() for row in rows], metrics
+    row_dicts = [row.as_dict() for row in rows]
+    metrics["real"] = real_lifetime_totals(row_dicts)
+    return row_dicts, metrics
+
+
+def _deflated_sum(rows: list[dict], getter) -> float:
+    return sum(float(getter(r) or 0) * float(r.get("realDollarFactor") or 1) for r in rows)
+
+
+def real_lifetime_totals(rows: list[dict]) -> dict:
+    """Lifetime totals in today's (base-year) dollars: each year's amount is
+    deflated before summing, so the 'Real 2026$' view and export can swap in
+    these for the nominal totals."""
+    inc = lambda key: (lambda r: (r.get("incomeBreakdown") or {}).get(key, 0))  # noqa: E731
+    final = rows[-1] if rows else {}
+    return {
+        "finalPortfolio": _round(float(final.get("portfolio") or 0) * float(final.get("realDollarFactor") or 1)),
+        "totalGrossIncome": _round(_deflated_sum(rows, lambda r: r.get("grossIncome"))),
+        "totalTaxFreeIncome": _round(_deflated_sum(rows, lambda r: r.get("taxFreeIncome"))),
+        "totalTaxes": _round(_deflated_sum(rows, lambda r: r.get("taxes"))),
+        "totalHealthcareCost": _round(_deflated_sum(rows, lambda r: r.get("healthcareCost"))),
+        "totalNetCashFlow": _round(_deflated_sum(rows, lambda r: r.get("netCashFlow"))),
+        "totalEmployerMatch": _round(_deflated_sum(rows, lambda r: r.get("employerMatch"))),
+        "totalUnfundedSpending": _round(_deflated_sum(rows, lambda r: r.get("unfundedSpending"))),
+        "lifetimePensionValue": _round(_deflated_sum(rows, inc("pension"))),
+        "lifetimeSocialSecurity": _round(_deflated_sum(rows, inc("socialSecurity"))),
+    }
 
 
 def compare_scenarios_v2(results: dict[str, dict], baseline_id: str | None = None) -> dict:
@@ -1167,11 +1195,18 @@ def compare_scenarios_v2(results: dict[str, dict], baseline_id: str | None = Non
                 break
 
         cumulative: dict[str, float] = {}
+        cumulative_real: dict[str, float] = {}
         for field_key, label, sign in driver_fields:
             base_total = sum(float(row.get(field_key, 0) or 0) for row in base_rows)
             cand_total = sum(float(row.get(field_key, 0) or 0) for row in cand_rows)
             cumulative[label] = sign * (cand_total - base_total)
+            cumulative_real[label] = sign * (
+                _deflated_sum(cand_rows, lambda r, k=field_key: r.get(k)) - _deflated_sum(base_rows, lambda r, k=field_key: r.get(k))
+            )
         biggest_driver = max(cumulative.items(), key=lambda item: abs(item[1]))
+        biggest_real = max(cumulative_real.items(), key=lambda item: abs(item[1]))
+        base_real = base["metrics"].get("real") or real_lifetime_totals(base_rows)
+        cand_real = candidate["metrics"].get("real") or real_lifetime_totals(cand_rows)
 
         comparisons.append({
             "baselineScenarioId": baseline_id,
@@ -1183,5 +1218,10 @@ def compare_scenarios_v2(results: dict[str, dict], baseline_id: str | None = Non
             "breakevenYear": breakeven_year,
             "biggestDriver": {"label": biggest_driver[0], "cumulativeDelta": _round(biggest_driver[1])},
             "drivers": {label: _round(value) for label, value in cumulative.items()},
+            # The same in today's dollars (each year deflated before summing).
+            "totalTaxesDeltaReal": _round(cand_real["totalTaxes"] - base_real["totalTaxes"]),
+            "healthcareCostDeltaReal": _round(cand_real["totalHealthcareCost"] - base_real["totalHealthcareCost"]),
+            "biggestDriverReal": {"label": biggest_real[0], "cumulativeDelta": _round(biggest_real[1])},
+            "driversReal": {label: _round(value) for label, value in cumulative_real.items()},
         })
     return {"baselineScenarioId": baseline_id, "comparisons": comparisons}

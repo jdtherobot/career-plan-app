@@ -2,7 +2,7 @@
    pick the age you start collecting and the monthly amount follows. An SSA
    statement figure can replace the estimate if you have one. */
 
-import { fmtMoney } from "../state/store";
+import { fmtMoney, useDollars } from "../state/store";
 
 const AGES = [62, 63, 64, 65, 66, 67, 68, 69, 70];
 
@@ -13,6 +13,7 @@ interface Props {
 }
 
 export function SocialSecurityPanel({ retirement, entry, onChange }: Props) {
+  const { real: realMode } = useDollars();
   const ss = entry?.metrics?.socialSecurity;
   const mode = retirement.ssMode === "statement" ? "statement" : "auto";
   const claimAge = Number(retirement.ssClaimAge ?? 67);
@@ -56,7 +57,9 @@ export function SocialSecurityPanel({ retirement, entry, onChange }: Props) {
                   title={nominal ? `${fmtMoney(nominal)}/mo in ${birthYear ? birthYear + age : ""} dollars` : undefined}
                 >
                   <span className="ss-age">{age}</span>
-                  {mode === "auto" && real ? <span className="ss-amt">${(real / 1000).toFixed(1)}K</span> : null}
+                  {mode === "auto" && (realMode ? real : nominal) ? (
+                    <span className="ss-amt">${(((realMode ? real : nominal) ?? 0) / 1000).toFixed(1)}K</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -66,11 +69,13 @@ export function SocialSecurityPanel({ retirement, entry, onChange }: Props) {
             chosen ? (
               <div className="ss-result">
                 <div>
-                  <strong>{fmtMoney(todays(claimAge, chosen) ?? chosen)}</strong>
-                  <span>/mo in today's dollars</span>
+                  <strong>{fmtMoney(realMode ? todays(claimAge, chosen) ?? chosen : chosen)}</strong>
+                  <span>{realMode ? "/mo in today's dollars" : `/mo in ${birthYear ? birthYear + claimAge : "that year's"} dollars`}</span>
                 </div>
                 <p className="notice" style={{ margin: "2px 0 0" }}>
-                  {fmtMoney(chosen)}/mo when it starts in {birthYear ? birthYear + claimAge : "—"}, then rising with COLAs.
+                  {realMode
+                    ? `${fmtMoney(chosen)}/mo when it starts in ${birthYear ? birthYear + claimAge : "—"}, then rising with COLAs.`
+                    : `${fmtMoney(todays(claimAge, chosen) ?? chosen)}/mo in today's dollars, then rising with COLAs.`}
                   {claimAge < 67 ? ` Claiming before 67 permanently reduces it (×${detail?.claimFactor ?? ""}).` : ""}
                   {claimAge > 67 ? ` Waiting past 67 adds delayed credits (×${detail?.claimFactor ?? ""}).` : ""}
                 </p>

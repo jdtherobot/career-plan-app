@@ -2,7 +2,7 @@
    breakdowns (income components, accounts, withdrawals). Power-user view. */
 
 import { Fragment, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { useAppState, fmtMoney, usePathColor } from "../state/store";
+import { useAppState, fmtMoney, usePathColor, useDollars } from "../state/store";
 import { CompositionPanel } from "../components/CompositionPanel";
 
 const COLUMN_SETS: Record<string, { key: string; label: string }[]> = {
@@ -72,10 +72,12 @@ const COLUMN_SETS: Record<string, { key: string; label: string }[]> = {
   ],
 };
 
-function cell(row: any, key: string): string {
+/* Every numeric column is money tied to this row's year, so it follows the
+   Real 2026$ / Nominal switch via the row's factor. */
+function cell(row: any, key: string, factor: number): string {
   const value = key.split(".").reduce((acc: any, part) => acc?.[part], row);
   if (value === null || value === undefined) return "—";
-  if (typeof value === "number") return fmtMoney(value, true);
+  if (typeof value === "number") return fmtMoney(value * factor, true);
   return String(value);
 }
 
@@ -110,6 +112,7 @@ function saveWidths(widths: Record<string, Record<string, number>>) {
 export function Explorer() {
   const { results } = useAppState();
   const colorOf = usePathColor();
+  const dollars = useDollars();
   const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [columnSet, setColumnSet] = useState("Overview");
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -164,7 +167,7 @@ export function Explorer() {
           Every year, every number. Click a row for its full breakdown. Definitions: <strong>Net CF</strong> = total
           income − taxes − healthcare − living expenses − retirement contributions (can be negative; 20% of any
           positive Net CF is auto-invested as “surplus”). <strong>Living total</strong> = all living-expense
-          categories, excluding healthcare and taxes.
+          categories, excluding healthcare and taxes. Amounts are in <strong>{dollars.unitLong}</strong> — switch at the top right.
         </p>
       </header>
 
@@ -241,7 +244,7 @@ export function Explorer() {
                   <td>{row.calendarYear}</td>
                   <td>{row.age}</td>
                   {columns.map((c) => {
-                    const text = cell(row, c.key);
+                    const text = cell(row, c.key, dollars.factor(row));
                     return <td key={c.key} title={c.key === "phaseLabel" ? text : undefined}>{text}</td>;
                   })}
                 </tr>
@@ -262,7 +265,7 @@ export function Explorer() {
                                 {Object.entries(data ?? {})
                                   .filter(([, v]) => typeof v === "number" && Math.abs(v as number) > 0.5)
                                   .map(([k, v]) => (
-                                    <tr key={k}><td>{k}</td><td>{fmtMoney(v as number, true)}</td></tr>
+                                    <tr key={k}><td>{k}</td><td>{fmtMoney((v as number) * dollars.factor(row), true)}</td></tr>
                                   ))}
                               </tbody>
                             </table>

@@ -70,7 +70,7 @@ const initial: AppState = {
   errors: null,
   engineStatus: "loading",
   computing: false,
-  realDollars: EMBEDDED?.uiPrefs.realDollars ?? true,
+  realDollars: EMBEDDED?.uiPrefs.realDollars ?? (lsGet("cpc-real") ? lsGet("cpc-real") === "1" : true),
   theme:
     EMBEDDED?.uiPrefs.theme ??
     ((lsGet("cpc-theme") as Theme) ||
@@ -156,6 +156,7 @@ function reducer(state: AppState, action: Action): AppState {
     case "setOverrides":
       return { ...state, referenceOverrides: action.overrides };
     case "setRealDollars":
+      lsSet("cpc-real", action.value ? "1" : "0");
       return { ...state, realDollars: action.value };
     case "setTheme":
       lsSet("cpc-theme", action.value);
@@ -275,6 +276,27 @@ export function normalizeScenarios(scenarios: any[], bootstrap: any): any[] {
       b.type === "grad_school" && legacy.has(b.programId) ? { ...b, programId: legacy.get(b.programId) } : b,
     ),
   })));
+}
+
+/* Real 2026$ vs. nominal: one rule for every number tied to a projection
+   year. Real = the year's amount x realDollarFactor (today's dollars); nominal
+   = that year's own dollars. Lifetime totals swap to metrics.real. Values you
+   type in today's dollars (Finances, household, salary, OHA) need no change. */
+export function useDollars() {
+  const { realDollars } = useAppState();
+  const factor = (row: any) => (realDollars ? Number(row?.realDollarFactor ?? 1) || 1 : 1);
+  return {
+    real: realDollars,
+    factor,
+    v: (row: any, value: number) => value * factor(row),
+    toStored: (row: any, shown: number) => shown / factor(row),
+    metric: (entry: any, key: string): number => {
+      const realValue = entry?.metrics?.real?.[key];
+      return realDollars && typeof realValue === "number" ? realValue : entry?.metrics?.[key];
+    },
+    unit: realDollars ? "real 2026$" : "nominal",
+    unitLong: realDollars ? "today's dollars (2026)" : "each year's own dollars (nominal)",
+  };
 }
 
 /* Color for a path by id (results entries use scenarioId, plan paths use id). */

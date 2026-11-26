@@ -25,6 +25,9 @@ export function ExportScreen() {
   const dispatch = useDispatch();
   const { results } = state;
   const [busy, setBusy] = useState<string | null>(null);
+  // Excel dollar basis: defaults to the app-wide switch, can be changed here.
+  const [xlsxDollars, setXlsxDollars] = useState<"real" | "nominal" | null>(null);
+  const dollarsChoice = xlsxDollars ?? (state.realDollars ? "real" : "nominal");
   const [message, setMessage] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -33,14 +36,16 @@ export function ExportScreen() {
     setBusy("xlsx");
     setMessage(null);
     try {
-      const meta = { generatedAt: new Date().toISOString(), realDollars: state.realDollars };
+      const meta = { generatedAt: new Date().toISOString(), dollars: dollarsChoice };
       const b64 = await exportXlsxBase64(results, buildPayload(state), meta);
       const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
       download(
-        "career_plan_advisor_workbook.xlsx",
+        `career_plan_advisor_workbook_${dollarsChoice === "real" ? "real_2026_dollars" : "nominal"}.xlsx`,
         new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
       );
-      setMessage("Advisor workbook downloaded — cover, comparison, and full annual detail per path.");
+      setMessage(
+        `Advisor workbook downloaded in ${dollarsChoice === "real" ? "today's dollars (real 2026$)" : "each year's own dollars (nominal)"} — cover, comparison, and full annual detail per path.`,
+      );
     } catch (error) {
       setMessage(`Export failed: ${error}`);
     } finally {
@@ -170,6 +175,20 @@ export function ExportScreen() {
         <section className="card">
           <h3>Advisor workbook (Excel)</h3>
           <p className="sub">Cover, comparison with drivers &amp; milestones, and a full annual cash-flow sheet per path.</p>
+          <label className="field">Dollars in the workbook</label>
+          <div className="toggle" role="group" aria-label="Workbook dollar basis" style={{ marginBottom: 10 }}>
+            <button className={dollarsChoice === "real" ? "on" : ""} aria-pressed={dollarsChoice === "real"} onClick={() => setXlsxDollars("real")}>
+              Real 2026$
+            </button>
+            <button className={dollarsChoice === "nominal" ? "on" : ""} aria-pressed={dollarsChoice === "nominal"} onClick={() => setXlsxDollars("nominal")}>
+              Nominal
+            </button>
+          </div>
+          <p className="notice" style={{ margin: "0 0 10px" }}>
+            {dollarsChoice === "real"
+              ? "Every amount converted to today's dollars — the same numbers you see with Real 2026$ on."
+              : "Every amount in that year's own dollars — what the paycheck or bill will say."}
+          </p>
           <button className="primary" onClick={doXlsx} disabled={!results || busy !== null}>
             {busy === "xlsx" ? "Building…" : "Download .xlsx"}
           </button>

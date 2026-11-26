@@ -3,7 +3,7 @@
    A path with no stations uses the profile's current duty station throughout. */
 
 import { useState } from "react";
-import { fmtMoney } from "../state/store";
+import { fmtMoney, useDollars } from "../state/store";
 import { MissingRateChip, missingRates, type MissingRate } from "./OhaEntry";
 import {
   exitMonthIndex,
@@ -30,6 +30,7 @@ const DEFAULT_PCS_MONTHS = 36;
 
 export function StationTimeline({ scenario, scenarios, profile, locations, entry, onChange, onCopy }: Props) {
   const [copyOpen, setCopyOpen] = useState(false);
+  const dollars = useDollars();
   const baseYear = profile?.baseYear ?? 2026;
   const exitIdx = exitMonthIndex(scenario, baseYear);
   const currentId = profile?.serviceProfile?.dutyLocationId ?? "sacramento_ca";
@@ -79,9 +80,10 @@ export function StationTimeline({ scenario, scenarios, profile, locations, entry
     if (!rows.length) return null;
     const row = rows.find((r: any) => (r.segments ?? []).some((s: any) => s.blockId === id && s.months === 12)) ?? rows[0];
     const missing = missingRates(rows);
-    const bah = lineMonthly(row, "bah");
-    const ua = lineMonthly(row, "ua");
-    const cola = lineMonthly(row, "cola");
+    const df = dollars.factor(row);
+    const bah = lineMonthly(row, "bah") * df;
+    const ua = lineMonthly(row, "ua") * df;
+    const cola = lineMonthly(row, "cola") * df;
     const ohaNote: string = (row.lines?.oha?.notes ?? []).find((n: string) => n.startsWith("OHA reimburses")) ?? "";
     const cap = ohaNote.match(/rental allowance: ([A-Z]{3} [\d,.]+)/)?.[1];
     const source = ohaNote.match(/\((DTMO[^)]*)\)/)?.[1];

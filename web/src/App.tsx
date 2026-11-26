@@ -175,6 +175,34 @@ function SnapshotBanner() {
   );
 }
 
+/* Real 2026$ / Nominal — one switch for every page (and the export default). */
+function DollarModeBar() {
+  const { realDollars } = useAppState();
+  const dispatch = useDispatch();
+  return (
+    <div className="dollar-bar">
+      <div className="toggle" role="group" aria-label="Dollar basis for every number">
+        <button
+          className={realDollars ? "on" : ""}
+          aria-pressed={realDollars}
+          data-tip="Every amount converted to today's (2026) dollars — removes inflation so years compare directly"
+          onClick={() => dispatch({ type: "setRealDollars", value: true })}
+        >
+          Real 2026$
+        </button>
+        <button
+          className={!realDollars ? "on" : ""}
+          aria-pressed={!realDollars}
+          data-tip="Every amount in that year's own dollars — what the paycheck or bill will actually say"
+          onClick={() => dispatch({ type: "setRealDollars", value: false })}
+        >
+          Nominal
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Shell() {
   const route = useHashRoute();
   const screen =
@@ -215,6 +243,7 @@ function Shell() {
           <EnginePill />
         </nav>
         <main className="main">
+          <DollarModeBar />
           <ErrorBoundary>{screen}</ErrorBoundary>
         </main>
       </div>

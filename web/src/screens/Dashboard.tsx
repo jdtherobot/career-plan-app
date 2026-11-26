@@ -2,7 +2,7 @@
    chart library, and the service-ribbon timelines. */
 
 import { useState } from "react";
-import { useAppState, useDispatch, fmtMoney, visiblePaths, usePathColor } from "../state/store";
+import { useAppState, useDispatch, fmtMoney, visiblePaths, usePathColor, useDollars } from "../state/store";
 import { ChartsPanel } from "../components/ChartsPanel";
 import { Ribbon, RibbonScale } from "../components/Ribbon";
 import { MissingRatesBanner } from "../components/OhaEntry";
@@ -95,6 +95,7 @@ interface DragProps {
 function PathCard({ entry, index, baseline, shown, lastShown, drag }: { entry: any; index: number; baseline: boolean; shown: boolean; lastShown: boolean; drag: DragProps }) {
   const { realDollars, results } = useAppState();
   const colorOf = usePathColor();
+  const dollars = useDollars();
   const dispatch = useDispatch();
   const [expanded, setExpanded] = useState(false);
   const m = entry.metrics;
@@ -149,7 +150,7 @@ function PathCard({ entry, index, baseline, shown, lastShown, drag }: { entry: a
           <tr>
             <td style={m.totalUnfundedSpending > 0 ? { color: "var(--danger)" } : {}}>Unfunded spending</td>
             <td style={m.totalUnfundedSpending > 0 ? { color: "var(--danger)" } : {}}>
-              {m.totalUnfundedSpending > 0 ? fmtMoney(m.totalUnfundedSpending, true) : "none"}
+              {m.totalUnfundedSpending > 0 ? fmtMoney(dollars.metric(entry, "totalUnfundedSpending"), true) : "none"}
             </td>
           </tr>
         </tbody>
@@ -160,12 +161,11 @@ function PathCard({ entry, index, baseline, shown, lastShown, drag }: { entry: a
             <tr><td>Pension starts</td><td>{m.pensionStartYear ?? "never"}</td></tr>
             <tr><td>Social Security starts</td><td>{m.ssStartYear ?? "—"}</td></tr>
             <tr><td>Withdrawals eligible</td><td>{m.withdrawalEligibleYear}</td></tr>
-            <tr><td>Lifetime taxes</td><td>{fmtMoney(m.totalTaxes, true)}</td></tr>
-            <tr><td>Lifetime healthcare</td><td>{fmtMoney(m.totalHealthcareCost, true)}</td></tr>
-            <tr><td>Employer match (lifetime)</td><td>{fmtMoney(m.totalEmployerMatch, true)}</td></tr>
-            <tr><td>Pension paid (lifetime)</td><td>{fmtMoney(m.lifetimePensionValue, true)}</td></tr>
-            <tr><td>Net worth at 86 (real)</td><td>{fmtMoney(s.finalReal, true)}</td></tr>
-            <tr><td>Net worth at 86 (nominal)</td><td>{fmtMoney(s.finalNominal, true)}</td></tr>
+            <tr><td>Lifetime taxes</td><td>{fmtMoney(dollars.metric(entry, "totalTaxes"), true)}</td></tr>
+            <tr><td>Lifetime healthcare</td><td>{fmtMoney(dollars.metric(entry, "totalHealthcareCost"), true)}</td></tr>
+            <tr><td>Employer match (lifetime)</td><td>{fmtMoney(dollars.metric(entry, "totalEmployerMatch"), true)}</td></tr>
+            <tr><td>Pension paid (lifetime)</td><td>{fmtMoney(dollars.metric(entry, "lifetimePensionValue"), true)}</td></tr>
+            <tr><td>Net worth at 86</td><td>{fmtMoney(realDollars ? s.finalReal : s.finalNominal, true)}</td></tr>
           </tbody>
         </table>
       )}
@@ -262,14 +262,6 @@ export function Dashboard() {
           <div>
             <h2>Dashboard</h2>
             <p>Deterministic 50-year comparison. Change anything — it recomputes in your browser.</p>
-          </div>
-          <div className="toggle" role="group" aria-label="Dollar mode">
-            <button className={realDollars ? "on" : ""} onClick={() => dispatch({ type: "setRealDollars", value: true })}>
-              Real 2026$
-            </button>
-            <button className={!realDollars ? "on" : ""} onClick={() => dispatch({ type: "setRealDollars", value: false })}>
-              Nominal
-            </button>
           </div>
         </div>
       </header>
@@ -370,13 +362,14 @@ export function Dashboard() {
         const base = scenarios.find((s) => s.scenarioId === baselineId);
         const delta = realDollars ? item.finalPortfolioRealDelta : item.finalPortfolioDelta;
         const ahead = delta >= 0 ? candidate?.scenarioName : base?.scenarioName;
+        const driver = (realDollars && item.biggestDriverReal) || item.biggestDriver;
         const key = [item.scenarioId, baselineId, delta, item.breakevenYear, item.biggestDriver.label, item.biggestDriver.cumulativeDelta].join("|");
         if (dismissedCallouts.has(key)) return null;
         return (
           <div className="callout" key={item.scenarioId}>
             <strong>{candidate?.scenarioName} vs {base?.scenarioName}:</strong>{" "}
             {ahead} finishes ahead by {fmtMoney(Math.abs(delta), true)} ({realDollars ? "real" : "nominal"}).
-            Biggest driver: {item.biggestDriver.label.toLowerCase()} ({fmtMoney(item.biggestDriver.cumulativeDelta, true)} cumulative).
+            Biggest driver: {driver.label.toLowerCase()} ({fmtMoney(driver.cumulativeDelta, true)} cumulative, {realDollars ? "real" : "nominal"}).
             {" "}Breakeven: {item.breakevenYear ?? "never"}.
             <button
               className="callout-x"
