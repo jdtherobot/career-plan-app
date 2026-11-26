@@ -182,7 +182,7 @@ class RetirementLifecycleTest(unittest.TestCase):
                 {"id": "tech", "type": "tech_career", "careerProfileId": "GENERIC_IC", "durationMonths": 12 * 27},
                 {"id": "retire", "type": "retire"},
             ],
-            "retirement": {"socialSecurityEnabled": True, "ssFraMonthly": fra_monthly,
+            "retirement": {"socialSecurityEnabled": True, "ssMode": "statement", "ssFraMonthly": fra_monthly,
                             "ssClaimAge": claim_age, "withdrawalAgeYears": 59.5},
         })
 
@@ -190,7 +190,9 @@ class RetirementLifecycleTest(unittest.TestCase):
         rows, metrics = project(self.make_retiring_scenario())
         self.assertEqual(metrics["ssStartYear"], 2057)  # age 67
         row = find_year(rows, 2057)
-        self.assertAlmostEqual(row["incomeBreakdown"]["socialSecurity"], 2500 * 12, delta=1)
+        # Statement amount is in today's dollars: grown by COLAs from 2026 to 2057.
+        from planner_app.engine_v2 import ss_cola_factor
+        self.assertAlmostEqual(row["incomeBreakdown"]["socialSecurity"], 2500 * 12 * ss_cola_factor(2057 - 2026), delta=1)
         self.assertEqual(find_year(rows, 2056)["incomeBreakdown"]["socialSecurity"], 0)
 
     def test_early_claim_reduces_benefit(self) -> None:
@@ -199,7 +201,7 @@ class RetirementLifecycleTest(unittest.TestCase):
         self.assertEqual(at62["ssStartYear"], 2052)
         self.assertLess(
             find_year(project(self.make_retiring_scenario(claim_age=62))[0], 2052)["incomeBreakdown"]["socialSecurity"],
-            2500 * 12,
+            find_year(project(self.make_retiring_scenario(claim_age=67))[0], 2052 + 5)["incomeBreakdown"]["socialSecurity"],
         )
 
     def test_drawdown_covers_retirement_spending(self) -> None:

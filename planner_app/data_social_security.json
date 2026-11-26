@@ -1,0 +1,134 @@
+{
+  "collectedAt": "2026-11-26",
+  "source": "SSA 'Cost-of-Living Increase and Other Determinations' notices, Federal Register (govinfo.gov), 2013\u20132026",
+  "notices": {
+    "2014": "https://www.federalregister.gov/d/2013-26569",
+    "2015": "https://www.federalregister.gov/d/2014-25802",
+    "2016": "https://www.federalregister.gov/d/2015-27828",
+    "2017": "https://www.federalregister.gov/d/2016-26026",
+    "2018": "https://www.federalregister.gov/d/2017-23522",
+    "2019": "https://www.federalregister.gov/d/2018-23193",
+    "2020": "https://www.federalregister.gov/d/2019-22921",
+    "2021": "https://www.federalregister.gov/d/2020-23442",
+    "2022": "https://www.federalregister.gov/d/2021-23031",
+    "2023": "https://www.federalregister.gov/d/2022-23073",
+    "2024": "https://www.federalregister.gov/d/2023-23317",
+    "2025": "https://www.federalregister.gov/d/2024-24871",
+    "2026": "https://www.federalregister.gov/d/2025-19763",
+    "2027": "https://www.federalregister.gov/d/2026-21796"
+  },
+  "averageWageIndex": {
+    "2011": 42979.61,
+    "2012": 44321.67,
+    "2013": 44888.16,
+    "2014": 46481.52,
+    "2015": 48098.63,
+    "2016": 48642.15,
+    "2017": 50321.89,
+    "2018": 52145.8,
+    "2019": 54099.99,
+    "2020": 55628.6,
+    "2021": 60575.07,
+    "2022": 63795.13,
+    "2023": 66621.8,
+    "2024": 69846.57,
+    "2025": 72800.33
+  },
+  "averageWageIndex1977": 9779.44,
+  "bendPoints1979": [
+    180,
+    1085
+  ],
+  "piaFactors": [
+    0.9,
+    0.32,
+    0.15
+  ],
+  "taxableMaximum": {
+    "2014": 117000,
+    "2015": 118500,
+    "2016": 118500,
+    "2017": 127200,
+    "2018": 128700,
+    "2019": 132900,
+    "2020": 137700,
+    "2021": 142800,
+    "2022": 147000,
+    "2023": 160200,
+    "2024": 168600,
+    "2025": 176100,
+    "2026": 184500,
+    "2027": 192300
+  },
+  "taxableMaximumFormula": "60,600 x AWI(year-2) / 22,935.42 (1992 AWI), rounded to the nearest $300",
+  "colaPercentByYear": {
+    "2014": 1.5,
+    "2015": 1.7,
+    "2016": 0.0,
+    "2017": 0.3,
+    "2018": 2.0,
+    "2019": 2.8,
+    "2020": 1.6,
+    "2021": 1.3,
+    "2022": 5.9,
+    "2023": 8.7,
+    "2024": 3.2,
+    "2025": 2.5,
+    "2026": 2.8,
+    "2027": 3.6
+  },
+  "projection": {
+    "wageGrowth": 0.04163,
+    "wageGrowthNote": "Average annual growth of the official wage index 2014\u20132025 (4.16%/yr), used to project future wage indexes, bend points and taxable maximums.",
+    "cola": 0.03131,
+    "colaNote": "Average official COLA 2017\u20132027 (3.13%/yr), used for COLAs after the last announced one."
+  },
+  "militaryPayRaisePercent": {
+    "2014": 1.0,
+    "2015": 1.0,
+    "2016": 1.3,
+    "2017": 2.1,
+    "2018": 2.4,
+    "2019": 2.6,
+    "2020": 3.1,
+    "2021": 3.0,
+    "2022": 2.7,
+    "2023": 4.6,
+    "2024": 5.2,
+    "2025": 4.5,
+    "2026": 3.8
+  },
+  "militaryPayRaiseSources": [
+    {
+      "title": "DoD Military Compensation \u2014 Annual Pay Raise history",
+      "url": "https://militarypay.defense.gov/Pay/Basic-Pay/AnnualPayRaise/"
+    },
+    {
+      "title": "CRS Defense Primer: Military Pay Raise (IF10260)",
+      "url": "https://www.congress.gov/crs-product/IF10260"
+    },
+    {
+      "title": "Executive Orders 'Adjustments of Certain Rates of Pay' (Federal Register) \u2014 schedule cells cross-check 2016\u20132026",
+      "url": "https://www.federalregister.gov/documents/search?conditions%5Bterm%5D=%22Adjustments+of+Certain+Rates+of+Pay%22"
+    }
+  ],
+  "fullRetirementAge": {
+    "bornIn1960OrLater": 67
+  },
+  "notes": [
+    "PIA = 90% of AIME up to the first bend point + 32% up to the second + 15% above; bend points for the year you turn 62.",
+    "AIME = highest 35 years of earnings (each capped at that year's taxable maximum), wage-indexed to the year you turn 60, / 420, rounded down.",
+    "Covered earnings counted: military basic pay (FICA wages) and civilian salary. Grad-school stipends/fellowships aren't Social Security wages; pensions and VA aren't earnings."
+  ],
+  "juniorEnlisted2025ExtraRaise": {
+    "grades": [
+      "E-1",
+      "E-2",
+      "E-3",
+      "E-4"
+    ],
+    "percent": 10.0,
+    "effective": "2025-04-01",
+    "note": "FY2025 NDAA: additional 10% basic pay increase for E-1\u2013E-4 from April 2025 (on top of the 4.5% Jan 2025 raise). Confirmed by the pay tables: DFAS 2026 E-1 $2,407.20 vs Jan 2025 EO $2,108.10 = 1.038 x 1.10."
+  }
+}

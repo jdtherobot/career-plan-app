@@ -349,14 +349,24 @@ def _account_for_destination(destination_id: str | None) -> str:
     return "brokerage"
 
 
-def _ss_annual(scenario: ScenarioV2, domains: dict, age: int) -> float:
+def _ss_annual(scenario: ScenarioV2, domains: dict, age: int, auto_monthly: float | None = None,
+               years_from_today: int = 0) -> float:
+    """Annual benefit in a year. Auto mode starts from the SSA-formula monthly
+    amount at the claim age (already includes the claiming factor)."""
     ret = scenario.retirement
-    if not ret.social_security_enabled or ret.ss_fra_monthly <= 0 or age < ret.ss_claim_age:
+    if not ret.social_security_enabled or age < ret.ss_claim_age:
         return 0.0
+    if ret.ss_mode == "auto":
+        if not auto_monthly:
+            return 0.0
+        years_claimed = age - int(ret.ss_claim_age)
+        return auto_monthly * 12 * ss_cola_factor(years_claimed)
+    if ret.ss_fra_monthly <= 0:
+        return 0.0
+    # SSA statement amount: today's dollars at full retirement age, grown by
+    # COLAs from today, with the early/delayed claiming factor.
     factor_record = _domain_lookup(domains, "ss_claim_factors", f"ss_claim_{int(ret.ss_claim_age)}") or {"factor": 1.0}
-    cola = _rule(domains, "ss_cola_default", default=0.025)
-    years_claimed = age - int(ret.ss_claim_age)
-    return ret.ss_fra_monthly * 12 * float(factor_record["factor"]) * ((1 + cola) ** years_claimed)
+    return ret.ss_fra_monthly * 12 * float(factor_record["factor"]) * ss_cola_factor(years_from_today)
 
 
 def _ss_taxable_portion(ss_annual: float, other_gross: float, domains: dict) -> float:
@@ -382,6 +392,30 @@ def _rmd_for_age(domains: dict, age: int, trad_balance: float) -> float:
     return trad_balance / float(record["divisor"])
 
 
+def _ss_summary(scenario, estimate, earnings, assumed_grades, birth_year, domains) -> dict:
+    """What the Path Builder shows: the benefit at each claim age from the same
+    earnings record, plus how it was worked out."""
+    from .social_security import monthly_at_claim
+
+    if not scenario.retirement.social_security_enabled:
+        return {"enabled": False}
+    def record(claim_age: int) -> dict:
+        return {y: v for y, v in earnings.items() if y < birth_year + claim_age}
+
+    by_age = {}
+    for claim_age in range(62, 71):
+        by_age[str(claim_age)] = monthly_at_claim(record(claim_age), birth_year, claim_age, domains)["monthlyAtClaim"]
+    claim = int(scenario.retirement.ss_claim_age)
+    detail = monthly_at_claim(record(claim), birth_year, claim, domains)
+    return {
+        "enabled": True, "mode": scenario.retirement.ss_mode,
+        "birthYear": birth_year, "claimAge": int(scenario.retirement.ss_claim_age),
+        "monthlyByClaimAge": by_age, "detail": detail,
+        "earnings": {str(y): round(v) for y, v in sorted(earnings.items()) if v > 0},
+        "assumedPastGrades": assumed_grades,
+    }
+
+
 def _residency_state(tax_residency: list[dict], calendar_year: int) -> str | None:
     state = None
     for entry in tax_residency:
@@ -390,16 +424,35 @@ def _residency_state(tax_residency: list[dict], calendar_year: int) -> str | Non
     return state
 
 
-def _state_effective_rate(record: dict, annual_taxable: float) -> float:
-    """Effective state rate for an annual taxable income, interpolated between the
-    researched $80k and $150k effective rates (flat below/above)."""
-    low = float(record.get("effectiveRateAt80k", 0) or 0)
-    high = float(record.get("effectiveRateAt150k", low) or low)
-    if annual_taxable <= 80000:
-        return low
-    if annual_taxable >= 150000:
-        return high
-    return low + (high - low) * (annual_taxable - 80000) / 70000
+def state_income_tax(record: dict, taxable_income: float) -> float:
+    """State income tax for a single filer: brackets on income after the standard
+    deduction and personal exemption, less any personal credit (2026 tables)."""
+    if record.get("type") == "none" or not record.get("brackets"):
+        return 0.0
+    income = taxable_income - float(record.get("stdDeductionSingle") or 0) - float(record.get("personalExemptionSingle") or 0)
+    if income <= 0:
+        return 0.0
+    brackets = sorted((float(low), float(rate)) for low, rate in record["brackets"])
+    tax = 0.0
+    for i, (low, rate) in enumerate(brackets):
+        high = brackets[i + 1][0] if i + 1 < len(brackets) else float("inf")
+        if income > low:
+            tax += (min(income, high) - low) * rate
+    return max(tax - float(record.get("personalCreditSingle") or 0), 0.0)
+
+
+def _state_pension_taxable_share(record: dict, pension_annual: float) -> float:
+    treatment = record.get("militaryRetiredPayTreatment", "taxed")
+    if treatment in ("exempt", "none"):
+        return 0.0
+    if treatment == "partial":
+        amount = record.get("militaryRetiredPayExemptAmount")
+        share = record.get("militaryRetiredPayExemptShare")
+        if amount:
+            return max(pension_annual - float(amount), 0.0) / pension_annual
+        if share:
+            return 1.0 - float(share)
+    return 1.0
 
 
 def _serialize_lines(final_lines: dict[str, dict]) -> dict[str, dict]:
@@ -420,6 +473,12 @@ def _serialize_lines(final_lines: dict[str, dict]) -> dict[str, dict]:
             item["notes"] = entry["notes"]
         out[line_id] = item
     return out
+
+
+def ss_cola_factor(years_claimed: int) -> float:
+    from .social_security import load as _ss_load
+
+    return (1 + float(_ss_load().get("projection", {}).get("cola", 0.025))) ** max(years_claimed, 0)
 
 
 def project_scenario_v2(
@@ -491,6 +550,13 @@ def project_scenario_v2(
         key=lambda entry: int(entry.get("fromYear", 0) or 0),
     )
     household_categories: dict[str, dict] = {}
+    # Social Security: covered earnings by year (past military pay rebuilt from
+    # official tables + this path's projected pay/salary), benefit from SSA's formula.
+    from .social_security import monthly_at_claim, past_military_earnings
+
+    birth_year = base_year - start_age
+    covered_earnings, assumed_grades = past_military_earnings(pay_data, planner_profile, base_year)
+    ss_estimate: dict | None = None
 
     rows: list[YearProjection] = []
     totals = {"gross": 0.0, "taxFree": 0.0, "taxes": 0.0, "healthcare": 0.0, "netCf": 0.0,
@@ -608,15 +674,18 @@ def project_scenario_v2(
                 override_rate = scenario.overrides.get("retirementStateTaxRate")
                 if isinstance(override_rate, (int, float)):
                     state_rate = float(override_rate)
-            seg_taxable_total = sum(amount for _, amount in taxable)
             state_record = _domain_lookup(domains, "state_tax_rates", residency) if residency else None
+            pension_taxable_share = 1.0
             if state_record:
-                state_rate = _state_effective_rate(state_record, seg_taxable_total / f if f else 0.0)
+                # Annualized income this segment, with the state's military-retirement exclusion applied.
+                annual = {line_id: amount / f for line_id, amount in taxable} if f else {}
+                pension_annual = annual.get("pension", 0.0)
+                if pension_annual > 0:
+                    pension_taxable_share = _state_pension_taxable_share(state_record, pension_annual)
+                base = sum(v for k, v in annual.items() if k != "pension") + pension_annual * pension_taxable_share
+                state_rate = state_income_tax(state_record, base) / base if base > 0 else 0.0
             for line_id, amount in taxable:
-                line_state = state_rate
-                if state_record and line_id == "pension":
-                    exempt = str(state_record.get("militaryRetiredPayExempt", "no")).lower()
-                    line_state = 0.0 if exempt == "yes" else state_rate * 0.5 if exempt == "partial" else state_rate
+                line_state = state_rate * (pension_taxable_share if line_id == "pension" else 1.0)
                 line = year_lines.get(line_id)
                 line.fed_tax += amount * fed_rate
                 line.state_tax += amount * line_state
@@ -753,8 +822,20 @@ def project_scenario_v2(
                 expense_breakdown_total[definition["breakdown"]] = expense_breakdown_total.get(definition["breakdown"], 0.0) + value
                 living += value
 
+        # Social Security covered earnings this year (military basic pay, salary).
+        covered_earnings[calendar_year] = (
+            final_lines.get("basePay", {}).get("value", 0.0) + final_lines.get("salary", {}).get("value", 0.0)
+        )
+        if (scenario.retirement.ss_mode == "auto" and ss_estimate is None
+                and age >= int(scenario.retirement.ss_claim_age)):
+            ss_estimate = monthly_at_claim(
+                {y: v for y, v in covered_earnings.items() if y < calendar_year},
+                birth_year, int(scenario.retirement.ss_claim_age), domains,
+            )
         # Social Security (independent of blocks once claimed).
-        ss_annual = _ss_annual(scenario, domains, age) if post_exit else 0.0
+        ss_annual = _ss_annual(
+            scenario, domains, age, (ss_estimate or {}).get("monthlyAtClaim"), years_from_today=year_index,
+        ) if post_exit else 0.0
         if ss_annual > 0:
             ss_taxable = _ss_taxable_portion(ss_annual, gross, domains)
             gross += ss_taxable
@@ -947,6 +1028,7 @@ def project_scenario_v2(
         "withdrawalEligibleYear": base_year + max(int(withdrawal_age - start_age + 0.999), 0),
         "depletionAge": depletion_age,
         "milestones": milestone_rows,
+        "socialSecurity": _ss_summary(scenario, ss_estimate, covered_earnings, assumed_grades, birth_year, domains),
     }
     return [row.as_dict() for row in rows], metrics
 
