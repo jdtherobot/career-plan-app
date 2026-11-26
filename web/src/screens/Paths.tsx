@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAppState, useDispatch, pathColor, fmtMoney } from "../state/store";
 import { GradBlockEditor } from "../components/GradBlockEditor";
 import { StationTimeline } from "../components/StationTimeline";
+import { SocialSecurityPanel } from "../components/SocialSecurityPanel";
 import { MONTHS, PAY_GRADES, STATE_NAMES, groupLocations, locationLabel, uid } from "../components/planHelpers";
 
 const BLOCK_TYPES = [
@@ -338,7 +339,9 @@ export function Paths() {
                     <div key={i}>
                       <div className="timeline-row">
                         <select aria-label="State" value={r.stateCode} onChange={(e) => setResidency(residency.map((x, j) => (j === i ? { ...x, stateCode: e.target.value } : x)))}>
-                          {stateRates.map((x) => <option key={x.id} value={x.id}>{STATE_NAMES[x.id] ?? x.id}</option>)}
+                          {[...stateRates].sort((x, y) => String(x.name).localeCompare(String(y.name))).map((x) => (
+                            <option key={x.id} value={x.id}>{x.name ?? STATE_NAMES[x.id] ?? x.id}</option>
+                          ))}
                         </select>
                         <span className="notice">from</span>
                         <input aria-label="From year" type="number" min={baseYear} max={2076} value={r.fromYear} onChange={(e) => setResidency(residency.map((x, j) => (j === i ? { ...x, fromYear: Number(e.target.value) } : x)))} />
@@ -346,8 +349,18 @@ export function Paths() {
                       </div>
                       {rec && (
                         <p className="notice" style={{ margin: "0 0 6px" }}>
-                          {rec.type === "none" ? "No state income tax." : `~${(rec.effectiveRateAt80k * 100).toFixed(1)}% effective at $80K, ${(rec.effectiveRateAt150k * 100).toFixed(1)}% at $150K.`}{" "}
-                          Military retired pay: {rec.militaryRetiredPayExempt === "yes" ? "exempt" : rec.militaryRetiredPayExempt === "partial" ? "partly exempt" : "taxed"}.
+                          {rec.type === "none"
+                            ? "No state income tax."
+                            : `2026: ${(Math.min(...rec.brackets.map((b: any) => b[1])) * 100).toFixed(2)}%${rec.brackets.length > 1 ? `–${(rec.topRate * 100).toFixed(2)}%` : " flat"}, $${Math.round(rec.stdDeductionSingle).toLocaleString()} standard deduction${rec.personalCreditSingle ? `, $${rec.personalCreditSingle} credit` : ""}.`}{" "}
+                          Military retired pay:{" "}
+                          {rec.militaryRetiredPayTreatment === "exempt" || rec.militaryRetiredPayTreatment === "none"
+                            ? "not taxed"
+                            : rec.militaryRetiredPayTreatment === "partial"
+                              ? rec.militaryRetiredPayExemptAmount
+                                ? `first $${Number(rec.militaryRetiredPayExemptAmount).toLocaleString()} excluded`
+                                : `${Math.round((rec.militaryRetiredPayExemptShare ?? 0) * 100)}% excluded`
+                              : "taxed"}
+                          .{rec.activeDutyPay === "taxed" ? " Active-duty pay is taxed." : ""}
                         </p>
                       )}
                     </div>
@@ -357,7 +370,7 @@ export function Paths() {
                   className="small"
                   onClick={() => {
                     const last = residency[residency.length - 1];
-                    setResidency([...residency, { stateCode: last ? "TX" : "CA", fromYear: last ? Number(last.fromYear) + 5 : baseYear }]);
+                    setResidency([...residency, { stateCode: last ? last.stateCode : "NE", fromYear: last ? Number(last.fromYear) + 5 : baseYear }]);
                   }}
                 >
                   + State
@@ -422,38 +435,7 @@ export function Paths() {
             value={scenario.retirement.withdrawalAgeYears}
             onChange={(e) => updateRetirement({ withdrawalAgeYears: Number(e.target.value) })}
           />
-          <label className="field">
-            <input
-              type="checkbox"
-              checked={scenario.retirement.socialSecurityEnabled}
-              onChange={(e) => updateRetirement({ socialSecurityEnabled: e.target.checked })}
-              style={{ marginRight: 6 }}
-            />
-            Social Security
-          </label>
-          {scenario.retirement.socialSecurityEnabled && (
-            <div className="row">
-              <div style={{ flex: 1 }}>
-                <label className="field">Est. monthly at FRA (67)</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={100}
-                  value={scenario.retirement.ssFraMonthly}
-                  onChange={(e) => updateRetirement({ ssFraMonthly: Number(e.target.value) })}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label className="field">Claim at age</label>
-                <select
-                  value={scenario.retirement.ssClaimAge}
-                  onChange={(e) => updateRetirement({ ssClaimAge: Number(e.target.value) })}
-                >
-                  {[62, 63, 64, 65, 66, 67, 68, 69, 70].map((a) => <option key={a} value={a}>{a}</option>)}
-                </select>
-              </div>
-            </div>
-          )}
+          <SocialSecurityPanel retirement={scenario.retirement} entry={entry} onChange={updateRetirement} />
 
           {metrics && (
             <>

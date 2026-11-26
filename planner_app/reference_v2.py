@@ -418,21 +418,31 @@ def _apply_overseas_research(merged: dict[str, list[dict[str, Any]]]) -> None:
 
 
 def _apply_state_tax_research(merged: dict[str, list[dict[str, Any]]]) -> None:
+    """2026 state income tax for every state + DC: single-filer brackets, standard
+    deduction, personal exemption/credit, and military-retirement treatment."""
     if "state_tax_rates" in merged:
         return
     data = _load_json("data_state_tax_2026.json")
     source = (data.get("sources") or [{}])[0]
     rows = []
     for code, entry in sorted((data.get("states") or {}).items()):
-        if code.startswith("_") or not isinstance(entry, dict):
-            continue
+        ret = entry.get("militaryRetiredPay") or {}
+        brackets = entry.get("brackets") or []
         rows.append({
-            "id": code, "label": code, "type": entry.get("type"),
-            "effectiveRateAt80k": float(entry.get("effectiveRateAt80k") or 0),
-            "effectiveRateAt150k": float(entry.get("effectiveRateAt150k") or 0),
-            "militaryRetiredPayExempt": entry.get("militaryRetiredPayExempt", "no"),
-            "notes": entry.get("notes", ""),
-            "sourceLabel": source.get("title", "State tax research 2026"), "sourceUrl": source.get("url", ""),
+            "id": code, "label": f"{entry.get('name', code)} ({code})", "name": entry.get("name", code),
+            "type": entry.get("type"), "brackets": brackets,
+            "topRate": max((r for _, r in brackets), default=0.0),
+            "stdDeductionSingle": float(entry.get("stdDeductionSingle") or 0),
+            "personalExemptionSingle": float(entry.get("personalExemptionSingle") or 0),
+            "personalCreditSingle": float(entry.get("personalCreditSingle") or 0),
+            "militaryRetiredPayTreatment": ret.get("treatment", "taxed"),
+            "militaryRetiredPayExemptAmount": ret.get("exemptAmount"),
+            "militaryRetiredPayExemptShare": ret.get("exemptShare"),
+            "militaryRetiredPayNote": ret.get("note", ""),
+            "militaryRetiredPayConfidence": ret.get("confidence", ""),
+            "activeDutyPay": entry.get("activeDutyPay", "taxed"),
+            "sourceLabel": source.get("title", "State tax 2026"), "sourceUrl": source.get("url", ""),
+            "verificationStatus": "official" if ret.get("confidence") == "official" else "researched",
         })
     merged["state_tax_rates"] = rows
 

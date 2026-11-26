@@ -1,173 +1,1484 @@
 {
-  "collectedAt": "2026-11-25",
+  "collectedAt": "2026-11-26",
+  "taxYear": 2026,
+  "filingStatus": "single",
+  "sources": [
+    {
+      "title": "Tax Foundation \u2014 State Individual Income Tax Rates and Brackets, as of January 1, 2026",
+      "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "usedFor": "brackets, standard deductions, personal exemptions/credits (single filer)"
+    },
+    {
+      "title": "Nebraska DOR \u2014 Military Retirement Benefits Exclusion",
+      "url": "https://revenue.nebraska.gov/about/frequently-asked-questions/military-retirement-benefits-exclusion",
+      "usedFor": "Nebraska military retirement treatment"
+    },
+    {
+      "title": "Nebraska DOR Information Guide 8-364 (military)",
+      "url": "https://revenue.nebraska.gov/sites/default/files/doc/info/8-364.pdf",
+      "usedFor": "Nebraska active-duty and retirement treatment"
+    },
+    {
+      "title": "State military retirement comparisons (statebystatetax.com, veteransunited.com, militaryretirementcalc.com)",
+      "url": "https://www.statebystatetax.com/military-state-tax.html",
+      "usedFor": "other states\u2019 military retirement treatment (confidence noted per state)"
+    }
+  ],
+  "method": "Tax = state brackets applied to (taxable income \u2212 standard deduction \u2212 personal exemption) \u2212 personal credit. Military retired pay is reduced by the state\u2019s exclusion first. Local income taxes are not included.",
   "states": {
-    "CA": {
+    "AL": {
       "type": "progressive",
-      "effectiveRateAt80k": 0.04,
-      "effectiveRateAt150k": 0.065,
-      "militaryRetiredPayExempt": "partial",
-      "notes": "1%-12.3% (+1% over $1M). Up to a $20,000 exclusion of military retired pay/SBP for tax years 2025-2029 (SB 132, 2025 budget). The governor's proposal carried AGI caps (<$125k single); confirm the enacted limits."
-    },
-    "TX": {
-      "type": "none",
-      "effectiveRateAt80k": 0,
-      "effectiveRateAt150k": 0,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "No personal income tax."
-    },
-    "FL": {
-      "type": "none",
-      "effectiveRateAt80k": 0,
-      "effectiveRateAt150k": 0,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "No personal income tax."
-    },
-    "WA": {
-      "type": "none",
-      "effectiveRateAt80k": 0,
-      "effectiveRateAt150k": 0,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "No wage income tax. A 7% capital gains tax (9.9% over $1M) applies to long-term gains above about $270k."
-    },
-    "NV": {
-      "type": "none",
-      "effectiveRateAt80k": 0,
-      "effectiveRateAt150k": 0,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "No personal income tax."
-    },
-    "VA": {
-      "type": "progressive",
-      "effectiveRateAt80k": 0.047,
-      "effectiveRateAt150k": 0.052,
-      "militaryRetiredPayExempt": "partial",
-      "notes": "2%-5.75% (top bracket from $17k). Up to a $40,000 subtraction of military retired pay from 2025 on."
-    },
-    "MA": {
-      "type": "flat",
-      "effectiveRateAt80k": 0.047,
-      "effectiveRateAt150k": 0.049,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "5% flat, plus a 4% surtax on income over about $1.08M. US military pensions are exempt."
-    },
-    "PA": {
-      "type": "flat",
-      "effectiveRateAt80k": 0.031,
-      "effectiveRateAt150k": 0.031,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "3.07% flat with no standard deduction, plus local earned income taxes (~1-3.8%). Retirement income, including military, is exempt."
-    },
-    "NY": {
-      "type": "progressive",
-      "effectiveRateAt80k": 0.047,
-      "effectiveRateAt150k": 0.052,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "About 3.9%-10.9% (2026 middle-class rate cuts). NYC adds about 3-3.9% for residents. Military pensions are fully exempt."
-    },
-    "NC": {
-      "type": "flat",
-      "effectiveRateAt80k": 0.034,
-      "effectiveRateAt150k": 0.037,
-      "militaryRetiredPayExempt": "partial",
-      "notes": "3.99% flat (2026), standard deduction $12,750. Military retired pay is exempt with 20+ years of service or a medical retirement (Bailey/2021 law). A 20-year retiree qualifies."
-    },
-    "GA": {
-      "type": "flat",
-      "effectiveRateAt80k": 0.042,
-      "effectiveRateAt150k": 0.046,
-      "militaryRetiredPayExempt": "partial",
-      "notes": "4.99% flat for 2026 (HB 463, falling toward 3.99%), $12k standard exemption. Under 62: a $17,500 military retirement exclusion, plus another $17,500 if GA earned income exceeds $17,500. 62+: general retirement exclusion of $35k, or $65k at 65+."
-    },
-    "CO": {
-      "type": "flat",
-      "effectiveRateAt80k": 0.035,
-      "effectiveRateAt150k": 0.039,
-      "militaryRetiredPayExempt": "partial",
-      "notes": "4.4% of federal taxable income (TABOR temporary cuts possible). Under 55: limited military retirement subtraction (verify, about $15k). 55-64: $20k pension subtraction. 65+: $24k."
-    },
-    "OR": {
-      "type": "progressive",
-      "effectiveRateAt80k": 0.068,
-      "effectiveRateAt150k": 0.086,
-      "militaryRetiredPayExempt": "no",
-      "notes": "4.75%-9.9% (8.75% from about $11k), with a limited federal tax subtraction. Military retired pay is taxable except the portion for service before Oct 1991. Some small credits apply."
-    },
-    "AZ": {
-      "type": "flat",
-      "effectiveRateAt80k": 0.02,
-      "effectiveRateAt150k": 0.022,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "2.5% flat with the federal standard deduction. Military retired pay has been fully exempt since 2021."
-    },
-    "TN": {
-      "type": "none",
-      "effectiveRateAt80k": 0,
-      "effectiveRateAt150k": 0,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "No tax on wages; the Hall tax was repealed in 2021."
-    },
-    "SD": {
-      "type": "none",
-      "effectiveRateAt80k": 0,
-      "effectiveRateAt150k": 0,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "No personal income tax."
+      "brackets": [
+        [
+          0.0,
+          0.02
+        ],
+        [
+          500.0,
+          0.04
+        ],
+        [
+          3000.0,
+          0.05
+        ]
+      ],
+      "stdDeductionSingle": 3000.0,
+      "personalExemptionSingle": 1500.0,
+      "personalCreditSingle": 0,
+      "name": "Alabama",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt."
+      },
+      "activeDutyPay": "taxed"
     },
     "AK": {
       "type": "none",
-      "effectiveRateAt80k": 0,
-      "effectiveRateAt150k": 0,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "No personal income tax (PFD dividend paid to residents)."
+      "brackets": [],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Alaska",
+      "militaryRetiredPay": {
+        "treatment": "none",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "No state income tax."
+      },
+      "activeDutyPay": "none"
     },
-    "WY": {
-      "type": "none",
-      "effectiveRateAt80k": 0,
-      "effectiveRateAt150k": 0,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "No personal income tax."
+    "AZ": {
+      "type": "flat",
+      "brackets": [
+        [
+          0.0,
+          0.025
+        ]
+      ],
+      "stdDeductionSingle": 8350.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Arizona",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt since 2021."
+      },
+      "activeDutyPay": "taxed"
     },
-    "NH": {
-      "type": "none",
-      "effectiveRateAt80k": 0,
-      "effectiveRateAt150k": 0,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "No wage tax; the interest/dividends tax was repealed from 2025."
-    },
-    "NJ": {
+    "AR": {
       "type": "progressive",
-      "effectiveRateAt80k": 0.036,
-      "effectiveRateAt150k": 0.049,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "1.4%-10.75%. Military pensions are exempt."
+      "brackets": [
+        [
+          0.0,
+          0.02
+        ],
+        [
+          4600.0,
+          0.039
+        ]
+      ],
+      "stdDeductionSingle": 2470.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 29.0,
+      "name": "Arkansas",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "Fully exempt (2023 law)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "CA": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.01
+        ],
+        [
+          11079.0,
+          0.02
+        ],
+        [
+          26264.0,
+          0.04
+        ],
+        [
+          41452.0,
+          0.06
+        ],
+        [
+          57542.0,
+          0.08
+        ],
+        [
+          72724.0,
+          0.093
+        ],
+        [
+          371479.0,
+          0.103
+        ],
+        [
+          445771.0,
+          0.113
+        ],
+        [
+          742953.0,
+          0.123
+        ],
+        [
+          1000000.0,
+          0.133
+        ]
+      ],
+      "stdDeductionSingle": 5540.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 153.0,
+      "name": "California",
+      "militaryRetiredPay": {
+        "treatment": "partial",
+        "exemptAmount": 20000,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Up to $20,000 excluded, tax years 2025\u20132029, federal AGI under $125,000 (single)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "CO": {
+      "type": "flat",
+      "brackets": [
+        [
+          0.0,
+          0.044
+        ]
+      ],
+      "stdDeductionSingle": 16100.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Colorado",
+      "militaryRetiredPay": {
+        "treatment": "partial",
+        "exemptAmount": 15000,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "Under 55: partial military retirement subtraction (sources differ: $15,000\u2013$24,000); larger pension subtraction at 55+."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "CT": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.02
+        ],
+        [
+          10000.0,
+          0.045
+        ],
+        [
+          50000.0,
+          0.055
+        ],
+        [
+          100000.0,
+          0.06
+        ],
+        [
+          200000.0,
+          0.065
+        ],
+        [
+          250000.0,
+          0.069
+        ],
+        [
+          500000.0,
+          0.0699
+        ]
+      ],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 15000.0,
+      "personalCreditSingle": 0,
+      "name": "Connecticut",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt since 2023."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "DE": {
+      "type": "progressive",
+      "brackets": [
+        [
+          2000.0,
+          0.022
+        ],
+        [
+          5000.0,
+          0.039
+        ],
+        [
+          10000.0,
+          0.048
+        ],
+        [
+          20000.0,
+          0.052
+        ],
+        [
+          25000.0,
+          0.0555
+        ],
+        [
+          60000.0,
+          0.066
+        ]
+      ],
+      "stdDeductionSingle": 3250.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 110.0,
+      "name": "Delaware",
+      "militaryRetiredPay": {
+        "treatment": "partial",
+        "exemptAmount": 12500,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "Pension exclusion $12,500 under 60 (2026 changes reported \u2014 verify)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "DC": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.04
+        ],
+        [
+          10000.0,
+          0.06
+        ],
+        [
+          40000.0,
+          0.065
+        ],
+        [
+          60000.0,
+          0.085
+        ],
+        [
+          250000.0,
+          0.0925
+        ],
+        [
+          500000.0,
+          0.0975
+        ],
+        [
+          1000000.0,
+          0.1075
+        ]
+      ],
+      "stdDeductionSingle": 16100.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "District of Columbia",
+      "militaryRetiredPay": {
+        "treatment": "taxed",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "No general military retirement exclusion under 62."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "FL": {
+      "type": "none",
+      "brackets": [],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Florida",
+      "militaryRetiredPay": {
+        "treatment": "none",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "No state income tax."
+      },
+      "activeDutyPay": "none"
+    },
+    "GA": {
+      "type": "flat",
+      "brackets": [
+        [
+          0.0,
+          0.0519
+        ]
+      ],
+      "stdDeductionSingle": 12000.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Georgia",
+      "militaryRetiredPay": {
+        "treatment": "partial",
+        "exemptAmount": 17500,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "Under 62: $17,500 with qualifying earned income; larger exclusions at 62+/65+ (2026\u201327 changes reported \u2014 verify)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "HI": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.014
+        ],
+        [
+          9600.0,
+          0.032
+        ],
+        [
+          14400.0,
+          0.055
+        ],
+        [
+          19200.0,
+          0.064
+        ],
+        [
+          24000.0,
+          0.068
+        ],
+        [
+          36000.0,
+          0.072
+        ],
+        [
+          48000.0,
+          0.076
+        ],
+        [
+          125000.0,
+          0.079
+        ],
+        [
+          175000.0,
+          0.0825
+        ],
+        [
+          225000.0,
+          0.09
+        ],
+        [
+          275000.0,
+          0.1
+        ],
+        [
+          325000.0,
+          0.11
+        ]
+      ],
+      "stdDeductionSingle": 4400.0,
+      "personalExemptionSingle": 1144.0,
+      "personalCreditSingle": 0,
+      "name": "Hawaii",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "ID": {
+      "type": "flat",
+      "brackets": [
+        [
+          4811.0,
+          0.053
+        ]
+      ],
+      "stdDeductionSingle": 16100.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Idaho",
+      "militaryRetiredPay": {
+        "treatment": "taxed",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "Retirement deduction only at 65+ (62 if disabled)."
+      },
+      "activeDutyPay": "taxed"
     },
     "IL": {
       "type": "flat",
-      "effectiveRateAt80k": 0.048,
-      "effectiveRateAt150k": 0.049,
-      "militaryRetiredPayExempt": "yes",
-      "notes": "4.95% flat with a personal exemption of about $2,850. All retirement income, including military, is exempt."
+      "brackets": [
+        [
+          0.0,
+          0.0495
+        ]
+      ],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 2925.0,
+      "personalCreditSingle": 0,
+      "name": "Illinois",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "All retirement income exempt."
+      },
+      "activeDutyPay": "taxed"
     },
-    "_general": {
-      "notes": "Effective rate = state income tax / gross income for a single filer, all wage income, standard deduction, no local tax. These are model approximations (+/-0.5pp) using 2025/26 brackets. Under SCRA/MSRRA, active-duty military pay is taxable only by the state of legal residence (domicile), not the duty-station state. Military retired pay is taxed by the retiree's state of residence after retirement. Several states (e.g. CA, OR, NY, VA) do not exempt active-duty pay for their own domiciliaries, though some do."
+    "IN": {
+      "type": "flat",
+      "brackets": [
+        [
+          0.0,
+          0.0295
+        ]
+      ],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 1000.0,
+      "personalCreditSingle": 0,
+      "name": "Indiana",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt since 2022."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "IA": {
+      "type": "flat",
+      "brackets": [
+        [
+          0.0,
+          0.038
+        ]
+      ],
+      "stdDeductionSingle": 16100.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 40.0,
+      "name": "Iowa",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt since 2023."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "KS": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.052
+        ],
+        [
+          23000.0,
+          0.0558
+        ]
+      ],
+      "stdDeductionSingle": 3605.0,
+      "personalExemptionSingle": 9160.0,
+      "personalCreditSingle": 0,
+      "name": "Kansas",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt since 2022."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "KY": {
+      "type": "flat",
+      "brackets": [
+        [
+          0.0,
+          0.035
+        ]
+      ],
+      "stdDeductionSingle": 3360.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Kentucky",
+      "militaryRetiredPay": {
+        "treatment": "partial",
+        "exemptAmount": 31110,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "Pension income exclusion up to $31,110."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "LA": {
+      "type": "flat",
+      "brackets": [
+        [
+          0.0,
+          0.03
+        ]
+      ],
+      "stdDeductionSingle": 12875.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Louisiana",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "ME": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.058
+        ],
+        [
+          27399.0,
+          0.0675
+        ],
+        [
+          64849.0,
+          0.0715
+        ]
+      ],
+      "stdDeductionSingle": 8350.0,
+      "personalExemptionSingle": 5300.0,
+      "personalCreditSingle": 0,
+      "name": "Maine",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt since 2022."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "MD": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.02
+        ],
+        [
+          1000.0,
+          0.03
+        ],
+        [
+          2000.0,
+          0.04
+        ],
+        [
+          3000.0,
+          0.0475
+        ],
+        [
+          100000.0,
+          0.05
+        ],
+        [
+          125000.0,
+          0.0525
+        ],
+        [
+          150000.0,
+          0.055
+        ],
+        [
+          250000.0,
+          0.0575
+        ],
+        [
+          500000.0,
+          0.0625
+        ],
+        [
+          1000000.0,
+          0.065
+        ]
+      ],
+      "stdDeductionSingle": 3350.0,
+      "personalExemptionSingle": 3200.0,
+      "personalCreditSingle": 0,
+      "name": "Maryland",
+      "militaryRetiredPay": {
+        "treatment": "partial",
+        "exemptAmount": 12500,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Up to $12,500 under 55; $20,000 at 55+."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "MA": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.05
+        ],
+        [
+          1083150.0,
+          0.09
+        ]
+      ],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 4400.0,
+      "personalCreditSingle": 0,
+      "name": "Massachusetts",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "MI": {
+      "type": "flat",
+      "brackets": [
+        [
+          0.0,
+          0.0425
+        ]
+      ],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 5900.0,
+      "personalCreditSingle": 0,
+      "name": "Michigan",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "MN": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.0535
+        ],
+        [
+          33310.0,
+          0.068
+        ],
+        [
+          109430.0,
+          0.0785
+        ],
+        [
+          203150.0,
+          0.0985
+        ]
+      ],
+      "stdDeductionSingle": 15300.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Minnesota",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt since 2023."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "MS": {
+      "type": "flat",
+      "brackets": [
+        [
+          10000.0,
+          0.04
+        ]
+      ],
+      "stdDeductionSingle": 2300.0,
+      "personalExemptionSingle": 6000.0,
+      "personalCreditSingle": 0,
+      "name": "Mississippi",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "MO": {
+      "type": "progressive",
+      "brackets": [
+        [
+          1348.0,
+          0.02
+        ],
+        [
+          2696.0,
+          0.025
+        ],
+        [
+          4044.0,
+          0.03
+        ],
+        [
+          5392.0,
+          0.035
+        ],
+        [
+          6740.0,
+          0.04
+        ],
+        [
+          8088.0,
+          0.045
+        ],
+        [
+          9436.0,
+          0.047
+        ]
+      ],
+      "stdDeductionSingle": 16100.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Missouri",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt since 2022."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "MT": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.047
+        ],
+        [
+          47500.0,
+          0.0565
+        ]
+      ],
+      "stdDeductionSingle": 16100.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Montana",
+      "militaryRetiredPay": {
+        "treatment": "partial",
+        "exemptAmount": null,
+        "exemptShare": 0.5,
+        "confidence": "low",
+        "note": "Partial (50% for 5 years of residency reported; sources differ \u2014 verify)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "NE": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.0246
+        ],
+        [
+          4130.0,
+          0.0351
+        ],
+        [
+          24760.0,
+          0.0455
+        ]
+      ],
+      "stdDeductionSingle": 8850.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 176.0,
+      "name": "Nebraska",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "official",
+        "note": "100% excluded for tax years from 2022 (Neb. Rev. Stat. \u00a7 77-2716(15); Nebraska DOR). Active-duty pay is taxable for residents."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "NV": {
+      "type": "none",
+      "brackets": [],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Nevada",
+      "militaryRetiredPay": {
+        "treatment": "none",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "No state income tax."
+      },
+      "activeDutyPay": "none"
+    },
+    "NH": {
+      "type": "none",
+      "brackets": [],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "New Hampshire",
+      "militaryRetiredPay": {
+        "treatment": "none",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "No state income tax."
+      },
+      "activeDutyPay": "none"
+    },
+    "NJ": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.014
+        ],
+        [
+          20000.0,
+          0.0175
+        ],
+        [
+          35000.0,
+          0.035
+        ],
+        [
+          40000.0,
+          0.05525
+        ],
+        [
+          75000.0,
+          0.0637
+        ],
+        [
+          500000.0,
+          0.0897
+        ],
+        [
+          1000000.0,
+          0.1075
+        ]
+      ],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 1000.0,
+      "personalCreditSingle": 0,
+      "name": "New Jersey",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Military pensions fully exempt."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "NM": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.015
+        ],
+        [
+          5500.0,
+          0.032
+        ],
+        [
+          16500.0,
+          0.043
+        ],
+        [
+          33500.0,
+          0.047
+        ],
+        [
+          66500.0,
+          0.049
+        ],
+        [
+          210000.0,
+          0.059
+        ]
+      ],
+      "stdDeductionSingle": 16100.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "New Mexico",
+      "militaryRetiredPay": {
+        "treatment": "partial",
+        "exemptAmount": 30000,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Up to $30,000, tax years 2024\u20132026 (scheduled to sunset \u2014 verify after 2026)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "NY": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.039
+        ],
+        [
+          8500.0,
+          0.044
+        ],
+        [
+          11700.0,
+          0.0515
+        ],
+        [
+          13900.0,
+          0.054
+        ],
+        [
+          80650.0,
+          0.059
+        ],
+        [
+          215400.0,
+          0.0685
+        ],
+        [
+          1077550.0,
+          0.0965
+        ],
+        [
+          5000000.0,
+          0.103
+        ],
+        [
+          25000000.0,
+          0.109
+        ]
+      ],
+      "stdDeductionSingle": 8000.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "New York",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "NC": {
+      "type": "flat",
+      "brackets": [
+        [
+          0.0,
+          0.0399
+        ]
+      ],
+      "stdDeductionSingle": 12750.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "North Carolina",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Exempt with 20+ years of service (since 2021)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "ND": {
+      "type": "progressive",
+      "brackets": [
+        [
+          48475.0,
+          0.0195
+        ],
+        [
+          244825.0,
+          0.025
+        ]
+      ],
+      "stdDeductionSingle": 16100.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "North Dakota",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt since 2023."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "OH": {
+      "type": "flat",
+      "brackets": [
+        [
+          26050.0,
+          0.0275
+        ]
+      ],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 2400.0,
+      "personalCreditSingle": 0,
+      "name": "Ohio",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "OK": {
+      "type": "progressive",
+      "brackets": [
+        [
+          3750.0,
+          0.025
+        ],
+        [
+          4900.0,
+          0.035
+        ],
+        [
+          7200.0,
+          0.045
+        ]
+      ],
+      "stdDeductionSingle": 6350.0,
+      "personalExemptionSingle": 1000.0,
+      "personalCreditSingle": 0,
+      "name": "Oklahoma",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "Fully exempt (2022 law)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "OR": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.0475
+        ],
+        [
+          4550.0,
+          0.0675
+        ],
+        [
+          11400.0,
+          0.0875
+        ],
+        [
+          125000.0,
+          0.099
+        ]
+      ],
+      "stdDeductionSingle": 2910.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 256.0,
+      "name": "Oregon",
+      "militaryRetiredPay": {
+        "treatment": "taxed",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Taxed (exemption only for service before Oct 1991)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "PA": {
+      "type": "flat",
+      "brackets": [
+        [
+          0.0,
+          0.0307
+        ]
+      ],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Pennsylvania",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "All retirement income exempt."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "RI": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.0375
+        ],
+        [
+          82050.0,
+          0.0475
+        ],
+        [
+          186450.0,
+          0.0599
+        ]
+      ],
+      "stdDeductionSingle": 11200.0,
+      "personalExemptionSingle": 5250.0,
+      "personalCreditSingle": 0,
+      "name": "Rhode Island",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "Fully exempt since 2023."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "SC": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          3640.0,
+          0.03
+        ],
+        [
+          18230.0,
+          0.06
+        ]
+      ],
+      "stdDeductionSingle": 8350.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "South Carolina",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "Fully exempt (2022 law)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "SD": {
+      "type": "none",
+      "brackets": [],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "South Dakota",
+      "militaryRetiredPay": {
+        "treatment": "none",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "No state income tax."
+      },
+      "activeDutyPay": "none"
+    },
+    "TN": {
+      "type": "none",
+      "brackets": [],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Tennessee",
+      "militaryRetiredPay": {
+        "treatment": "none",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "No state income tax."
+      },
+      "activeDutyPay": "none"
+    },
+    "TX": {
+      "type": "none",
+      "brackets": [],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Texas",
+      "militaryRetiredPay": {
+        "treatment": "none",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "No state income tax."
+      },
+      "activeDutyPay": "none"
+    },
+    "UT": {
+      "type": "flat",
+      "brackets": [
+        [
+          0.0,
+          0.045
+        ]
+      ],
+      "stdDeductionSingle": 966.0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Utah",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "Nonrefundable credit equal to the tax on military retired pay (effectively exempt)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "VT": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.0335
+        ],
+        [
+          49400.0,
+          0.066
+        ],
+        [
+          119700.0,
+          0.076
+        ],
+        [
+          249700.0,
+          0.0875
+        ]
+      ],
+      "stdDeductionSingle": 7650.0,
+      "personalExemptionSingle": 5300.0,
+      "personalCreditSingle": 0,
+      "name": "Vermont",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "medium",
+        "note": "Exempt with AGI under $125,000; phases out to $175,000."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "VA": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.02
+        ],
+        [
+          3000.0,
+          0.03
+        ],
+        [
+          5000.0,
+          0.05
+        ],
+        [
+          17000.0,
+          0.0575
+        ]
+      ],
+      "stdDeductionSingle": 8750.0,
+      "personalExemptionSingle": 930.0,
+      "personalCreditSingle": 0,
+      "name": "Virginia",
+      "militaryRetiredPay": {
+        "treatment": "partial",
+        "exemptAmount": 40000,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Up to $40,000 excluded (2025+)."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "WA": {
+      "type": "none",
+      "brackets": [],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Washington",
+      "militaryRetiredPay": {
+        "treatment": "none",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "No state income tax."
+      },
+      "activeDutyPay": "none"
+    },
+    "WV": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.0222
+        ],
+        [
+          10000.0,
+          0.0296
+        ],
+        [
+          25000.0,
+          0.0333
+        ],
+        [
+          40000.0,
+          0.0444
+        ],
+        [
+          60000.0,
+          0.0482
+        ]
+      ],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 2000.0,
+      "personalCreditSingle": 0,
+      "name": "West Virginia",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt since 2022."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "WI": {
+      "type": "progressive",
+      "brackets": [
+        [
+          0.0,
+          0.035
+        ],
+        [
+          15110.0,
+          0.044
+        ],
+        [
+          51950.0,
+          0.053
+        ],
+        [
+          332720.0,
+          0.0765
+        ]
+      ],
+      "stdDeductionSingle": 13960.0,
+      "personalExemptionSingle": 700.0,
+      "personalCreditSingle": 0,
+      "name": "Wisconsin",
+      "militaryRetiredPay": {
+        "treatment": "exempt",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "Fully exempt."
+      },
+      "activeDutyPay": "taxed"
+    },
+    "WY": {
+      "type": "none",
+      "brackets": [],
+      "stdDeductionSingle": 0,
+      "personalExemptionSingle": 0,
+      "personalCreditSingle": 0,
+      "name": "Wyoming",
+      "militaryRetiredPay": {
+        "treatment": "none",
+        "exemptAmount": null,
+        "exemptShare": null,
+        "confidence": "high",
+        "note": "No state income tax."
+      },
+      "activeDutyPay": "none"
     }
-  },
-  "sources": [
-    {
-      "title": "501 CSW Alconbury/Molesworth/Wyton ToRCH guide",
-      "url": "https://www.501csw.usafe.af.mil/Portals/7/ToRCH%20Alconbury-Molesworth-Wyton.pdf"
-    },
-    {
-      "title": "501 CSW Council Taxes (Dec 2024)",
-      "url": "https://www.501csw.usafe.af.mil/Portals/7/Council%20Taxes%20CAO%20Dec%2024.pdf"
-    },
-    {
-      "title": "homenicom Huntingdonshire council tax",
-      "url": "https://homenicom.co.uk/area/huntingdonshire/council-tax"
-    },
-    {
-      "title": "MOAA state tax roundup",
-      "url": "https://www.moaa.org/taxroundup25"
-    }
-  ]
+  }
 }

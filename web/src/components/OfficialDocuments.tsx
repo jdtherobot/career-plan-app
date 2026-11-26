@@ -144,6 +144,33 @@ export function OfficialDocuments() {
           </p>
         </div>
         <div className="calc-row">
+          <h4>Social Security</h4>
+          <p>
+            SSA's own formula, run on each path's earnings — military basic pay (past years rebuilt from the DFAS table and the
+            official yearly raises) and civilian salary, each capped at that year's taxable maximum. Each year is wage-indexed
+            to age 60; the highest 35 average out to your AIME; your full-retirement benefit (PIA) is 90% / 32% / 15% of the
+            AIME across the bend points for the year you turn 62. Claiming earlier or later applies SSA's reduction or delayed
+            credits. Grad stipends aren't Social Security wages.
+          </p>
+          <code>bend points = $180 and $1,085 × wage index(year−2) ÷ $9,779.44</code>
+          <p className="calc-example">
+            2027 check: $180 × $72,800.33 ÷ $9,779.44 = $1,339.96 → <strong>$1,340</strong> (SSA publishes $1,340).{" "}
+            <a href="#sources:ssa-determinations">Document</a>
+          </p>
+        </div>
+        <div className="calc-row">
+          <h4>State income tax</h4>
+          <p>
+            Your state of legal residence's 2026 single-filer brackets on income after its standard deduction and personal
+            exemption, less any personal credit. Military retired pay is reduced by the state's exclusion first.
+          </p>
+          <p className="calc-example">
+            Nebraska, $67,100 of basic pay: $67,100 − $8,850 = $58,250 → 2.46% to $4,130 + 3.51% to $24,760 + 4.55% above =
+            $2,349.50 − $176 credit = <strong>$2,173.50</strong>. Nebraska excludes 100% of military retired pay.{" "}
+            <a href="#sources:taxfoundation-state-2026">Brackets</a> · <a href="#sources:nebraska-military-retirement">Nebraska DOR</a>
+          </p>
+        </div>
+        <div className="calc-row">
           <h4>Later years</h4>
           <p>
             Official rates apply from their effective date. For future years the planner carries them forward — BAH and COLA

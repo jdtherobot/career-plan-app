@@ -131,11 +131,16 @@ class RetirementAssumptions:
     withdrawal_age_years: float = 59.5
     withdrawal_policy: str = "cover_gap"  # or "fixed_annual"
     fixed_annual_withdrawal: float = 0.0
+    ss_mode: str = "auto"  # "auto" = SSA formula from projected earnings; "statement" = your SSA estimate
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "RetirementAssumptions":
         data = data or {}
+        mode = data.get("ssMode")
+        if mode not in ("auto", "statement"):
+            mode = "auto"
         return cls(
+            ss_mode=mode,
             social_security_enabled=bool(data.get("socialSecurityEnabled", True)),
             ss_fra_monthly=float(data.get("ssFraMonthly", 0.0) or 0.0),
             ss_claim_age=int(data.get("ssClaimAge", 67) or 67),
@@ -152,6 +157,7 @@ class RetirementAssumptions:
             "withdrawalAgeYears": self.withdrawal_age_years,
             "withdrawalPolicy": self.withdrawal_policy,
             "fixedAnnualWithdrawal": self.fixed_annual_withdrawal,
+            "ssMode": self.ss_mode,
         }
 
 
