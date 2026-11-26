@@ -266,6 +266,138 @@
       "feeds": [
         "Overseas COLA (which spendable-income row applies)"
       ]
+    },
+    {
+      "id": "ssa-determinations",
+      "agency": "Social Security Administration (Federal Register)",
+      "title": "Cost-of-Living Increase and Other Determinations for 2027",
+      "detail": "SSA's annual notice: national average wage index for 2025 ($72,800.33), 2027 bend points ($1,340 / $8,077), taxable maximum ($192,300), COLA (3.6%). The 2013–2025 notices supply the earlier wage indexes and taxable maximums.",
+      "officialUrl": "https://www.federalregister.gov/d/2026-21796",
+      "effective": "2027-01-01",
+      "retrieved": "2026-11-26",
+      "retrievedBy": "Downloaded from govinfo.gov",
+      "file": "ssa_federal_register_determinations_2027.pdf",
+      "status": "retrieved",
+      "values": [
+        {
+          "label": "National average wage index 2025",
+          "value": "$72,800.33"
+        },
+        {
+          "label": "2027 PIA bend points",
+          "value": "$1,340 and $8,077"
+        },
+        {
+          "label": "2027 taxable maximum",
+          "value": "$192,300"
+        },
+        {
+          "label": "COLA effective Dec 2026",
+          "value": "3.6%"
+        },
+        {
+          "label": "Bend point formula",
+          "value": "$180 and $1,085 × AWI(year−2) ÷ $9,779.44 (1977 AWI)"
+        }
+      ],
+      "feeds": [
+        "Social Security estimate (wage indexing, bend points, taxable maximum, COLA)"
+      ],
+      "sha256": "700ede41c38274b5a270fa3ef05d64ae93a60c9f5b7a0e20a04f2c444e40a20c"
+    },
+    {
+      "id": "ssa-determinations-2026",
+      "agency": "Social Security Administration (Federal Register)",
+      "title": "Cost-of-Living Increase and Other Determinations for 2026",
+      "officialUrl": "https://www.federalregister.gov/d/2025-19763",
+      "effective": "2026-01-01",
+      "retrieved": "2026-11-26",
+      "retrievedBy": "Downloaded from govinfo.gov",
+      "file": "ssa_federal_register_determinations_2026.pdf",
+      "status": "retrieved",
+      "values": [
+        {
+          "label": "National average wage index 2024",
+          "value": "$69,846.57"
+        },
+        {
+          "label": "2026 PIA bend points",
+          "value": "$1,286 and $7,749"
+        },
+        {
+          "label": "2026 taxable maximum",
+          "value": "$184,500"
+        }
+      ],
+      "feeds": [
+        "Social Security estimate"
+      ],
+      "sha256": "4d2754905fbbe1f1cc44b043853098c58abb163dc8cc97b7b7417bd8d9326f97"
+    },
+    {
+      "id": "taxfoundation-state-2026",
+      "agency": "Tax Foundation",
+      "title": "State Individual Income Tax Rates and Brackets, as of January 1, 2026",
+      "detail": "Single-filer brackets, standard deductions and personal exemptions/credits for all states and DC (compiled from state statutes and forms).",
+      "officialUrl": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "effective": "2026-01-01",
+      "retrieved": "2026-11-26",
+      "retrievedBy": "Downloaded from taxfoundation.org",
+      "file": "taxfoundation_state_income_tax_rates_2026.xlsx",
+      "status": "retrieved",
+      "values": [
+        {
+          "label": "Nebraska (single)",
+          "value": "2.46% to $4,130 · 3.51% to $24,760 · 4.55% above · $8,850 standard deduction · $176 credit"
+        }
+      ],
+      "feeds": [
+        "State income tax for your state of legal residence"
+      ],
+      "sha256": "44ff5fee7444002fb1e8ee931a3eed4fa5450f9605ab760ad018c37bfbdb097c"
+    },
+    {
+      "id": "nebraska-military-retirement",
+      "agency": "Nebraska Department of Revenue",
+      "title": "Military Retirement Benefits Exclusion (FAQ)",
+      "detail": "100% of military retirement benefits excluded from Nebraska taxable income for tax years from 2022. Text extract of the DOR page (original checksum inside).",
+      "officialUrl": "https://revenue.nebraska.gov/about/frequently-asked-questions/military-retirement-benefits-exclusion",
+      "effective": "2022-01-01",
+      "retrieved": "2026-11-26",
+      "retrievedBy": "Downloaded from revenue.nebraska.gov",
+      "file": "nebraska_dor_military_retirement_exclusion_faq.txt",
+      "status": "retrieved",
+      "values": [
+        {
+          "label": "Military retired pay",
+          "value": "100% excluded (tax years 2022+)"
+        }
+      ],
+      "feeds": [
+        "Nebraska tax on the military pension"
+      ],
+      "sha256": "106ba210e70fd84a78915e4e1f70b580f6277c3f5dcc2be56b737d04220078fa"
+    },
+    {
+      "id": "nebraska-guide-8-364",
+      "agency": "Nebraska Department of Revenue",
+      "title": "Information Guide 8-364 — Military personnel",
+      "detail": "Nebraska treatment of military pay: active-duty pay of Nebraska residents is taxable; nonresident servicemembers are exempt; combat pay follows federal rules.",
+      "officialUrl": "https://revenue.nebraska.gov/sites/default/files/doc/info/8-364.pdf",
+      "retrieved": "2026-11-26",
+      "retrievedBy": "Downloaded from revenue.nebraska.gov",
+      "file": "nebraska_dor_info_guide_8-364_military.pdf",
+      "status": "retrieved",
+      "values": [
+        {
+          "label": "Active-duty pay (Nebraska resident)",
+          "value": "taxable"
+        }
+      ],
+      "feeds": [
+        "Nebraska tax on active-duty pay"
+      ],
+      "sha256": "67d6dd2968435c179b1c2a5772d47efb1ffcd0d3c0765fc219b164de860138c6"
     }
   ]
 }
