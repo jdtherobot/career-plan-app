@@ -3,7 +3,7 @@
    each income stream, benefit and expense shows exactly when it applies. */
 
 import { useEffect, useRef, useState } from "react";
-import { useAppState, useDispatch, pathColor, fmtMoney, NEGATIVE_COLORS, visiblePaths } from "../state/store";
+import { useAppState, useDispatch, fmtMoney, NEGATIVE_COLORS, visiblePaths, usePathColor } from "../state/store";
 import { Bars, LineChart, type Series } from "./Chart";
 import { CHART_STACKS, phaseLabel } from "./stacks";
 
@@ -281,14 +281,14 @@ export function ChartsPanel() {
   const state = useAppState();
   const dispatch = useDispatch();
   const { results, realDollars, theme, chartsEnabled, hiddenPathIds } = state;
+  const pathColorById = usePathColor();
   if (!results) return null;
 
   const allScenarios: any[] = results.scenarios;
   // Only paths switched on (eye on the path card); each keeps its own color.
   const shown = visiblePaths(allScenarios, hiddenPathIds, results.comparison?.baselineScenarioId ?? null);
   const scenarios: any[] = shown.map(({ entry }) => entry);
-  const colorIndex = new Map(shown.map(({ entry, colorIndex }) => [entry.scenarioId, colorIndex]));
-  const colorOf = (entry: any) => pathColor(colorIndex.get(entry.scenarioId) ?? 0, theme);
+  const colorOf = (entry: any) => pathColorById(entry.scenarioId);
   const unit = realDollars ? "real 2026$" : "nominal";
   const enabled = chartsEnabled.filter((id) => KNOWN_IDS.has(id));
   const active = enabled.length ? enabled : ["net_cf"];

@@ -3,7 +3,7 @@
    the year-by-year editor. */
 
 import { useState } from "react";
-import { fmtMoney, pathColor, useAppState } from "../state/store";
+import { fmtMoney, usePathColor, useAppState } from "../state/store";
 import { lineLabel } from "./planHelpers";
 import { YearDrawer } from "./YearDrawer";
 
@@ -22,7 +22,8 @@ function Spark({ values, highlight }: { values: number[]; highlight: boolean }) 
 
 export function LinesOverview() {
   const state = useAppState();
-  const { scenarios, results, bootstrap, theme, profile } = state;
+  const { scenarios, results, bootstrap, profile } = state;
+  const colorOf = usePathColor();
   const [pathId, setPathId] = useState<string | null>(state.focusPathId ?? scenarios[0]?.id ?? null);
   const [open, setOpen] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -65,9 +66,9 @@ export function LinesOverview() {
           </p>
         </div>
         <div className="toggle" role="group" aria-label="Path">
-          {scenarios.map((s, i) => (
+          {scenarios.map((s) => (
             <button key={s.id} className={s.id === scenario.id ? "on" : ""} aria-pressed={s.id === scenario.id} onClick={() => setPathId(s.id)}>
-              <span className="pathdot" style={{ background: pathColor(i, theme), display: "inline-block", marginRight: 5, width: 8, height: 8 }} />
+              <span className="pathdot" style={{ background: colorOf(s.id), display: "inline-block", marginRight: 5, width: 8, height: 8 }} />
               {s.displayName || s.name}
             </button>
           ))}
