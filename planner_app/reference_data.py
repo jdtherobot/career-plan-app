@@ -516,7 +516,9 @@ REFERENCE_FIELD_METADATA: dict[str, dict[str, Any]] = {
             {"field": "annualCost", "label": "Annual Cost (individual / per person)", "kind": "currency", "sourceable": True},
             {"field": "annualCostFamily", "label": "Annual Cost (family)", "kind": "currency", "sourceable": True},
             {"field": "costYear", "label": "Cost Year"},
-            {"field": "inflationRate", "label": "Inflation", "kind": "percent", "sourceable": True},
+            {"field": "inflationRate", "label": "Growth (near term)", "kind": "percent", "sourceable": True},
+            {"field": "longRunInflationRate", "label": "Growth (long run)", "kind": "percent", "sourceable": True},
+            {"field": "longRunFromYear", "label": "Long run from"},
             {"field": "verificationStatus", "label": "Verified", "kind": "status"},
         ],
         "advancedColumns": [
@@ -1656,10 +1658,14 @@ def _build_healthcare_profiles() -> list[dict[str, Any]]:
             "perPerson": True,
             "costYear": 2026,
             "inflationRate": 0.06,
+            "longRunInflationRate": 0.043,
+            "longRunFromYear": 2037,
             "sourceLabel": "CMS 2026 Medicare Part B standard premium ($202.90/mo); TRICARE For Life has no enrollment fee",
             "sourceUrl": "https://www.cms.gov/newsroom/fact-sheets/2026-medicare-parts-b-premiums-deductibles",
             "verificationStatus": "official",
-            "notes": "Grows ~6%/yr: 2026 Medicare Trustees project Part B from $202.90 (2026) to ~$272 (2031). "
+            "notes": "Grows 6%/yr through 2036 (2026 Medicare Trustees: $202.90 in 2026 to ~$272 in 2031; ~6.6%/yr 10-yr avg per "
+                     "Georgetown CHIR), then 4.3%/yr (estimate: Trustees' long-range per-beneficiary cost growth converges toward "
+                     "GDP per capita, ~1.8-1.9% real + ~2.5% inflation). "
                      "Military retirees 65+. TFL is free but requires Medicare Part B, so the only premium is Part B "
                      "per covered person. No Medigap or Part D needed (TFL is the supplement; TRICARE pharmacy covers drugs).",
         },
@@ -1671,11 +1677,14 @@ def _build_healthcare_profiles() -> list[dict[str, Any]]:
             "annualCostFamily": 6850.0,
             "costYear": 2025,
             "inflationRate": 0.05,
+            "longRunInflationRate": 0.043,
+            "longRunFromYear": 2037,
             "sourceLabel": "KFF 2025 Employer Health Benefits Survey: average worker contribution",
             "sourceUrl": "https://www.kff.org/health-costs/report/2025-employer-health-benefits-survey/",
             "verificationStatus": "researched_2026_11_26",
             "notes": "Average annual worker contribution: $1,440 single / $6,850 family (2025). Used while working a civilian job. "
-                     "Grows 5%/yr: family premiums +6% in 2025, +26% over 5 yrs (~4.7%/yr); worker share +23% (~4.2%/yr) (KFF).",
+                     "Grows 5%/yr through 2036 (KFF: family premiums +6% in 2025, +26% over 5 yrs ~4.7%/yr; worker share ~4.2%/yr), "
+                     "then 4.3%/yr long run (health-cost growth converging toward GDP per capita).",
         },
         {
             "id": "marketplace_gap_year",
@@ -1685,6 +1694,8 @@ def _build_healthcare_profiles() -> list[dict[str, Any]]:
             "annualCostFamily": 18000.0,
             "costYear": 2026,
             "inflationRate": 0.05,
+            "longRunInflationRate": 0.043,
+            "longRunFromYear": 2037,
             "sourceLabel": "Planning estimate: ACA benchmark silver premium, no subsidy",
             "sourceUrl": "https://www.healthcare.gov/",
             "verificationStatus": "estimate_verify",

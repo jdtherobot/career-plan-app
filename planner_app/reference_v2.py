@@ -92,11 +92,12 @@ V2_REFERENCE_DOMAINS: dict[str, list[dict[str, Any]]] = {
     ],
     "medicare_profiles": [
         {"id": "medicare_baseline", "label": "Medigap Plan G + Part D (per person, on top of Part B)", "annualCost": 2465.0,
-         "perPerson": True, "costYear": 2026, "inflationRate": 0.05, "startAge": 65,
+         "perPerson": True, "costYear": 2026, "inflationRate": 0.05, "longRunInflationRate": 0.043, "longRunFromYear": 2037,
+         "startAge": 65,
          "verificationStatus": "estimate_verify",
          "notes": "Separated (non-retiree) at 65+ pays Part B (see TRICARE For Life row: $202.90/mo, CMS 2026, +6%/yr per "
                   "Medicare Trustees) PLUS this supplement: planning estimate ~$2,000/yr Medigap Plan G + ~$465/yr Part D, "
-                  "growing ~5%/yr. Verify supplement prices for your state. Military retirees don't pay this (TFL is the supplement).",
+                  "growing ~5%/yr through 2036 then 4.3%/yr. Verify supplement prices for your state. Military retirees don't pay this (TFL is the supplement).",
          "sourceLabel": "Medigap/Part D planning estimate; Part B from CMS",
          "sourceUrl": "https://www.medicare.gov/basics/costs/medicare-costs"},
     ],
