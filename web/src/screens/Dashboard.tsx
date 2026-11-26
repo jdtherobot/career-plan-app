@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAppState, useDispatch, fmtMoney, pathColor, visiblePaths } from "../state/store";
 import { ChartsPanel } from "../components/ChartsPanel";
 import { Ribbon, RibbonScale } from "../components/Ribbon";
+import { MissingRatesBanner } from "../components/OhaEntry";
 
 /* Long-horizon planning stats (standard retirement-readiness metrics):
    net worth at +20y and at retirement start, sustainable income (4% rule),
@@ -228,6 +229,8 @@ export function Dashboard() {
           </div>
         </div>
       </header>
+
+      <MissingRatesBanner scenarios={scenarios} />
 
       <div className="grid paths">
         {scenarios.map((entry, i) => (

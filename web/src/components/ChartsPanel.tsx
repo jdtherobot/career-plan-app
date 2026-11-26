@@ -165,8 +165,9 @@ function deflate(row: any, value: number, real: boolean): number {
   return real ? value * (row.realDollarFactor ?? 1) : value;
 }
 
-/* Multi-select dropdown: check charts on/off; closes on the trigger or any
-   outside click. At least one chart always stays selected (store-enforced). */
+/* Chart picker: check charts on/off and set their order (drag, or ▲▼ for
+   keyboard). Closes on the trigger or any outside click. At least one chart
+   always stays selected (store-enforced). */
 function ChartPicker({
   enabled,
   onChange,
@@ -193,30 +194,83 @@ function ChartPicker({
     };
   }, [open]);
 
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropId, setDropId] = useState<string | null>(null);
+  const byId = new Map(CHART_DEFS.map((d) => [d.id, d]));
+  const onList = enabled.filter((id) => byId.has(id));
+  const offList = CHART_DEFS.filter((d) => !enabled.includes(d.id));
+  const move = (id: string, to: number) => {
+    const from = onList.indexOf(id);
+    if (from < 0 || to < 0 || to >= onList.length || from === to) return;
+    const next = [...onList];
+    next.splice(from, 1);
+    next.splice(to, 0, id);
+    onChange(next);
+  };
+
   return (
     <div className="chart-picker" ref={wrapRef}>
       <button aria-expanded={open} aria-haspopup="listbox" onClick={() => setOpen(!open)}>
         Charts · {enabled.length} selected {open ? "▲" : "▼"}
       </button>
       {open && (
-        <div className="chart-picker-menu" role="listbox" aria-label="Visible charts">
-          {CHART_DEFS.map((def) => {
-            const on = enabled.includes(def.id);
-            const isLastOn = on && enabled.length === 1;
+        <div className="chart-picker-menu" aria-label="Visible charts, in display order">
+          <p className="chart-picker-h">Shown — top to bottom (drag or use ▲▼)</p>
+          {onList.map((id, i) => {
+            const def = byId.get(id)!;
+            const isLastOn = onList.length === 1;
             return (
-              <label key={def.id} className={isLastOn ? "locked" : ""} title={isLastOn ? "At least one chart stays visible" : def.sub}>
-                <input
-                  type="checkbox"
-                  checked={on}
-                  disabled={isLastOn}
-                  onChange={() =>
-                    onChange(on ? enabled.filter((c) => c !== def.id) : [...enabled, def.id])
-                  }
-                />
-                {def.title}
-              </label>
+              <div
+                key={id}
+                className={`chart-picker-row${dragId === id ? " dragging" : ""}${dropId === id && dragId !== id ? " drop" : ""}`}
+                draggable
+                onDragStart={(e) => {
+                  setDragId(id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDropId(id);
+                }}
+                onDragLeave={() => setDropId((cur) => (cur === id ? null : cur))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragId) move(dragId, i);
+                  setDragId(null);
+                  setDropId(null);
+                }}
+                onDragEnd={() => {
+                  setDragId(null);
+                  setDropId(null);
+                }}
+              >
+                <span className="drag-handle" aria-hidden="true">⠿</span>
+                <label className={isLastOn ? "locked" : ""} title={isLastOn ? "At least one chart stays visible" : def.sub}>
+                  <input
+                    type="checkbox"
+                    checked
+                    disabled={isLastOn}
+                    onChange={() => onChange(onList.filter((c) => c !== id))}
+                  />
+                  {def.title}
+                </label>
+                <span className="order-btns">
+                  <button className="lock-btn" disabled={i === 0} onClick={() => move(id, i - 1)} aria-label={`Move ${def.title} up`}>▲</button>
+                  <button className="lock-btn" disabled={i === onList.length - 1} onClick={() => move(id, i + 1)} aria-label={`Move ${def.title} down`}>▼</button>
+                </span>
+              </div>
             );
           })}
+          {offList.length > 0 && <p className="chart-picker-h">Hidden — check to add at the bottom</p>}
+          {offList.map((def) => (
+            <div key={def.id} className="chart-picker-row off">
+              <span className="drag-handle" aria-hidden="true" />
+              <label title={def.sub}>
+                <input type="checkbox" checked={false} onChange={() => onChange([...onList, def.id])} />
+                {def.title}
+              </label>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -277,7 +331,7 @@ export function ChartsPanel() {
         </div>
       </div>
 
-      {CHART_DEFS.filter((def) => active.includes(def.id)).map((def) => (
+      {active.map((id) => CHART_DEFS.find((d) => d.id === id)).filter((def): def is ChartDef => !!def).map((def) => (
         <ChartCard
           key={def.id}
           def={def}

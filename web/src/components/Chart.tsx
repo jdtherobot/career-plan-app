@@ -1,5 +1,5 @@
 /* Chart marks (SVG, no deps): lines, stacked areas, and bars. 2px lines,
-   recessive grid, crosshair + shared tooltip, direct end-labels, 1.5px
+   recessive grid, crosshair + shared tooltip (series named by the legend), 1.5px
    surface gaps between stacked fills. One axis, always. */
 
 import { useMemo, useRef, useState } from "react";
@@ -50,7 +50,7 @@ export function LineChart({
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<{ xIndex: number; px: number; py: number } | null>(null);
   const width = 900; // viewBox width; scales responsively
-  const pad = { left: 62, right: 84, top: 14, bottom: 26 };
+  const pad = { left: 62, right: 20, top: 14, bottom: 26 };
 
   const { xs, scaleX, scaleY, ticks, yMin } = useMemo(() => {
     const xs = series[0]?.points.map((p) => p.x) ?? [];
@@ -158,20 +158,9 @@ export function LineChart({
           const d = s.points
             .map((p, i) => `${i === 0 ? "M" : "L"}${scaleX(p.x).toFixed(1)},${scaleY(p.y).toFixed(1)}`)
             .join(" ");
-          const end = s.points[s.points.length - 1];
           return (
             <g key={s.id}>
               <path d={d} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" />
-              <text
-                x={scaleX(end.x) + 6}
-                y={scaleY(end.y) + 3.5}
-                fontSize={11}
-                fontWeight={600}
-                fontFamily="var(--font-ui)"
-                fill="var(--ink)"
-              >
-                {s.name}
-              </text>
               {hover && (
                 <circle
                   cx={scaleX(s.points[hover.xIndex].x)}

@@ -604,6 +604,48 @@ export function Paths() {
                     </div>
                   )}
                 </div>
+                {(block.type === "tech_career" || block.type === "research_career") && (() => {
+                  const preset = (block.type === "tech_career" ? companies : employers).find((c: any) => c.id === block.careerProfileId);
+                  const ov = block.overrides ?? {};
+                  const setOv = (patch: any) => {
+                    const next = { ...ov, ...patch };
+                    for (const k of Object.keys(patch)) if (patch[k] === null) delete next[k];
+                    updateBlock(index, { overrides: next });
+                  };
+                  const presetGrowth = Number(preset?.growthRate ?? 0.03);
+                  return (
+                    <div className="row" style={{ gap: 12, marginTop: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+                      <div style={{ minWidth: 170 }}>
+                        <label className="field" htmlFor={`sal-${block.id}`}>Starting salary ($/yr)</label>
+                        <input
+                          id={`sal-${block.id}`}
+                          type="number"
+                          min={0}
+                          step={1000}
+                          placeholder={preset ? String(Math.round(preset.baseSalary)) : ""}
+                          value={ov.salaryStartAnnual ?? ""}
+                          onChange={(e) => setOv({ salaryStartAnnual: e.target.value === "" ? null : Number(e.target.value) })}
+                        />
+                      </div>
+                      <div style={{ width: 110 }}>
+                        <label className="field" htmlFor={`raise-${block.id}`}>Raise (%/yr)</label>
+                        <input
+                          id={`raise-${block.id}`}
+                          type="number"
+                          step={0.5}
+                          placeholder={String(Math.round(presetGrowth * 1000) / 10)}
+                          value={typeof ov.salaryGrowthRate === "number" ? Math.round(ov.salaryGrowthRate * 1000) / 10 : ""}
+                          onChange={(e) => setOv({ salaryGrowthRate: e.target.value === "" ? null : Number(e.target.value) / 100 })}
+                        />
+                      </div>
+                      <p className="notice" style={{ margin: 0, flex: 1, minWidth: 200 }}>
+                        {ov.salaryStartAnnual || typeof ov.salaryGrowthRate === "number"
+                          ? "Your numbers replace the preset's salary path. Clear both to go back."
+                          : `Blank = ${preset?.label ?? "preset"} (${fmtMoney(preset?.baseSalary ?? 0)} to start). Fine-tune any single year in Finances → Salary.`}
+                      </p>
+                    </div>
+                  );
+                })()}
                 {block.type === "grad_school" && (
                   <GradBlockEditor
                     block={block}

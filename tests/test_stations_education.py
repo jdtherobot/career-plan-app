@@ -65,6 +65,23 @@ class StationTimelineTest(unittest.TestCase):
         self.assertAlmostEqual(line(rows[2028], "oha"), line(rows[2028], "housing"), delta=1)
         self.assertEqual(rows[2028]["lines"]["housing"]["status"], "covered")
 
+    def test_oha_is_the_full_dtmo_rate_and_all_goes_to_rent(self) -> None:
+        stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
+        rows = rows_of(payload(stations, exit_year=2027))
+        full = 1627.20 / 0.7239 * 12  # DTMO E-7 w/o deps, $2,247.82/mo
+        self.assertAlmostEqual(line(rows[2026], "oha"), full, delta=1)
+        self.assertAlmostEqual(line(rows[2026], "housing"), full, delta=1)
+
+    def test_missing_oha_holds_rent_and_oha_at_zero_and_flags_it(self) -> None:
+        stations = [{"id": "a", "locationId": "raf_alconbury_uk", "durationMonths": None, "housing": "off_base"}]
+        p = payload(stations, exit_year=2027)
+        p["plannerProfile"]["serviceProfile"]["dependents"] = True  # E-7 with deps: not loaded
+        rows = rows_of(p)
+        self.assertEqual(line(rows[2026], "oha"), 0.0)
+        self.assertEqual(line(rows[2026], "housing"), 0.0)
+        self.assertEqual(rows[2026]["lines"]["housing"]["status"], "pending_official_rate")
+        self.assertEqual(rows[2026]["lines"]["oha"]["status"], "missing_official_rate")
+
     def test_rent_above_cap_costs_the_difference_and_oha_follows_edits(self) -> None:
         rows = rows_of(payload(ALCONBURY, overrides={"housing": {"2028": 5000}}))
         housing = line(rows[2028], "housing")
@@ -246,6 +263,18 @@ class EducationBenefitTest(unittest.TestCase):
         funded = rows_of(payload(blocks=blocks))
         self.assertGreater(line(funded[2031], "stipend"), 0)
         self.assertEqual(line(funded[2031], "tuitionFees"), 0)  # MEXT waives tuition
+
+
+class BlockSalaryTest(unittest.TestCase):
+    def test_starting_salary_and_raise_override_the_preset(self) -> None:
+        blocks = [{"id": "t", "type": "tech_career", "durationMonths": None, "careerProfileId": "GOOG_SWE",
+                   "overrides": {"salaryStartAnnual": 120000, "salaryGrowthRate": 0.04}}]
+        rows = rows_of(payload(blocks=blocks, exit_year=2026))
+        self.assertAlmostEqual(line(rows[2027], "salary"), 120000, delta=1)
+        self.assertAlmostEqual(line(rows[2029], "salary"), 120000 * 1.04 ** 2, delta=1)
+        preset = rows_of(payload(exit_year=2026))
+        self.assertNotAlmostEqual(line(preset[2027], "salary"), 120000, delta=1)
+        self.assertLess(rows[2029]["employerMatch"], preset[2029]["employerMatch"] * 2)
 
 
 class LineOverrideTest(unittest.TestCase):

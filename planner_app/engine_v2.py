@@ -612,6 +612,17 @@ def project_scenario_v2(
                     )
                 elif seg.activity_type in ("tech_career", "research_career"):
                     career = _career_profile(reference_tables, seg.career_profile_id) or {}
+                    # Your own starting salary / raise for this block, if set,
+                    # replace the company preset's (bonus, RSU, match % stay).
+                    block_ov = seg.block_overrides or {}
+                    start_annual = block_ov.get("salaryStartAnnual")
+                    if isinstance(start_annual, (int, float)) and start_annual > 0:
+                        growth = block_ov.get("salaryGrowthRate")
+                        career = {**career, "baseSalary": float(start_annual), "compSegments": [],
+                                  "growthRate": float(growth) if isinstance(growth, (int, float))
+                                  else float(career.get("growthRate", 0.03) or 0.03)}
+                    elif isinstance(block_ov.get("salaryGrowthRate"), (int, float)):
+                        career = {**career, "compSegments": [], "growthRate": float(block_ov["salaryGrowthRate"])}
                     salary_annualized = salary_for_year(career, seg.years_in_activity)
                     year_lines.add("salary", salary_annualized * f, months)
                     taxable.append(("salary", salary_annualized * f))
@@ -667,36 +678,44 @@ def project_scenario_v2(
                     continue
                 year_lines.add(key, value * f, months)
             if allowance and allowance["overseas"] and not on_base:
-                rent_monthly = seg_expenses.get("housing", 0.0) / 12.0
                 cap = allowance["ohaCap"]
-                oha_monthly = min(rent_monthly, cap) if cap > 0 else 0.0
+                housing_line = year_lines.get("housing")
+                # Off-base overseas housing: rent is taken to be the full OHA
+                # rental allowance — you receive it and all of it goes to rent,
+                # so OHA and rent net to $0. (Type a different rent in the
+                # year editor to model renting above or below the cap.)
+                local_rent = seg_expenses.get("housing", 0.0) * f
+                housing_line.calc -= local_rent
+                rent_monthly = cap
+                if cap > 0:
+                    year_lines.add("housing", cap * months, 0)
+                    housing_line.status = "covered"
+                    housing_line.note(
+                        f"Rent = your full OHA (${cap:,.0f}/mo) — it all goes to rent, so OHA and rent net to $0.")
+                else:
+                    housing_line.status = "pending_official_rate"
+                    housing_line.note(
+                        "Official OHA rate not entered yet — OHA and rent are both held at $0 (they net to $0 once "
+                        "the DTMO figure is entered).")
+                oha_monthly = rent_monthly if cap > 0 else 0.0
                 year_lines.add("oha", oha_monthly * months, months)
                 prior = year_lines.oha_months
                 year_lines.oha_months += months
                 year_lines.oha_cap_monthly = (
                     (year_lines.oha_cap_monthly * prior + cap * months) / year_lines.oha_months
                 )
-                housing_line = year_lines.get("housing")
-                if cap > 0 and rent_monthly <= cap:
-                    housing_line.status = "covered"
-                    housing_line.note("Rent is covered by OHA (up to the cap) — OHA and rent net to $0.")
-                elif cap > 0:
-                    housing_line.status = "partial"
-                    housing_line.note(
-                        f"Rent is above the OHA cap (${cap:,.0f}/mo) — you pay the difference."
-                    )
                 if cap > 0:
                     cur = allowance["currency"]
                     official = allowance["ohaCapOfficialLocal"]
                     if allowance["projected"]:
                         year_lines.get("oha").note(
-                            f"OHA reimburses actual rent up to the DTMO rental allowance: {cur} {official:,.2f}/mo "
+                            f"Full DTMO OHA rental allowance: {cur} {official:,.2f}/mo "
                             f"({allowance.get('source', 'DTMO')}), projected to {cur} {cap * allowance['roe']:,.0f} "
-                            f"(${cap:,.0f}) for {calendar_year} as local rents rise. You keep nothing above rent.")
+                            f"(${cap:,.0f}) for {calendar_year} as local rents rise. All of it goes to rent.")
                     else:
                         year_lines.get("oha").note(
-                            f"OHA reimburses actual rent up to the DTMO rental allowance: {cur} {official:,.2f} "
-                            f"(${cap:,.0f})/mo ({allowance.get('source', 'DTMO')}). You keep nothing above rent.")
+                            f"Full DTMO OHA rental allowance: {cur} {official:,.2f} "
+                            f"(${cap:,.0f})/mo ({allowance.get('source', 'DTMO')}). All of it goes to rent.")
                 if allowance["ua"] > 0:
                     year_lines.get("utilities").note("Offset by the OHA utility allowance.")
                 # MIHA: one-time move-in allowance in the first month at the station,
